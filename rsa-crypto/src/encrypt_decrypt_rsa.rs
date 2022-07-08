@@ -9,7 +9,7 @@ use std::env;
 use num_traits::{One};
 // use rsa::pkcs1::DecodeRsaPrivateKey;
 
-pub fn encrypt_decrypt() {
+pub fn encrypt_decrypt_rsa() {
     // /// RSA-4096 PKCS#1 private key encoded as ASN.1 DER
     // const RSA_4096_PRIV_DER: &[u8] = include_bytes!("key_examples/rsa4096-priv.der");
     // /// RSA-4096 PKCS#1 public key encoded as ASN.1 DER
@@ -52,7 +52,7 @@ pub fn encrypt_decrypt() {
     println!("\n\nEncrypted:\t{}", hex_string);
     let dec_data = priv_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &enc_data).expect("failed to decrypt");
     let my_str = str::from_utf8(&dec_data).unwrap();
-    println!("\nDecrypted :\t{}", my_str);
+    println!("\nDecrypted:\t{}", my_str);
 // Final check for (d x e) mod (p-1)*(q-1)
     let p = priv_key.primes()[0].clone();
     let q = priv_key.primes()[1].clone();
