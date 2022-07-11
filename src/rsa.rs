@@ -5,11 +5,10 @@ use rsa::{pkcs1::{DecodeRsaPrivateKey, DecodeRsaPublicKey, EncodeRsaPrivateKey, 
           PublicKeyParts, RsaPrivateKey, RsaPublicKey, PaddingScheme, PublicKey};
 use std::str;
 use std::env;
-// use num_bigint::{BigUint};
 use num_traits::{One};
-// use rsa::pkcs1::DecodeRsaPrivateKey;
 
-pub fn encrypt_decrypt_rsa() {
+
+pub fn encrypt_rsa() {
     // /// RSA-4096 PKCS#1 private key encoded as ASN.1 DER
     // const RSA_4096_PRIV_DER: &[u8] = include_bytes!("key_examples/rsa4096-priv.der");
     // /// RSA-4096 PKCS#1 public key encoded as ASN.1 DER

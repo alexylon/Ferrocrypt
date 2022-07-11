@@ -1,5 +1,5 @@
 [package]
-name = "rsa-crypto"
+name = "rusty_crypto"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,6 +14,7 @@ pkcs1 = { version = "0.4", default-features = false, features = ["pkcs8", "alloc
 pkcs8 = { version = "0.9", default-features = false, features = ["alloc"] }
 zeroize = "1"
 rand = "0.8"
+aes-gcm = "0.9.4"
 
 [dev-dependencies]
 
