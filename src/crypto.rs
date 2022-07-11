@@ -37,7 +37,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) {
         .map(char::from)
         .collect();
 
-    // Generate the symmetric AES-GCM 256-bit key, unique per file
+    // Generate the symmetric AES-GCM 256-bit key for data encryption/decryption (data key), unique per file
     let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(rand_string_32.as_bytes());
     // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
     let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
@@ -50,6 +50,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) {
     let ciphertext = cipher.encrypt(nonce, &*file_original)
         .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
 
+    // Encrypt the data key
     let encrypted_symmetric_key = encrypt_key_rsa(symmetric_key.to_vec(), rsa_public_pem).unwrap();
 
     let mut file_path_encrypted = OpenOptions::new()
@@ -59,7 +60,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) {
         // either use ? or unwrap since it returns a Result
         .open(format!("{}_encrypted", file_path)).unwrap();
 
-    // The output contains both the nonce and the encrypted file
+    // The output contains the encrypted data key, the nonce and the encrypted file
     file_path_encrypted.write_all(&encrypted_symmetric_key).unwrap();
     file_path_encrypted.write_all(&nonce).unwrap();
     file_path_encrypted.write_all(&ciphertext).unwrap();
@@ -73,6 +74,7 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) {
     let (nonce_vec, ciphertext) = data_file.split_at(12);
     let nonce = Nonce::from_slice(nonce_vec);
 
+    // Decrypt the data key
     let decrypted_symmetric_key: Vec<u8> = decrypt_key_rsa(encrypted_symmetric_key, rsa_private_pem).unwrap();
     let symmetric_key_array: [u8; 32] = decrypted_symmetric_key.try_into()
         .unwrap_or_else(|v: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 32, v.len()));
@@ -97,6 +99,7 @@ fn get_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, Error> {
     Ok(buffer)
 }
 
+// Encrypt the data key with RSA algorithm
 fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, Error> {
     let mut rng = rand::thread_rng();
     // let public_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
@@ -106,6 +109,7 @@ fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u
     Ok(encrypted_data)
 }
 
+// Decrypt the data key with RSA algorithm
 fn decrypt_key_rsa(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, Error> {
     let private_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem).unwrap();
     // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();
