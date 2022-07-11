@@ -9,6 +9,6 @@ const RSA_4096_PRIV_PEM: &str = include_str!("key_examples/rsa4096-priv.pem");
 // let pub_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
 
 fn main() {
-    crypto::encrypt_aes_gcm(FILE_PATH, RSA_4096_PUB_PEM);
-    crypto::decrypt_aes_gcm(&format!("{}_encrypted", FILE_PATH), RSA_4096_PRIV_PEM);
+    crypto::encrypt_file(FILE_PATH, RSA_4096_PUB_PEM);
+    crypto::decrypt_file(&format!("{}_encrypted", FILE_PATH), RSA_4096_PRIV_PEM);
 }

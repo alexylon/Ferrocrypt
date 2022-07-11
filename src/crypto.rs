@@ -19,9 +19,10 @@ use rsa::{PaddingScheme,
 
 const FILE_PATH_DECRYPTED: &str = "src/test_files/test1_decrypted.txt";
 
-// TODO: cleanup all unwraps
+// TODO: clean up all unwraps
 
-pub fn encrypt_aes_gcm(file_path: &str, rsa_public_pem: &str) {
+// Encrypt file with AES-GCM algorithm
+pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) {
     // The string for generating the symmetric key should be 256-bit (32-bytes)
     let rand_string_32: String = thread_rng()
         .sample_iter(&Alphanumeric)
@@ -45,14 +46,11 @@ pub fn encrypt_aes_gcm(file_path: &str, rsa_public_pem: &str) {
     let file_original = get_file_as_byte_vec(file_path).unwrap();
 
     // Encrypt the file with AES-GCM algorithm
+    println!("Encrypting {}", file_path);
     let ciphertext = cipher.encrypt(nonce, &*file_original)
         .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
 
     let encrypted_symmetric_key = encrypt_key_rsa(symmetric_key.to_vec(), rsa_public_pem).unwrap();
-
-    // let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key);
-    // println!("symmetric_key {:?}", symmetric_key);
-    // println!("encrypted_symmetric_key_length {}", encrypted_symmetric_key.len());
 
     let mut file_path_encrypted = OpenOptions::new()
         .write(true)
@@ -67,7 +65,8 @@ pub fn encrypt_aes_gcm(file_path: &str, rsa_public_pem: &str) {
     file_path_encrypted.write_all(&ciphertext).unwrap();
 }
 
-pub fn decrypt_aes_gcm(encrypted_file_path: &str, rsa_private_pem: &str) {
+// Decrypt file with AES-GCM algorithm
+pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) {
     let data = get_file_as_byte_vec(encrypted_file_path).expect("Unable to read file");
     // Split the nonce and the encrypted file
     let (encrypted_symmetric_key, data_file) = data.split_at(512);
@@ -79,7 +78,7 @@ pub fn decrypt_aes_gcm(encrypted_file_path: &str, rsa_private_pem: &str) {
         .unwrap_or_else(|v: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 32, v.len()));
     let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(symmetric_key_array);
     let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
-
+    println!("Decrypting {}", encrypted_file_path);
     let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())
         .expect("decryption failure!"); // NOTE: handle this error to avoid panics!
 
