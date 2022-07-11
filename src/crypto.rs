@@ -48,7 +48,7 @@ pub fn encrypt_aes_gcm(file_path: &str, rsa_public_pem: &str) {
     let ciphertext = cipher.encrypt(nonce, &*file_original)
         .expect("encryption failure!"); // NOTE: handle this error to avoid panics!
 
-    let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), rsa_public_pem).unwrap();
+    let encrypted_symmetric_key = encrypt_key_rsa(symmetric_key.to_vec(), rsa_public_pem).unwrap();
 
     // let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key);
     // println!("symmetric_key {:?}", symmetric_key);
@@ -74,7 +74,7 @@ pub fn decrypt_aes_gcm(encrypted_file_path: &str, rsa_private_pem: &str) {
     let (nonce_vec, ciphertext) = data_file.split_at(12);
     let nonce = Nonce::from_slice(nonce_vec);
 
-    let decrypted_symmetric_key: Vec<u8> = decrypt_key(encrypted_symmetric_key, rsa_private_pem).unwrap();
+    let decrypted_symmetric_key: Vec<u8> = decrypt_key_rsa(encrypted_symmetric_key, rsa_private_pem).unwrap();
     let symmetric_key_array: [u8; 32] = decrypted_symmetric_key.try_into()
         .unwrap_or_else(|v: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 32, v.len()));
     let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(symmetric_key_array);
@@ -98,21 +98,19 @@ fn get_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, Error> {
     Ok(buffer)
 }
 
-fn encrypt_key(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, Error> {
+fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, Error> {
     let mut rng = rand::thread_rng();
+    // let public_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
+    let public_key = RsaPublicKey::from_pkcs1_pem(rsa_public_pem).unwrap();
+    let encrypted_data = public_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key[..]).expect("failed to encrypt");
 
-    // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();
-    // let pub_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
-
-    let pub_key = RsaPublicKey::from_pkcs1_pem(rsa_public_pem).unwrap();
-    let enc_data = pub_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key[..]).expect("failed to encrypt");
-
-    Ok(enc_data)
+    Ok(encrypted_data)
 }
 
-fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, Error> {
+fn decrypt_key_rsa(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, Error> {
     let priv_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem).unwrap();
-    let dec_data = priv_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key).expect("failed to decrypt");
+    // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();
+    let decrypted_data = priv_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key).expect("failed to decrypt");
 
-    Ok(dec_data)
+    Ok(decrypted_data)
 }
