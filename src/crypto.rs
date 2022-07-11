@@ -107,9 +107,9 @@ fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u
 }
 
 fn decrypt_key_rsa(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, Error> {
-    let priv_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem).unwrap();
+    let private_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem).unwrap();
     // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();
-    let decrypted_data = priv_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key).expect("failed to decrypt");
+    let decrypted_data = private_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key).expect("failed to decrypt");
 
     Ok(decrypted_data)
 }
