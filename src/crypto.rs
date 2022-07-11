@@ -101,7 +101,7 @@ fn get_file_as_byte_vec(filename: &str) -> Result<Vec<u8>, Error> {
 
 // Encrypt the data key with RSA algorithm
 fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, Error> {
-    let mut rng = rand::thread_rng();
+    let mut rng = thread_rng();
     // let public_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
     let public_key = RsaPublicKey::from_pkcs1_pem(rsa_public_pem).unwrap();
     let encrypted_data = public_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key[..]).expect("failed to encrypt");
