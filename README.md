@@ -61,7 +61,7 @@ OR
 
 `-h, --help`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print help information
 
-`-i, --infile <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
+`-i, --infile <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
 
 `-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Path to the key (public RSA key for encryption or private RSA key for decryption)
 
