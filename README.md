@@ -38,7 +38,7 @@ For testing purposes you could use the included `.pem` keys in `/key_examples`.
 
 #### Encrypt file:
 
-`rusty_crypto --encrypt --infile <INPUT_FILE_PATH> --key <PUBLIC_PEM_KEY>`
+`rusty_crypto --encrypt --input <INPUT_FILE_PATH> --key <PUBLIC_PEM_KEY>`
 
 OR
 
@@ -46,7 +46,7 @@ OR
 
 #### Decrypt file:
 
-`rusty_crypto --decrypt --infile <INPUT_FILE_PATH> --outfile <OUTPUT_FILE_PATH> --key <PRIVATE_PEM_KEY>`
+`rusty_crypto --decrypt --input <INPUT_FILE_PATH> --output <OUTPUT_FILE_PATH> --key <PRIVATE_PEM_KEY>`
 
 OR
 
@@ -61,11 +61,11 @@ OR
 
 `-h, --help`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print help information
 
-`-i, --infile <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
+`-i, --input <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
 
 `-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key path (public RSA key for encryption or private RSA key for decryption)
 
-`-o, --outfile <OUTPUT_FILE_PATH>`&nbsp;&nbsp;Output file path (used for decryption only)
+`-o, --output <OUTPUT_FILE_PATH>`&nbsp;&nbsp;Output file path (used for decryption only)
 
 `-V, --version`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print version information
 

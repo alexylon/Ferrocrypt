@@ -16,11 +16,11 @@ struct Args {
 
     /// Input file path
     #[clap(short, long, value_parser)]
-    infile: String,
+    input: String,
 
     /// Output file path
-    #[clap(short, long, value_parser)]
-    outfile: String,
+    #[clap(short, long, value_parser, default_value = "")]
+    output: String,
 
     /// Path to the key
     #[clap(short, long, value_parser)]
@@ -40,8 +40,8 @@ fn main() {
     let args = Args::parse();
 
     match std::fs::File::open(args.key) {
-        Ok(in_file) => {
-            let mut reader = Reader::new(&in_file);
+        Ok(key_path) => {
+            let mut reader = Reader::new(&key_path);
             let mut key = String::from("");
             for x in reader.into_iter() {
                 match x {
@@ -51,14 +51,14 @@ fn main() {
             }
 
             if args.encrypt {
-                match crypto::encrypt_file(&args.infile, &key) {
+                match crypto::encrypt_file(&args.input, &key) {
                     Ok(_) => {}
                     Err(e) => { println!("Cannot encrypt file: {}", e) }
                 };
             }
 
             if args.decrypt {
-                match crypto::decrypt_file(&args.infile, &args.outfile, &key) {
+                match crypto::decrypt_file(&args.input, &args.output, &key) {
                     Ok(_) => {}
                     Err(e) => { println!("Cannot decrypt file: {}", e) }
                 };
