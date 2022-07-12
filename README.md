@@ -63,7 +63,7 @@ OR
 
 `-i, --infile <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
 
-`-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Path to the key (public RSA key for encryption or private RSA key for decryption)
+`-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key path (public RSA key for encryption or private RSA key for decryption)
 
 `-o, --outfile <OUTPUT_FILE_PATH>`&nbsp;&nbsp;Output file path (used for decryption only)
 
