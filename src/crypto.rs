@@ -16,6 +16,37 @@ use rand::prelude::*;
 use rsa::{PaddingScheme,
           pkcs1::{DecodeRsaPrivateKey, DecodeRsaPublicKey}, PublicKey, RsaPrivateKey, RsaPublicKey};
 
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use crate::crypto::{decrypt_file, encrypt_file};
+
+    const FILE_PATH: &str = "src/test_files/test1.txt";
+    // RSA-4096 PKCS#1 public key encoded as PEM
+    const RSA_4096_PUB_PEM: &str = "src/key_examples/rsa4096-pub.pem";
+    // RSA-4096 PKCS#1 private key encoded as PEM
+    const RSA_4096_PRIV_PEM: &str = "src/key_examples/rsa4096-priv.pem";
+    const FILE_PATH_ENCRYPTED: &str = "src/test_files/test1.txt_encrypted";
+    const FILE_PATH_DECRYPTED: &str = "src/test_files/test1_decrypted.txt";
+
+    #[test]
+    fn encrypt_decrypt_test() {
+        let pub_key = fs::read_to_string(RSA_4096_PUB_PEM).unwrap();
+        encrypt_file(FILE_PATH, &pub_key).unwrap();
+
+        let priv_key = fs::read_to_string(RSA_4096_PRIV_PEM).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, FILE_PATH_DECRYPTED, &priv_key).unwrap();
+
+        let file_original = fs::read_to_string(FILE_PATH).unwrap();
+        let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
+
+        assert_eq!(file_original, file_decrypted);
+
+        fs::remove_file(FILE_PATH_ENCRYPTED).unwrap();
+        fs::remove_file(FILE_PATH_DECRYPTED).unwrap();
+    }
+}
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Error> {

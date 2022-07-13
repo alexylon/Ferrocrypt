@@ -16,7 +16,6 @@ zeroize = "1"
 rand = "0.8"
 aes-gcm = "0.9.4"
 clap = { version = "3.2.10", features = ["derive"] }
-utf8-read = "0.4"
 
 [dev-dependencies]
 
