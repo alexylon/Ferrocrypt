@@ -10,6 +10,8 @@ Both crates, implementing the AES-GCM and RSA encryption ciphers - `aes-gcm` and
 In order to encrypt or decrypt a file you need only a pair of PEM keys - a public one for encrypting and a private one for decrypting. 
 For testing purposes you could use the included `.pem` keys in `/key_examples`.
 
+The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latter can be used independently as a library.
+
 
 #### When encrypting the tool: 
 
