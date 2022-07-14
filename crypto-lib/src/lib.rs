@@ -21,10 +21,11 @@ use rsa::{PaddingScheme,
 #[cfg(test)]
 mod tests {
     use std::fs;
+
     use aes_gcm::aead::generic_array::{GenericArray, typenum};
     use aes_gcm::Key;
 
-    use crate::crypto::{decrypt_file, decrypt_key_rsa, encrypt_file, encrypt_key_rsa, random_bytes};
+    use crate::{decrypt_file, decrypt_key_rsa, encrypt_file, encrypt_key_rsa, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test1.txt";
     // RSA-4096 PKCS#1 public key encoded as PEM

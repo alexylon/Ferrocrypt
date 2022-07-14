@@ -1,25 +1,6 @@
-[package]
-name = "rusty_crypto"
-version = "0.1.0"
-edition = "2021"
+[workspace] 
+members = [ 
+	"crypto-lib", 
+	"crypto-cli",
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-rsa = "0.6"
-hex = "0.4.0"
-num-traits = "0.2.11"
-hex-literal = "0.3.3"
-pkcs1 = { version = "0.4", default-features = false, features = ["pkcs8", "alloc"] }
-pkcs8 = { version = "0.9", default-features = false, features = ["alloc"] }
-zeroize = "1"
-rand = "0.8"
-aes-gcm = "0.9.4"
-clap = { version = "3.2.10", features = ["derive"] }
-thiserror = "1.0"
-
-[dev-dependencies]
-
-
-[features]
-pem = ["pkcs1/pem", "pkcs8/pem"]

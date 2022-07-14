@@ -3,7 +3,7 @@ use std::fs;
 
 use clap::Parser;
 
-mod crypto;
+use crypto_lib;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -35,14 +35,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     match fs::read_to_string(args.key) {
         Ok(key) => {
             if args.encrypt {
-                match crypto::encrypt_file(&args.input, &key) {
+                match crypto_lib::encrypt_file(&args.input, &key) {
                     Ok(_) => { println!("Encrypting {} ...", &args.input); }
                     Err(e) => { return Err(format!("Cannot encrypt file: {}", e).into()); }
                 };
             }
 
             if args.decrypt {
-                match crypto::decrypt_file(&args.input, &args.output, &key) {
+                match crypto_lib::decrypt_file(&args.input, &args.output, &key) {
                     Ok(_) => {
                         println!("Decrypting {} ...", &args.input);
                     }
