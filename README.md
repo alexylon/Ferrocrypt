@@ -38,22 +38,33 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 ### USAGE
 
+#### BUILD
+
+`cargo build --release` - the binary file is located in `target\release\crypto-cli.exe` (Windows) 
+or `target/release/crypto-cli` (macOS and Linux).
+
 #### Encrypt file:
 
-`rusty_crypto --encrypt --input <INPUT_FILE_PATH> --key <PUBLIC_PEM_KEY>`
+##### Windows:
+
+`crypto-cli --encrypt --input <INPUT_FILE_PATH> --key <PUBLIC_PEM_KEY>`
 
 OR
 
-`rusty_crypto -e -i <INPUT_FILE_PATH> -k <PUBLIC_PEM_KEY>`
+`crypto-cli -e -i <INPUT_FILE_PATH> -k <PUBLIC_PEM_KEY>`
 
 #### Decrypt file:
 
-`rusty_crypto --decrypt --input <INPUT_FILE_PATH> --output <OUTPUT_FILE_PATH> --key <PRIVATE_PEM_KEY>`
+`crypto-cli --decrypt --input <INPUT_FILE_PATH> --output <OUTPUT_FILE_PATH> --key <PRIVATE_PEM_KEY>`
 
 OR
 
-`rusty_crypto -d -i <INPUT_FILE_PATH> -o <OUTPUT_FILE_PATH> -k <PRIVATE_PEM_KEY>`
+`crypto-cli -d -i <INPUT_FILE_PATH> -o <OUTPUT_FILE_PATH> -k <PRIVATE_PEM_KEY>`
 <br/><br/>
+
+##### macOS and Linux:
+
+Just replace the command with `./crypto-cli`
 
 ### OPTIONS:
 
