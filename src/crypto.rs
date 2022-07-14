@@ -21,8 +21,10 @@ use rsa::{PaddingScheme,
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use aes_gcm::aead::generic_array::{GenericArray, typenum};
+    use aes_gcm::Key;
 
-    use crate::crypto::{decrypt_file, encrypt_file};
+    use crate::crypto::{decrypt_file, decrypt_key_rsa, encrypt_file, encrypt_key_rsa, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test1.txt";
     // RSA-4096 PKCS#1 public key encoded as PEM
@@ -33,7 +35,7 @@ mod tests {
     const FILE_PATH_DECRYPTED: &str = "src/test_files/test1_decrypted.txt";
 
     #[test]
-    fn encrypt_decrypt_test() {
+    fn encrypt_decrypt_file_test() {
         let pub_key = fs::read_to_string(RSA_4096_PUB_PEM).unwrap();
         encrypt_file(FILE_PATH, &pub_key).unwrap();
 
@@ -47,6 +49,27 @@ mod tests {
 
         fs::remove_file(FILE_PATH_ENCRYPTED).unwrap();
         fs::remove_file(FILE_PATH_DECRYPTED).unwrap();
+    }
+
+    #[test]
+    fn encrypt_decrypt_key_test() {
+        let pub_key = fs::read_to_string(RSA_4096_PUB_PEM).unwrap();
+        let priv_key = fs::read_to_string(RSA_4096_PRIV_PEM).unwrap();
+        let rand_bytes_32 = random_bytes(32).unwrap();
+        let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
+        let encrypted_symmetric_key = encrypt_key_rsa(symmetric_key.to_vec(), &pub_key).unwrap();
+        let decrypted_symmetric_key = decrypt_key_rsa(&encrypted_symmetric_key.unwrap(), &priv_key).unwrap();
+
+        assert_eq!(symmetric_key.to_vec(), decrypted_symmetric_key.unwrap());
+    }
+
+    #[test]
+    fn random_bytes_test() {
+        let rand_bytes_32 = random_bytes(32).unwrap();
+        let rand_bytes_12 = random_bytes(12).unwrap();
+
+        assert_eq!(rand_bytes_32.len(), 32);
+        assert_eq!(rand_bytes_12.len(), 12);
     }
 }
 
@@ -66,28 +89,18 @@ mod tests {
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn Error>> {
-    // The string for generating the symmetric key should be 256-bit (32-bytes)
-    let rand_string_32: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(32)
-        .map(char::from)
-        .collect();
+    // The byte string for generating the symmetric key should be 256-bit (32-bytes)
+    let rand_bytes_32 = random_bytes(32)?;
+    // The byte string for the nonce should be 96-bit (12-bytes)
+    let rand_bytes_12 = random_bytes(12)?;
 
-    // The string for the nonce should be 96-bit (12-bytes)
-    let rand_string_12: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(12)
-        .map(char::from)
-        .collect();
-
-    // Generate the symmetric AES-GCM 256-bit key for data encryption/decryption (data key), unique per file
-    let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(rand_string_32.as_bytes());
+    // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
+    let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
     // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
     let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
     // Create the 96-bit nonce, unique per file
-    let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(rand_string_12.as_bytes());
-    let file_original = get_file_as_byte_vec(file_path)?; //{
-    // Ok(file_original) => {
+    let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
+    let file_original = get_file_as_byte_vec(file_path)?;
     match file_original {
         None => { return Err(format!("No file found!").into()); }
         Some(file_original) => {// Encrypt the file with AES-GCM algorithm
@@ -114,9 +127,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn
             }
         }
     }
-    // }
-    // Err(e) => { return Err(format!("No file found: {}", e).into()); }
-    // }
+
     Ok(())
 }
 
@@ -167,6 +178,16 @@ pub fn decrypt_file(encrypted_file_path: &str, decrypted_file_path: &str, rsa_pr
     Ok(())
 }
 
+fn random_bytes(n_bytes: usize) -> Result<Vec<u8>, Box<dyn Error>> {
+    let rand_bytes = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(n_bytes)
+        .map(char::from)
+        .collect::<String>().as_bytes().to_vec();
+
+    Ok(rand_bytes)
+}
+
 fn get_file_as_byte_vec(filename: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
     match File::open(&filename) {
         Ok(mut file) => {
@@ -207,7 +228,7 @@ fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Optio
             }
         }
         Err(e) => {
-            return Err(format!("Cannot encrypt key: {}", e).into());
+            return Err(format!("Cannot get key: {}", e).into());
         }
     }
 }
@@ -225,7 +246,7 @@ fn decrypt_key_rsa(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Option
             }
         }
         Err(e) => {
-            return Err(format!("Cannot decrypt key: {}", e).into());
+            return Err(format!("Cannot get key: {}", e).into());
         }
     }
 }
