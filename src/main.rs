@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs;
 
 use clap::Parser;
@@ -28,25 +29,29 @@ struct Args {
     key: String,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     match fs::read_to_string(args.key) {
         Ok(key) => {
             if args.encrypt {
                 match crypto::encrypt_file(&args.input, &key) {
-                    Ok(_) => {}
-                    Err(e) => { println!("Cannot encrypt file: {}", e) }
+                    Ok(_) => { println!("Encrypting {} ...", &args.input); }
+                    Err(e) => { return Err(format!("Cannot encrypt file: {}", e).into()); }
                 };
             }
 
             if args.decrypt {
                 match crypto::decrypt_file(&args.input, &args.output, &key) {
-                    Ok(_) => {}
-                    Err(e) => { println!("Cannot decrypt file: {}", e) }
+                    Ok(_) => {
+                        println!("Decrypting {} ...", &args.input);
+                    }
+                    Err(e) => { return Err(format!("Cannot decrypt file: {}", e).into()); }
                 };
             }
         }
-        Err(e) => { println!("Cannot open key: {}", e) }
+        Err(e) => { return Err(format!("Cannot open key: {}", e).into()); }
     }
+
+    Ok(())
 }
