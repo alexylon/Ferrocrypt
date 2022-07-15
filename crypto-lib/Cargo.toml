@@ -16,6 +16,7 @@ zeroize = "1"
 rand = "0.8"
 aes-gcm = "0.9.4"
 thiserror = "1.0"
+substring = "1"
 
 [dev-dependencies]
 

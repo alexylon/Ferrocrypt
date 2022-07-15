@@ -15,7 +15,7 @@ use rand::distributions::Alphanumeric;
 use rand::prelude::*;
 use rsa::{PaddingScheme,
           pkcs1::{DecodeRsaPrivateKey, DecodeRsaPublicKey}, PublicKey, RsaPrivateKey, RsaPublicKey};
-
+use substring::Substring;
 // use thiserror::Error;
 
 #[cfg(test)]
@@ -25,15 +25,15 @@ mod tests {
     use aes_gcm::aead::generic_array::{GenericArray, typenum};
     use aes_gcm::Key;
 
-    use crate::{decrypt_file, decrypt_key_rsa, encrypt_file, encrypt_key_rsa, random_bytes};
+    use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test1.txt";
     // RSA-4096 PKCS#1 public key encoded as PEM
     const RSA_4096_PUB_PEM: &str = "src/key_examples/rsa4096-pub.pem";
     // RSA-4096 PKCS#1 private key encoded as PEM
     const RSA_4096_PRIV_PEM: &str = "src/key_examples/rsa4096-priv.pem";
-    const FILE_PATH_ENCRYPTED: &str = "src/test_files/test1.txt_encrypted";
-    const FILE_PATH_DECRYPTED: &str = "src/test_files/test1_decrypted.txt";
+    const FILE_PATH_ENCRYPTED: &str = "src/test_files/encrypted/test1.txt.crypto";
+    const FILE_PATH_DECRYPTED: &str = "src/test_files/encrypted/decrypted/test1.txt";
 
     #[test]
     fn encrypt_decrypt_file_test() {
@@ -41,7 +41,7 @@ mod tests {
         encrypt_file(FILE_PATH, &pub_key).unwrap();
 
         let priv_key = fs::read_to_string(RSA_4096_PRIV_PEM).unwrap();
-        decrypt_file(FILE_PATH_ENCRYPTED, FILE_PATH_DECRYPTED, &priv_key).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, &priv_key).unwrap();
 
         let file_original = fs::read_to_string(FILE_PATH).unwrap();
         let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
@@ -58,8 +58,8 @@ mod tests {
         let priv_key = fs::read_to_string(RSA_4096_PRIV_PEM).unwrap();
         let rand_bytes_32 = random_bytes(32).unwrap();
         let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
-        let encrypted_symmetric_key = encrypt_key_rsa(symmetric_key.to_vec(), &pub_key).unwrap();
-        let decrypted_symmetric_key = decrypt_key_rsa(&encrypted_symmetric_key.unwrap(), &priv_key).unwrap();
+        let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), &pub_key).unwrap();
+        let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key.unwrap(), &priv_key).unwrap();
 
         assert_eq!(symmetric_key.to_vec(), decrypted_symmetric_key.unwrap());
     }
@@ -90,90 +90,111 @@ mod tests {
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn Error>> {
-    // The byte string for generating the symmetric key should be 256-bit (32-bytes)
-    let rand_bytes_32 = random_bytes(32)?;
-    // The byte string for the nonce should be 96-bit (12-bytes)
-    let rand_bytes_12 = random_bytes(12)?;
+    if let Some(dir_path_index) = file_path.rfind('/') {
+        let dir_path = file_path.substring(0, dir_path_index);
+        let file_name = file_path.substring(dir_path_index + 1, file_path.len());
 
-    // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
-    let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
-    // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
-    let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
-    // Create the 96-bit nonce, unique per file
-    let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
-    let file_original = get_file_as_byte_vec(file_path)?;
-    match file_original {
-        None => { return Err(format!("No file found!").into()); }
-        Some(file_original) => {// Encrypt the file with AES-GCM algorithm
-            match cipher.encrypt(nonce, &*file_original) {
-                Ok(ciphertext) => {
-                    // Encrypt the data key
-                    match encrypt_key_rsa(symmetric_key.to_vec(), rsa_public_pem)? {
-                        None => { return Err(format!("There is no relevant key").into()); }
-                        Some(encrypted_symmetric_key) => {
-                            let mut file_path_encrypted = OpenOptions::new()
-                                .write(true)
-                                .append(true)
-                                .create_new(true)
-                                .open(format!("{}_encrypted", file_path))?;
+        fs::create_dir_all(format!("{}/encrypted", dir_path))?;
+        // The byte string for generating the symmetric key should be 256-bit (32-bytes)
+        let rand_bytes_32 = random_bytes(32)?;
+        // The byte string for the nonce should be 96-bit (12-bytes)
+        let rand_bytes_12 = random_bytes(12)?;
 
-                            // The output contains the encrypted data key, the nonce and the encrypted file
-                            file_path_encrypted.write_all(&encrypted_symmetric_key)?;
-                            file_path_encrypted.write_all(&nonce)?;
-                            file_path_encrypted.write_all(&ciphertext)?;
+        // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
+        let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
+        // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
+        let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
+        // Create the 96-bit nonce, unique per file
+        let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
+        let file_original = get_file_as_byte_vec(file_path)?;
+        match file_original {
+            None => { return Err(format!("No file found!").into()); }
+            Some(file_original) => {// Encrypt the file with AES-GCM algorithm
+                match cipher.encrypt(nonce, &*file_original) {
+                    Ok(ciphertext) => {
+                        // Encrypt the data key
+                        match encrypt_key(symmetric_key.to_vec(), rsa_public_pem)? {
+                            None => { return Err(format!("There is no relevant key").into()); }
+                            Some(encrypted_symmetric_key) => {
+                                let mut file_path_encrypted = OpenOptions::new()
+                                    .write(true)
+                                    .append(true)
+                                    .create_new(true)
+                                    .open(format!("{}/encrypted/{}.crypto", dir_path, file_name))?;
+
+                                // The output contains the encrypted data key, the nonce and the encrypted file
+                                file_path_encrypted.write_all(&encrypted_symmetric_key)?;
+                                file_path_encrypted.write_all(&nonce)?;
+                                file_path_encrypted.write_all(&ciphertext)?;
+                            }
                         }
                     }
+                    Err(e) => { return Err(format!("Encryption failure: {}", e).into()); }
                 }
-                Err(e) => { return Err(format!("Encryption failure: {}", e).into()); }
             }
         }
+    } else {
+        return Err(format!("No directory specified!").into());
     }
 
     Ok(())
 }
 
 // Decrypt file with AES-GCM algorithm
-pub fn decrypt_file(encrypted_file_path: &str, decrypted_file_path: &str, rsa_private_pem: &str) -> Result<(), Box<dyn Error>> {
-    if let Some(data) = get_file_as_byte_vec(encrypted_file_path)? {
-        // Split the nonce and the encrypted file
-        let (encrypted_symmetric_key, data_file) = data.split_at(512);
-        let (nonce_vec, ciphertext) = data_file.split_at(12);
-        let nonce = Nonce::from_slice(nonce_vec);
+pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) -> Result<(), Box<dyn Error>> {
+    if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
+        let dir_path = encrypted_file_path.substring(0, dir_path_index);
+        let crypto_ext = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
+        if crypto_ext == ".crypto" {
+            fs::create_dir_all(format!("{}/decrypted", dir_path))?;
+            let file_name_decrypted = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
+            let decrypted_file_path = format!("{}/decrypted/{}", dir_path, file_name_decrypted);
+            if let Some(data) = get_file_as_byte_vec(encrypted_file_path)? {
+                // Split the nonce and the encrypted file
+                let (encrypted_symmetric_key, data_file) = data.split_at(512);
+                let (nonce_vec, ciphertext) = data_file.split_at(12);
+                let nonce = Nonce::from_slice(nonce_vec);
 
-        // Decrypt the data key
-        match decrypt_key_rsa(encrypted_symmetric_key, rsa_private_pem)? {
-            None => { return Err(format!("Cannot decrypt key!").into()); }
-            Some(decrypted_symmetric_key) => {
-                // Convert the vector into array
-                // let symmetric_key_array: [u8; 32] = decrypted_symmetric_key.try_into()
-                //     .unwrap_or_else(|v: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 32, v.len()));
-                let symmetric_key_slice = decrypted_symmetric_key.as_slice();
-                let symmetric_key_array: [u8; 32] = match symmetric_key_slice.try_into() {
-                    Ok(ba) => ba,
-                    Err(e) => panic!("Expected a Vec of length {} but it was {}: {}", 32, decrypted_symmetric_key.len(), e),
-                };
+                // Decrypt the data key
+                match decrypt_key(encrypted_symmetric_key, rsa_private_pem)? {
+                    None => { return Err(format!("Cannot decrypt key!").into()); }
+                    Some(decrypted_symmetric_key) => {
+                        // Convert the vector into array
+                        // let symmetric_key_array: [u8; 32] = decrypted_symmetric_key.try_into()
+                        //     .unwrap_or_else(|v: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 32, v.len()));
+                        let symmetric_key_slice = decrypted_symmetric_key.as_slice();
+                        let symmetric_key_array: [u8; 32] = match symmetric_key_slice.try_into() {
+                            Ok(ba) => ba,
+                            Err(e) => panic!("Expected a Vec of length {} but it was {}: {}", 32, decrypted_symmetric_key.len(), e),
+                        };
 
-                let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(symmetric_key_array);
-                let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
-                match cipher.decrypt(nonce, ciphertext.as_ref()) {
-                    Ok(file_decrypted) => {
-                        // let my_str = str::from_utf8(&plaintext).unwrap();
-                        match File::create(decrypted_file_path) {
-                            Ok(_) => {
-                                match fs::write(decrypted_file_path, file_decrypted) {
-                                    Ok(_) => {}
-                                    Err(e) => { return Err(format!("Cannot write file: {}", e).into()); }
+                        let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(symmetric_key_array);
+                        let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
+                        match cipher.decrypt(nonce, ciphertext.as_ref()) {
+                            Ok(file_decrypted) => {
+                                // let my_str = str::from_utf8(&plaintext).unwrap();
+                                match File::create(&decrypted_file_path) {
+                                    Ok(_) => {
+                                        match fs::write(&decrypted_file_path, file_decrypted) {
+                                            Ok(_) => {}
+                                            Err(e) => { return Err(format!("Cannot write file: {}", e).into()); }
+                                        }
+                                    }
+                                    Err(e) => { return Err(format!("Cannot create file: {}", e).into()); }
                                 }
                             }
-                            Err(e) => { return Err(format!("Cannot create file: {}", e).into()); }
+                            Err(e) => { return Err(format!("Decryption failure: {}", e).into()); }
                         }
                     }
-                    Err(e) => { return Err(format!("Decryption failure: {}", e).into()); }
                 }
+            } else {
+                return Err(format!("Cannot get file as bytes").into());
             }
+        } else {
+            return Err(format!("This file has no '.crypto' extension!").into());
         }
     } else {
-        return Err(format!("Cannot get file as bytes").into());
+        return Err(format!("No directory specified!").into());
     }
 
     Ok(())
@@ -216,7 +237,7 @@ fn get_file_as_byte_vec(filename: &str) -> Result<Option<Vec<u8>>, Box<dyn Error
 }
 
 // Encrypt the data key with RSA algorithm
-fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+fn encrypt_key(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
     let mut rng = thread_rng();
     // let public_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
     match RsaPublicKey::from_pkcs1_pem(rsa_public_pem) {
@@ -235,7 +256,7 @@ fn encrypt_key_rsa(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Optio
 }
 
 // Decrypt the data key with RSA algorithm
-fn decrypt_key_rsa(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
+fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Option<Vec<u8>>, Box<dyn Error>> {
     match RsaPrivateKey::from_pkcs1_pem(rsa_private_pem) {
         Ok(private_key) => {
             // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();

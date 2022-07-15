@@ -23,7 +23,7 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 - Puts the encrypted symmetric key, the nonce and the encrypted file in an envelope .
 
-- Writes the envelope on the file system. The name of the encrypted file will be the original file name + `_encrypted`.
+- Writes the envelope on the file system in subdirectory `encrypted`. The name of the encrypted file will be `FILE_NAME.EXT.crypto`.
 
 #### When decrypting the tool:
 
@@ -33,52 +33,48 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 - Decrypts the file with the symmetric key and the nonce.
 
-- Writes the decrypted file on the file system.
+- Writes the decrypted file on the file system in subdirectory `decrypted`, removing the `.crypto` extension.
   <br/><br/>
 
 ### USAGE
 
 #### BUILD
 
-`cargo build --release` - the binary file is located in `target\release\crypto-cli.exe` (Windows) 
-or `target/release/crypto-cli` (macOS and Linux).
+`cargo build --release` - the binary file is located in `target\release\crypto.exe` (Windows) 
+or `target/release/crypto` (macOS and Linux).
 
 #### Encrypt file:
 
 ##### Windows:
 
-`crypto-cli --encrypt --input <INPUT_FILE_PATH> --key <PUBLIC_PEM_KEY>`
+`crypto --encrypt <FILE_PATH> --key <PUBLIC_PEM_KEY>`
 
 OR
 
-`crypto-cli -e -i <INPUT_FILE_PATH> -k <PUBLIC_PEM_KEY>`
+`crypto -e <FILE_PATH> -k <PUBLIC_PEM_KEY>`
 
 #### Decrypt file:
 
-`crypto-cli --decrypt --input <INPUT_FILE_PATH> --output <OUTPUT_FILE_PATH> --key <PRIVATE_PEM_KEY>`
+`crypto --decrypt <FILE_PATH> --key <PRIVATE_PEM_KEY>`
 
 OR
 
-`crypto-cli -d -i <INPUT_FILE_PATH> -o <OUTPUT_FILE_PATH> -k <PRIVATE_PEM_KEY>`
+`crypto -d <FILE_PATH> -k <PRIVATE_PEM_KEY>`
 <br/><br/>
 
 ##### macOS and Linux:
 
-Just replace the command with `./crypto-cli`
+Just replace the command with `./crypto`
 
 ### OPTIONS:
 
-`-d, --decrypt`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Decrypt
+`-d, --decrypt <FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Decrypt file path
 
-`-e, --encrypt`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Encrypt
+`-e, --encrypt <FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Encrypt file path
 
-`-h, --help`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print help information
+`-h, --help`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print help information
 
-`-i, --input <INPUT_FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Input file path (used for encryption or decryption)
+`-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key path (public RSA key for encryption or private RSA key for decryption)
 
-`-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key path (public RSA key for encryption or private RSA key for decryption)
-
-`-o, --output <OUTPUT_FILE_PATH>`&nbsp;&nbsp;Output file path (used for decryption only)
-
-`-V, --version`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print version information
+`-V, --version`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print version information
 
