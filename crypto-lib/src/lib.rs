@@ -16,7 +16,7 @@ use rand::prelude::*;
 use rsa::{PaddingScheme,
           pkcs1::{DecodeRsaPrivateKey, DecodeRsaPublicKey}, PublicKey, RsaPrivateKey, RsaPublicKey};
 use substring::Substring;
-// use thiserror::Error;
+use thiserror::Error;
 
 #[cfg(test)]
 mod tests {
@@ -74,22 +74,24 @@ mod tests {
     }
 }
 
-// #[derive(Error, Debug)]
-// pub enum CryptoError {
-//     #[error("There is no such file!")]
-//     Io(#[from] std::io::Error),
-//     #[error("AES encryption failure!")]
-//     AesError {
-//         #[from]
-//         source: aes_gcm::Error
-//     },
-//     #[error("RSA encryption failure!")]
-//     RsaError(#[source] rsa::errors::Error),
-//     #[error("String error!")]
-//     StringError(String),
-//     #[error("Unknown error!")]
-//     Unknown,
-// }
+#[derive(Error, Debug)]
+pub enum CryptoError {
+    #[error("There is no such file!")]
+    Io(#[from] std::io::Error),
+    // #[error("AES encryption failure!")]
+    // AesError {
+    //     #[from]
+    //     source: aes_gcm::Error
+    // },
+    #[error("Cannot get RSA key!")]
+    Pkcs1Error(#[source] rsa::pkcs1::Error),
+    #[error("RSA encryption/decryption failure!")]
+    RsaError(#[source] rsa::errors::Error),
+    #[error("String error!")]
+    StringError(String),
+    #[error("Unknown error!")]
+    Unknown,
+}
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn Error>> {
@@ -202,22 +204,24 @@ fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
     let metadata = fs::metadata(&filename)?;
     let mut buffer = vec![0; metadata.len() as usize];
     file.read(&mut buffer)?;
+
     Ok(buffer)
 }
 
 // Encrypt the data key with RSA algorithm
-fn encrypt_key(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, rsa::errors::Error> {
+fn encrypt_key(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, CryptoError> {
     let mut rng = thread_rng();
     // let public_key = RsaPublicKey::from_pkcs1_der(RSA_4096_PUB_DER).unwrap();
-    let public_key = RsaPublicKey::from_pkcs1_pem(rsa_public_pem)?;
-    Ok(public_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key[..])?)
+    let public_key = RsaPublicKey::from_pkcs1_pem(rsa_public_pem).map_err(CryptoError::Pkcs1Error)?;
+
+    Ok(public_key.encrypt(&mut rng, PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key[..]).map_err(CryptoError::RsaError)?)
 }
 
 // Decrypt the data key with RSA algorithm
-fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, rsa::errors::Error> {
-    let private_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem)?;
+fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str) -> Result<Vec<u8>, CryptoError> {
+    let private_key = RsaPrivateKey::from_pkcs1_pem(rsa_private_pem).map_err(CryptoError::Pkcs1Error)?;
     // let priv_key = RsaPrivateKey::from_pkcs1_der(RSA_4096_PRIV_DER).unwrap();
-    let decrypted_data = private_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key)?;
+    let decrypted_data = private_key.decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &symmetric_key).map_err(CryptoError::RsaError)?;
 
     Ok(decrypted_data)
 }
