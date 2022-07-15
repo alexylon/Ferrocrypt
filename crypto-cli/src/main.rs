@@ -23,27 +23,28 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-
     if args.encrypt != "" || args.decrypt != "" {
-        match fs::read_to_string(args.key) {
-            Ok(key) => {
-                if args.encrypt != "" {
-                    match crypto_lib::encrypt_file(&args.encrypt, &key) {
-                        Ok(_) => { println!("Encrypting {} ...", &args.encrypt); }
-                        Err(e) => { return Err(format!("Cannot encrypt file: {}", e).into()); }
-                    };
+        let key = fs::read_to_string(args.key)?;
+        if args.encrypt != "" {
+            // Error propagation intentionally not simplified with the question mark (?) operator
+            match crypto_lib::encrypt_file(&args.encrypt, &key) {
+                Ok(_) => {
+                    println!("Encrypting {} ...", &args.encrypt);
                 }
+                Err(e) => {
+                    return Err(format!("Cannot encrypt file: {:?}", e).into());
+                }
+            };
+        }
 
-                if args.decrypt != "" {
-                    match crypto_lib::decrypt_file(&args.decrypt, &key) {
-                        Ok(_) => {
-                            println!("Decrypting {} ...", &args.decrypt);
-                        }
-                        Err(e) => { return Err(format!("Cannot decrypt file: {}", e).into()); }
-                    };
+        if args.decrypt != "" {
+            // Error propagation intentionally not simplified with the question mark (?) operator
+            match crypto_lib::decrypt_file(&args.decrypt, &key) {
+                Ok(_) => {
+                    println!("Decrypting {} ...", &args.decrypt);
                 }
-            }
-            Err(e) => { return Err(format!("Cannot open key: {}", e).into()); }
+                Err(e) => { return Err(format!("Cannot decrypt file: {:?}", e).into()); }
+            };
         }
     } else {
         return Err(format!("No path provided!").into());

@@ -2,7 +2,6 @@ extern crate hex;
 extern crate rsa;
 
 use std::{fs, str};
-use std::error::Error;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 
@@ -56,7 +55,7 @@ mod tests {
     fn encrypt_decrypt_key_test() {
         let pub_key = fs::read_to_string(RSA_4096_PUB_PEM).unwrap();
         let priv_key = fs::read_to_string(RSA_4096_PRIV_PEM).unwrap();
-        let rand_bytes_32 = random_bytes(32).unwrap();
+        let rand_bytes_32 = random_bytes(32);
         let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
         let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), &pub_key).unwrap();
         let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key).unwrap();
@@ -66,8 +65,8 @@ mod tests {
 
     #[test]
     fn random_bytes_test() {
-        let rand_bytes_32 = random_bytes(32).unwrap();
-        let rand_bytes_12 = random_bytes(12).unwrap();
+        let rand_bytes_32 = random_bytes(32);
+        let rand_bytes_12 = random_bytes(12);
 
         assert_eq!(rand_bytes_32.len(), 32);
         assert_eq!(rand_bytes_12.len(), 12);
@@ -76,34 +75,31 @@ mod tests {
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
-    #[error("There is no such file!")]
+    #[error("IO Error!")]
     Io(#[from] std::io::Error),
-    // #[error("AES encryption failure!")]
-    // AesError {
-    //     #[from]
-    //     source: aes_gcm::Error
-    // },
+    #[error("AES encryption/decryption failure!")]
+    AesError(#[source] aes_gcm::Error),
     #[error("Cannot get RSA key!")]
     Pkcs1Error(#[source] rsa::pkcs1::Error),
     #[error("RSA encryption/decryption failure!")]
     RsaError(#[source] rsa::errors::Error),
-    #[error("String error!")]
-    StringError(String),
+    #[error("")]
+    Message(String),
     #[error("Unknown error!")]
     Unknown,
 }
 
 // Encrypt file with AES-GCM algorithm
-pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn Error>> {
+pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
     if let Some(dir_path_index) = file_path.rfind('/') {
         let dir_path = file_path.substring(0, dir_path_index);
         let file_name = file_path.substring(dir_path_index + 1, file_path.len());
 
         fs::create_dir_all(format!("{}/encrypted", dir_path))?;
         // The byte string for generating the symmetric key should be 256-bit (32-bytes)
-        let rand_bytes_32 = random_bytes(32)?;
+        let rand_bytes_32 = random_bytes(32);
         // The byte string for the nonce should be 96-bit (12-bytes)
-        let rand_bytes_12 = random_bytes(12)?;
+        let rand_bytes_12 = random_bytes(12);
 
         // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
         let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
@@ -112,32 +108,28 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), Box<dyn
         // Create the 96-bit nonce, unique per file
         let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
         let file_original = get_file_as_byte_vec(file_path)?;
-        match cipher.encrypt(nonce, &*file_original) {
-            Ok(ciphertext) => {
-                // Encrypt the data key
-                let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), rsa_public_pem)?;
-                let mut file_path_encrypted = OpenOptions::new()
-                    .write(true)
-                    .append(true)
-                    .create_new(true)
-                    .open(format!("{}/encrypted/{}.crypto", dir_path, file_name))?;
+        let ciphertext = cipher.encrypt(nonce, &*file_original).map_err(CryptoError::AesError)?;
+        // Encrypt the data key
+        let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), rsa_public_pem)?;
+        let mut file_path_encrypted = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create_new(true)
+            .open(format!("{}/encrypted/{}.crypto", dir_path, file_name))?;
 
-                // The output contains the encrypted data key, the nonce and the encrypted file
-                file_path_encrypted.write_all(&encrypted_symmetric_key)?;
-                file_path_encrypted.write_all(&nonce)?;
-                file_path_encrypted.write_all(&ciphertext)?;
-            }
-            Err(e) => { return Err(format!("Encryption failure: {}", e).into()); }
-        }
+        // The output contains the encrypted data key, the nonce and the encrypted file
+        file_path_encrypted.write_all(&encrypted_symmetric_key)?;
+        file_path_encrypted.write_all(&nonce)?;
+        file_path_encrypted.write_all(&ciphertext)?;
     } else {
-        return Err(format!("No directory specified!").into());
+        return Err(format!("No directory specified!")).map_err(CryptoError::Message);
     }
 
     Ok(())
 }
 
 // Decrypt file with AES-GCM algorithm
-pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) -> Result<(), Box<dyn Error>> {
+pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) -> Result<(), CryptoError> {
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
         let dir_path = encrypted_file_path.substring(0, dir_path_index);
         let crypto_ext = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
@@ -161,42 +153,30 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str) -> Result<
                 Ok(ba) => ba,
                 Err(e) => panic!("Expected a Vec of length {} but it was {}: {}", 32, decrypted_symmetric_key.len(), e),
             };
-
             let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(symmetric_key_array);
             let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
-            match cipher.decrypt(nonce, ciphertext.as_ref()) {
-                Ok(file_decrypted) => {
-                    // let my_str = str::from_utf8(&plaintext).unwrap();
-                    match File::create(&decrypted_file_path) {
-                        Ok(_) => {
-                            match fs::write(&decrypted_file_path, file_decrypted) {
-                                Ok(_) => {}
-                                Err(e) => { return Err(format!("Cannot write file: {}", e).into()); }
-                            }
-                        }
-                        Err(e) => { return Err(format!("Cannot create file: {}", e).into()); }
-                    }
-                }
-                Err(e) => { return Err(format!("Decryption failure: {}", e).into()); }
-            }
+            let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref()).map_err(CryptoError::AesError)?;
+            // let my_str = str::from_utf8(&plaintext).unwrap();
+            File::create(&decrypted_file_path)?;
+            fs::write(&decrypted_file_path, file_decrypted)?;
         } else {
-            return Err(format!("This file has no '.crypto' extension!").into());
+            return Err(format!("This file has no '.crypto' extension!")).map_err(CryptoError::Message);
         }
     } else {
-        return Err(format!("No directory specified!").into());
+        return Err(format!("No directory specified!")).map_err(CryptoError::Message);
     }
 
     Ok(())
 }
 
-fn random_bytes(n_bytes: usize) -> Result<Vec<u8>, Box<dyn Error>> {
+fn random_bytes(n_bytes: usize) -> Vec<u8> {
     let rand_bytes = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(n_bytes)
         .map(char::from)
         .collect::<String>().as_bytes().to_vec();
 
-    Ok(rand_bytes)
+    rand_bytes
 }
 
 fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {

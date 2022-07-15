@@ -7,14 +7,14 @@ edition = "2021"
 
 [dependencies]
 rsa = "0.6"
-hex = "0.4.0"
-num-traits = "0.2.11"
-hex-literal = "0.3.3"
+hex = "0.4"
+num-traits = "0.2"
+hex-literal = "0.3"
 pkcs1 = { version = "0.4", default-features = false, features = ["pkcs8", "alloc"] }
 pkcs8 = { version = "0.9", default-features = false, features = ["alloc"] }
 zeroize = "1"
 rand = "0.8"
-aes-gcm = "0.9.4"
+aes-gcm = { version = "0.9", features = ["std"] }
 thiserror = "1.0"
 substring = "1"
 
