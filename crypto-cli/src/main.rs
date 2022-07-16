@@ -19,6 +19,10 @@ struct Args {
     /// Key path
     #[clap(short, long, value_parser)]
     key: String,
+
+    /// Passphrase for decrypting the private key
+    #[clap(short, long, value_parser, default_value = "")]
+    passphrase: String,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -39,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if args.decrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::decrypt_file(&args.decrypt, &key) {
+            match crypto_lib::decrypt_file(&args.decrypt, &key, &args.passphrase) {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }

@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+openssl = "0.10"
 rsa = "0.6"
 hex = "0.4"
 num-traits = "0.2"
