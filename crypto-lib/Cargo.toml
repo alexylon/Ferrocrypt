@@ -7,12 +7,9 @@ edition = "2021"
 
 [dependencies]
 openssl = "0.10"
-rsa = "0.6"
 hex = "0.4"
 num-traits = "0.2"
 hex-literal = "0.3"
-pkcs1 = { version = "0.4", default-features = false, features = ["pkcs8", "alloc"] }
-pkcs8 = { version = "0.9", default-features = false, features = ["alloc"] }
 zeroize = "1"
 rand = "0.8"
 aes-gcm = { version = "0.9", features = ["std"] }
@@ -21,6 +18,3 @@ substring = "1"
 
 [dev-dependencies]
 
-
-[features]
-pem = ["pkcs1/pem", "pkcs8/pem"]
