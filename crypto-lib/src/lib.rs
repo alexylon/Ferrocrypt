@@ -4,11 +4,10 @@ use std::{fs, str};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 
-use aes_gcm::{Aes256Gcm, AesGcm, Key, Nonce};
+use aes_gcm::aead::{Aead, KeyInit, OsRng};
+use aes_gcm::{Aes256Gcm, Nonce};
 // Or `Aes128Gcm`
-use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::aead::generic_array::{GenericArray, typenum};
-use aes_gcm::aes::Aes256;
 use openssl::pkey::Private;
 use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
@@ -21,8 +20,8 @@ use thiserror::Error;
 mod tests {
     use std::fs;
 
-    use aes_gcm::aead::generic_array::{GenericArray, typenum};
-    use aes_gcm::Key;
+    use aes_gcm::{Aes256Gcm};
+    use aes_gcm::aead::{KeyInit, OsRng};
 
     use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, random_bytes};
 
@@ -57,8 +56,7 @@ mod tests {
     fn encrypt_decrypt_key_test() {
         let pub_key = fs::read_to_string(RSA_PUB_PEM).unwrap();
         let priv_key = fs::read_to_string(RSA_PRIV_PEM).unwrap();
-        let rand_bytes_32 = random_bytes(32);
-        let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
+        let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
         let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), &pub_key).unwrap();
         let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key, PASSPHRASE).unwrap();
 
@@ -96,15 +94,14 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
         let file_name = file_path.substring(dir_path_index + 1, file_path.len());
 
         fs::create_dir_all(format!("{}/encrypted", dir_path))?;
-        // The byte string for generating the symmetric key should be 256-bit (32-bytes)
-        let rand_bytes_32 = random_bytes(32);
+
         // The byte string for the nonce should be 96-bit (12-bytes)
         let rand_bytes_12 = random_bytes(12);
 
         // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
-        let symmetric_key: &GenericArray<u8, typenum::U32> = Key::from_slice(&rand_bytes_32);
+        let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
         // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
-        let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
+        let cipher = Aes256Gcm::new(&symmetric_key);
         // Create the 96-bit nonce, unique per file
         let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
         let file_original = get_file_as_byte_vec(file_path)?;
@@ -131,13 +128,13 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 // Decrypt file with AES-GCM algorithm
 pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
-        let dir_path = encrypted_file_path.substring(0, dir_path_index);
-        let crypto_ext = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
+        let dir_path: &str = encrypted_file_path.substring(0, dir_path_index);
+        let crypto_ext: &str = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
         if crypto_ext == ".crypto" {
             fs::create_dir_all(format!("{}/decrypted", dir_path))?;
-            let file_name_decrypted = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
-            let decrypted_file_path = format!("{}/decrypted/{}", dir_path, file_name_decrypted);
-            let data = get_file_as_byte_vec(encrypted_file_path)?;
+            let file_name_decrypted: &str = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
+            let decrypted_file_path: String = format!("{}/decrypted/{}", dir_path, file_name_decrypted);
+            let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
             // Split the nonce and the encrypted file
             let (encrypted_symmetric_key, data_file) = data.split_at(512);
             let (nonce_vec, ciphertext) = data_file.split_at(12);
@@ -146,7 +143,7 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
             // Decrypt the data key
             let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, rsa_private_pem, passphrase)?;
             let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(decrypted_symmetric_key);
-            let cipher: AesGcm<Aes256, typenum::U12> = Aes256Gcm::new(symmetric_key);
+            let cipher = Aes256Gcm::new(symmetric_key);
             let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
             // let my_str = str::from_utf8(&plaintext).unwrap();
             File::create(&decrypted_file_path)?;
