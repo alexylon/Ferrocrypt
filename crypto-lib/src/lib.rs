@@ -25,7 +25,7 @@ mod tests {
     use aes_gcm::{Aes256Gcm};
     use aes_gcm::aead::{KeyInit, OsRng};
 
-    use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, random_bytes};
+    use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test1.txt";
     // RSA-4096 PKCS#1 public key encoded as PEM
@@ -72,6 +72,12 @@ mod tests {
 
         assert_eq!(rand_bytes_32.len(), 32);
         assert_eq!(rand_bytes_12.len(), 12);
+    }
+
+    #[test]
+    fn generate_key_pair_test() {
+        let passphrase = "MyPassword";
+        generate_key_pair(4096, passphrase).unwrap();
     }
 }
 
@@ -205,7 +211,7 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
     Ok(result)
 }
 
-fn _generate_key_pair(byte_size: u32, passphrase: &str) -> Result<(), CryptoError> {
+pub fn generate_key_pair(byte_size: u32, passphrase: &str) -> Result<(), CryptoError> {
     // Generate asymmetric key pair
     let rsa: Rsa<Private> = Rsa::generate(byte_size)?;
     let private_key: Vec<u8> = rsa.private_key_to_pem_passphrase(Cipher::aes_256_cbc(), passphrase.as_bytes())?;
