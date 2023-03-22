@@ -1,3 +1,5 @@
+mod zip;
+
 extern crate openssl;
 
 use std::{fs, str};
@@ -81,6 +83,8 @@ pub enum CryptoError {
     AesError(#[from] aes_gcm::Error),
     #[error("RSA encryption/decryption failure!")]
     OpensslError(#[from] openssl::error::ErrorStack),
+    #[error("WalkDir Error!")]
+    WalkDirError(#[from] walkdir::Error),
     #[error("")]
     Message(String),
     #[error("Unknown error!")]
