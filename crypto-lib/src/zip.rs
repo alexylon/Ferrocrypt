@@ -176,7 +176,7 @@ pub fn unzip(src_filename: &str) -> zip::result::ZipResult<()> {
             io::copy(&mut file, &mut outfile).unwrap();
         }
 
-        // Get and Set permissions
+        //// Get and Set permissions
         // #[cfg(unix)]
         // {
         //     use std::os::unix::fs::PermissionsExt;
