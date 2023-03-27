@@ -8,7 +8,6 @@ use zip::write::FileOptions;
 use std::fs::File;
 use std::path::{Path};
 use walkdir::{WalkDir};
-use zip::result::ZipError;
 
 #[cfg(test)]
 mod tests {
@@ -56,8 +55,8 @@ pub fn archive(path: &str) -> zip::result::ZipResult<String> {
 
 fn archive_file(src_filename: &str) -> zip::result::ZipResult<String> {
     let file_name_ext = Path::new(&src_filename).file_name().unwrap().to_str().unwrap();
-    let file_name = Path::new(&file_name_ext).file_stem().unwrap().to_str().unwrap();
-    let path_dest = format!("{file_name}.zip");
+    let file_stem = Path::new(&file_name_ext).file_stem().unwrap().to_str().unwrap();
+    let path_dest = format!("{file_stem}.zip");
     let file = File::create(&path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
@@ -74,7 +73,7 @@ fn archive_file(src_filename: &str) -> zip::result::ZipResult<String> {
     buffer.clear();
 
     zip.finish()?;
-    Ok(file_name.to_string())
+    Ok(file_stem.to_string())
 }
 
 fn archive_dir(src_dir: &str) -> zip::result::ZipResult<String> {

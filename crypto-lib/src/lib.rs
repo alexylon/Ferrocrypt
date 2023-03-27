@@ -28,14 +28,15 @@ mod tests {
     use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, get_rsa_key_size, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test-file.txt";
+    const DIR_PATH: &str = "src/test_files/test-folder";
+    const FILE_PATH_ENCRYPTED: &str = "./test-file.crypto";
+    const FILE_PATH_DECRYPTED: &str = "./test-file/test-file.txt";
+    const DIR_PATH_ENCRYPTED: &str = "./test-folder.crypto";
     // RSA-4096 PKCS#1 public key encoded as PEM
     const RSA_PUB_PEM: &str = "src/key_examples/rsa-4096-pub-key.pem";
     // RSA-4096 PKCS#1 private key encoded as PEM
     const RSA_PRIV_PEM: &str = "src/key_examples/rsa-4096-priv-key.pem";
     const PASSPHRASE: &str = "strong_passphrase";
-
-    const FILE_PATH_ENCRYPTED: &str = "src/test_files/encrypted/test1.txt.crypto";
-    const FILE_PATH_DECRYPTED: &str = "src/test_files/encrypted/decrypted/test1.txt";
 
     #[test]
     fn encrypt_decrypt_file_test() {
@@ -46,9 +47,26 @@ mod tests {
         let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
 
         assert_eq!(file_original, file_decrypted);
+    }
 
-        fs::remove_file(FILE_PATH_ENCRYPTED).unwrap();
-        fs::remove_file(FILE_PATH_DECRYPTED).unwrap();
+    #[test]
+    fn encrypt_file_test() {
+        encrypt_file(FILE_PATH, RSA_PUB_PEM).unwrap();
+    }
+
+    #[test]
+    fn encrypt_dir_test() {
+        encrypt_file(DIR_PATH, RSA_PUB_PEM).unwrap();
+    }
+
+    #[test]
+    fn decrypt_file_test() {
+        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE, RSA_PUB_PEM).unwrap();
+    }
+
+    #[test]
+    fn decrypt_dir_test() {
+        decrypt_file(DIR_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE, RSA_PUB_PEM).unwrap();
     }
 
     #[test]
@@ -95,6 +113,8 @@ pub enum CryptoError {
     OpensslError(#[from] openssl::error::ErrorStack),
     #[error("WalkDir Error!")]
     WalkDirError(#[from] walkdir::Error),
+    #[error("Zip Error!")]
+    ZipError(#[from] zip::result::ZipError),
     #[error("")]
     Message(String),
     #[error("Unknown error!")]
@@ -103,39 +123,35 @@ pub enum CryptoError {
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
-    if let Some(dir_path_index) = file_path.rfind('/') {
-        let dir_path = file_path.substring(0, dir_path_index);
-        let file_name = file_path.substring(dir_path_index + 1, file_path.len());
+    let file_stem = &archive::archive(file_path)?;
+    // let dir_path = file_path.substring(0, dir_path_index);
+    // let file_name = file_path.substring(dir_path_index + 1, file_path.len());
+    // fs::create_dir_all(format!("{}/encrypted", dir_path))?;
+    // The byte string for the nonce should be 96-bit (12-bytes)
+    let rand_bytes_12 = random_bytes(12);
+    // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
+    let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
+    // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
+    let cipher = Aes256Gcm::new(&symmetric_key);
+    // Create the 96-bit nonce, unique per file
+    let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
+    let file_original = get_file_as_byte_vec(&format!("{file_stem}.zip"))?;
+    let ciphertext = cipher.encrypt(nonce, &*file_original)?;
+    // Encrypt the data key
+    let pub_key_str = fs::read_to_string(rsa_public_pem)?;
+    let encrypted_symmetric_key: Vec<u8> = encrypt_key(symmetric_key.to_vec(), &pub_key_str)?;
+    let mut file_path_encrypted = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create_new(true)
+        .open(format!("{}.crypto", file_stem))?;
 
-        fs::create_dir_all(format!("{}/encrypted", dir_path))?;
+    // The output contains the encrypted data key, the nonce and the encrypted file
+    file_path_encrypted.write_all(&encrypted_symmetric_key)?;
+    file_path_encrypted.write_all(&nonce)?;
+    file_path_encrypted.write_all(&ciphertext)?;
 
-        // The byte string for the nonce should be 96-bit (12-bytes)
-        let rand_bytes_12 = random_bytes(12);
-
-        // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
-        let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
-        // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
-        let cipher = Aes256Gcm::new(&symmetric_key);
-        // Create the 96-bit nonce, unique per file
-        let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
-        let file_original = get_file_as_byte_vec(file_path)?;
-        let ciphertext = cipher.encrypt(nonce, &*file_original)?;
-        // Encrypt the data key
-        let pub_key_str = fs::read_to_string(rsa_public_pem)?;
-        let encrypted_symmetric_key: Vec<u8> = encrypt_key(symmetric_key.to_vec(), &pub_key_str)?;
-        let mut file_path_encrypted = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create_new(true)
-            .open(format!("{}/encrypted/{}.crypto", dir_path, file_name))?;
-
-        // The output contains the encrypted data key, the nonce and the encrypted file
-        file_path_encrypted.write_all(&encrypted_symmetric_key)?;
-        file_path_encrypted.write_all(&nonce)?;
-        file_path_encrypted.write_all(&ciphertext)?;
-    } else {
-        return Err(CryptoError::Message("No directory specified!".to_string()));
-    }
+    fs::remove_file(&format!("{file_stem}.zip"))?;
 
     Ok(())
 }
@@ -143,12 +159,10 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 // Decrypt file with AES-GCM algorithm
 pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str, rsa_pub_pem: &str) -> Result<(), CryptoError> {
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
-        let dir_path: &str = encrypted_file_path.substring(0, dir_path_index);
+        // let dir_path: &str = encrypted_file_path.substring(0, dir_path_index);
         let crypto_ext: &str = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
         if crypto_ext == ".crypto" {
-            fs::create_dir_all(format!("{}/decrypted", dir_path))?;
-            let file_name_decrypted: &str = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
-            let decrypted_file_path: String = format!("{}/decrypted/{}", dir_path, file_name_decrypted);
+            // fs::create_dir_all(format!("{}/decrypted", dir_path))?;
             let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
             // Get public key size
             let pub_key_str = fs::read_to_string(rsa_pub_pem)?;
@@ -165,8 +179,12 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
             let cipher = Aes256Gcm::new(symmetric_key);
             let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
             // let my_str = str::from_utf8(&plaintext).unwrap();
+            let file_stem_decrypted: &str = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
+            let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
             File::create(&decrypted_file_path)?;
             fs::write(&decrypted_file_path, file_decrypted)?;
+            archive::unarchive(&decrypted_file_path)?;
+            fs::remove_file(&decrypted_file_path)?;
         } else {
             return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
         }
