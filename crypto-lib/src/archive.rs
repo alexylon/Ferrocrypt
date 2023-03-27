@@ -43,17 +43,18 @@ mod tests {
     }
 }
 
-pub fn archive(path: &str) -> zip::result::ZipResult<()> {
+pub fn archive(path: &str) -> zip::result::ZipResult<String> {
+    let file_name;
     if Path::new(path).is_file() {
-        archive_file(path)?;
+        file_name = archive_file(path)?;
     } else {
-        archive_dir(path)?;
+        file_name = archive_dir(path)?;
     }
 
-    Ok(())
+    Ok(file_name)
 }
 
-fn archive_file(src_filename: &str) -> zip::result::ZipResult<()> {
+fn archive_file(src_filename: &str) -> zip::result::ZipResult<String> {
     let file_name_ext = Path::new(&src_filename).file_name().unwrap().to_str().unwrap();
     let file_name = Path::new(&file_name_ext).file_stem().unwrap().to_str().unwrap();
     let path_dest = format!("{file_name}.zip");
@@ -73,11 +74,11 @@ fn archive_file(src_filename: &str) -> zip::result::ZipResult<()> {
     buffer.clear();
 
     zip.finish()?;
-    Ok(())
+    Ok(file_name.to_string())
 }
 
-fn archive_dir(src_dir: &str) -> zip::result::ZipResult<()> {
-    let mut dir_name = "";
+fn archive_dir(src_dir: &str) -> zip::result::ZipResult<String> {
+    let dir_name;
 
     // Get dir name from path
     match src_dir.chars().rev().position(|c| c == '/') {
@@ -128,10 +129,10 @@ fn archive_dir(src_dir: &str) -> zip::result::ZipResult<()> {
     }
 
     zip.finish()?;
-    Ok(())
+    Ok(dir_name.to_string())
 }
 
-pub fn unarchive(src_filename: &str) -> zip::result::ZipResult<()> {
+pub fn unarchive(src_filename: &str) -> zip::result::ZipResult<String> {
     // let file_path = std::path::Path::new(&src_filename[0..src_filename.len() - 4]);
     let file_path = std::path::Path::new(&src_filename);
     let file = fs::File::open(file_path).unwrap();
@@ -185,5 +186,5 @@ pub fn unarchive(src_filename: &str) -> zip::result::ZipResult<()> {
         // }
     }
 
-    Ok(())
+    Ok(file_name.to_string())
 }
