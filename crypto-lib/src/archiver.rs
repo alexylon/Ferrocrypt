@@ -11,7 +11,7 @@ use walkdir::{WalkDir};
 
 #[cfg(test)]
 mod tests {
-    use crate::archive::{archive, unarchive};
+    use crate::archiver::{archive, unarchive};
 
     const FILEPATH_SRC: &str = "src/test_files/test-file.txt";
     const DIRPATH_SRC: &str = "src/test_files/test-folder";

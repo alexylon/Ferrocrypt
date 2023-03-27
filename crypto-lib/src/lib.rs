@@ -1,4 +1,4 @@
-mod archive;
+mod archiver;
 
 extern crate openssl;
 
@@ -25,7 +25,7 @@ mod tests {
     use aes_gcm::{Aes256Gcm};
     use aes_gcm::aead::{KeyInit, OsRng};
 
-    use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, get_rsa_key_size, random_bytes};
+    use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, get_public_key_size_from_private_key, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test-file.txt";
     const DIR_PATH: &str = "src/test_files/test-folder";
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn encrypt_decrypt_file_test() {
         encrypt_file(FILE_PATH, RSA_PUB_PEM).unwrap();
-        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE, RSA_PUB_PEM).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
 
         let file_original = fs::read_to_string(FILE_PATH).unwrap();
         let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
@@ -61,12 +61,12 @@ mod tests {
 
     #[test]
     fn decrypt_file_test() {
-        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE, RSA_PUB_PEM).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
     }
 
     #[test]
     fn decrypt_dir_test() {
-        decrypt_file(DIR_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE, RSA_PUB_PEM).unwrap();
+        decrypt_file(DIR_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
     }
 
     #[test]
@@ -97,9 +97,9 @@ mod tests {
 
     #[test]
     fn get_rsa_key_size_test() {
-        let pub_key = fs::read_to_string(RSA_PUB_PEM).unwrap();
-        let rsa_key_size = get_rsa_key_size(&pub_key).unwrap();
-        println!("RSA_PRIV_PEM size: {rsa_key_size}");
+        let priv_key = fs::read_to_string(RSA_PRIV_PEM).unwrap();
+        let rsa_pub_key_size = get_public_key_size_from_private_key(&priv_key, PASSPHRASE).unwrap();
+        println!("rsa_pub_key_size: {rsa_pub_key_size}");
     }
 }
 
@@ -123,7 +123,7 @@ pub enum CryptoError {
 
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
-    let file_stem = &archive::archive(file_path)?;
+    let file_stem = &archiver::archive(file_path)?;
     // let dir_path = file_path.substring(0, dir_path_index);
     // let file_name = file_path.substring(dir_path_index + 1, file_path.len());
     // fs::create_dir_all(format!("{}/encrypted", dir_path))?;
@@ -157,7 +157,8 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 }
 
 // Decrypt file with AES-GCM algorithm
-pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str, rsa_pub_pem: &str) -> Result<(), CryptoError> {
+pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
+    let priv_key_str = fs::read_to_string(rsa_private_pem)?;
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
         // let dir_path: &str = encrypted_file_path.substring(0, dir_path_index);
         let crypto_ext: &str = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
@@ -165,15 +166,13 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
             // fs::create_dir_all(format!("{}/decrypted", dir_path))?;
             let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
             // Get public key size
-            let pub_key_str = fs::read_to_string(rsa_pub_pem)?;
-            let rsa_pub_pem_size = get_rsa_key_size(&pub_key_str)?;
+            let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
             // Split the encrypted_symmetric_key, nonce and the encrypted file
             let (encrypted_symmetric_key, data_file) = data.split_at(rsa_pub_pem_size as usize);
             let (nonce_vec, ciphertext) = data_file.split_at(12);
             let nonce = Nonce::from_slice(nonce_vec);
 
             // Decrypt the data key
-            let priv_key_str = fs::read_to_string(rsa_private_pem)?;
             let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
             let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(decrypted_symmetric_key);
             let cipher = Aes256Gcm::new(symmetric_key);
@@ -183,7 +182,7 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
             let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
             File::create(&decrypted_file_path)?;
             fs::write(&decrypted_file_path, file_decrypted)?;
-            archive::unarchive(&decrypted_file_path)?;
+            archiver::unarchive(&decrypted_file_path)?;
             fs::remove_file(&decrypted_file_path)?;
         } else {
             return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
@@ -214,10 +213,12 @@ fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
     Ok(buffer)
 }
 
-fn get_rsa_key_size(rsa_public_pem: &str) -> Result<u32, CryptoError> {
-    let rsa = Rsa::public_key_from_pem(rsa_public_pem.as_bytes())?;
+fn get_public_key_size_from_private_key(rsa_private_pem: &str, passphrase: &str) -> Result<u32, CryptoError> {
+    let rsa_private = Rsa::private_key_from_pem_passphrase(rsa_private_pem.as_bytes(), passphrase.as_bytes())?;
+    let rsa_public_pem: Vec<u8> = rsa_private.public_key_to_pem()?;
+    let rsa_public = Rsa::public_key_from_pem(&rsa_public_pem)?;
 
-    Ok(rsa.size())
+    Ok(rsa_public.size())
 }
 
 // Encrypt the data key with RSA algorithm
