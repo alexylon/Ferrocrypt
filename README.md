@@ -25,7 +25,7 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 - Puts the encrypted symmetric key, the nonce and the encrypted file in an envelope .
 
-- Writes the envelope in the current directory. The name of the encrypted path will be `./FILE_NAME.crypto` or `./DIRECTORY_NAME.crypto`.
+- Writes the envelope in the current directory. The encrypted path will be `./{FILE_NAME}.crypto` or `./{DIRECTORY_NAME}.crypto`.
 
 #### When decrypting the tool:
 
@@ -38,7 +38,8 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 - Unzips the file or directory
 
 - Writes the decrypted file or directory on the file system in the current directory, removing the `.crypto` extension. 
-If a file was encrypted, the decrypted path will be `./FILE_NAME/FILE_NAME.ext`
+If a file was encrypted, the decrypted path will be `./{FILE_NAME}/{FILE_NAME.ext}`. 
+If a directory was encrypted, the decrypted path will be `./{DIRECTORY_NAME}`.
   <br/><br/>
 
 ### USAGE
