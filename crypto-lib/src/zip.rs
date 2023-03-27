@@ -16,9 +16,8 @@ mod tests {
     use crate::zip::zip_dir;
 
     const FILEPATH_SRC: &str = "src/test_files/test1.txt";
-    const FILEPATH_SRC_ZIPPED: &str = "D:/Files/test1.zip";
-    const PATH_SRC: &str = "D:/test-folder";
-    const PATH_SRC_ZIPPED: &str = "test-folder.zip";
+    const PATH_SRC: &str = "/Users/alex/Downloads/Ubuntu_Mono";
+    const PATH_SRC_ZIPPED: &str = "Ubuntu_Mono.zip";
 
     #[test]
     fn zip_file_test() {
@@ -39,11 +38,15 @@ mod tests {
 
     #[test]
     fn unzip_test() {
-        match unzip(FILEPATH_SRC_ZIPPED) {
-            Ok(_) => println!("Unzipped {FILEPATH_SRC_ZIPPED}"),
+        match unzip(PATH_SRC_ZIPPED) {
+            Ok(_) => println!("Unzipped {PATH_SRC_ZIPPED}"),
             Err(e) => println!("Error: {e:?}"),
         }
     }
+}
+
+pub fn zip() -> zip::result::ZipResult<()> {
+
 }
 
 pub fn zip_file(src_filename: &str) -> zip::result::ZipResult<()> {
@@ -148,7 +151,6 @@ pub fn unzip(src_filename: &str) -> zip::result::ZipResult<()> {
         let outpath_str = outpath.to_str().unwrap();
         let outpath_str_full = format!("{file_name}/{outpath_str}");
         let outpath_full = std::path::Path::new(&outpath_str_full);
-        println!("outpath_full: {outpath_str_full}");
 
         {
             let comment = file.comment();
@@ -158,12 +160,12 @@ pub fn unzip(src_filename: &str) -> zip::result::ZipResult<()> {
         }
 
         if (*file.name()).ends_with('/') {
-            println!("File {} extracted to \"{}\"", i, outpath_full.display());
+            println!("Item {} extracted to \"{}\"", i + 1, outpath_full.display());
             fs::create_dir_all(&outpath_full).unwrap();
         } else {
             println!(
-                "File {} extracted to \"{}\" ({} bytes)",
-                i,
+                "Item {} extracted to \"{}\" ({} bytes)",
+                i + 1,
                 outpath_full.display(),
                 file.size()
             );
