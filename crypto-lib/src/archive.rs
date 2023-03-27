@@ -12,48 +12,48 @@ use zip::result::ZipError;
 
 #[cfg(test)]
 mod tests {
-    use crate::zip::{unzip, zip_file};
-    use crate::zip::zip_dir;
+    use crate::archive::{archive, unarchive};
 
-    const FILEPATH_SRC: &str = "src/test_files/test1.txt";
-    const PATH_SRC: &str = "/Users/alex/Downloads/Ubuntu_Mono";
-    const PATH_SRC_ZIPPED: &str = "Ubuntu_Mono.zip";
+    const FILEPATH_SRC: &str = "src/test_files/test-file.txt";
+    const DIRPATH_SRC: &str = "src/test_files/test-folder";
+    const PATH_SRC_ZIPPED: &str = "test-file.zip";
 
     #[test]
-    fn zip_file_test() {
-        match zip_file(FILEPATH_SRC) {
+    fn archive_file_test() {
+        match archive(FILEPATH_SRC) {
             Ok(_) => println!("Zipped {FILEPATH_SRC}"),
             Err(e) => println!("Error: {e:?}"),
         }
     }
 
     #[test]
-    fn zip_dir_test() {
-        let path_dest = format!("{PATH_SRC}.zip");
-        match zip_dir(PATH_SRC) {
-            Ok(_) => println!("done: {PATH_SRC} written to {path_dest}"),
+    fn archive_dir_test() {
+        match archive(DIRPATH_SRC) {
+            Ok(_) => println!("Zipped {DIRPATH_SRC}"),
             Err(e) => println!("Error: {e:?}"),
         }
     }
 
     #[test]
-    fn unzip_test() {
-        match unzip(PATH_SRC_ZIPPED) {
-            Ok(_) => println!("Unzipped {PATH_SRC_ZIPPED}"),
+    fn unarchive_test() {
+        match unarchive(PATH_SRC_ZIPPED) {
+            Ok(_) => println!("Unzipped: {PATH_SRC_ZIPPED}"),
             Err(e) => println!("Error: {e:?}"),
         }
     }
 }
 
-pub fn zip() -> zip::result::ZipResult<()> {
-
-}
-
-pub fn zip_file(src_filename: &str) -> zip::result::ZipResult<()> {
-    if !Path::new(src_filename).is_file() {
-        return Err(ZipError::FileNotFound);
+pub fn archive(path: &str) -> zip::result::ZipResult<()> {
+    if Path::new(path).is_file() {
+        archive_file(path)?;
+    } else {
+        archive_dir(path)?;
     }
 
+    Ok(())
+}
+
+fn archive_file(src_filename: &str) -> zip::result::ZipResult<()> {
     let file_name_ext = Path::new(&src_filename).file_name().unwrap().to_str().unwrap();
     let file_name = Path::new(&file_name_ext).file_stem().unwrap().to_str().unwrap();
     let path_dest = format!("{file_name}.zip");
@@ -76,11 +76,7 @@ pub fn zip_file(src_filename: &str) -> zip::result::ZipResult<()> {
     Ok(())
 }
 
-pub fn zip_dir(src_dir: &str) -> zip::result::ZipResult<()> {
-    if !Path::new(src_dir).is_dir() {
-        return Err(ZipError::FileNotFound);
-    }
-
+fn archive_dir(src_dir: &str) -> zip::result::ZipResult<()> {
     let mut dir_name = "";
 
     // Get dir name from path
@@ -135,7 +131,7 @@ pub fn zip_dir(src_dir: &str) -> zip::result::ZipResult<()> {
     Ok(())
 }
 
-pub fn unzip(src_filename: &str) -> zip::result::ZipResult<()> {
+pub fn unarchive(src_filename: &str) -> zip::result::ZipResult<()> {
     // let file_path = std::path::Path::new(&src_filename[0..src_filename.len() - 4]);
     let file_path = std::path::Path::new(&src_filename);
     let file = fs::File::open(file_path).unwrap();

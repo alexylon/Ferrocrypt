@@ -1,4 +1,4 @@
-mod zip;
+mod archive;
 
 extern crate openssl;
 
@@ -27,7 +27,7 @@ mod tests {
 
     use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, get_rsa_key_size, random_bytes};
 
-    const FILE_PATH: &str = "src/test_files/test1.txt";
+    const FILE_PATH: &str = "src/test_files/test-file.txt";
     // RSA-4096 PKCS#1 public key encoded as PEM
     const RSA_PUB_PEM: &str = "src/key_examples/rsa-4096-pub-key.pem";
     // RSA-4096 PKCS#1 private key encoded as PEM
