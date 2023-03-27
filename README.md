@@ -7,13 +7,15 @@ relying on the combination of using both symmetric and asymmetric algorithms tog
 also known as hybrid encryption.
 
 Both crates, implementing the AES-GCM and RSA encryption ciphers - `aes-gcm` and `rsa` - have received security audits, with no significant findings.
-In order to encrypt or decrypt a file you need only a pair of PEM keys - a public one for encrypting and a private one for decrypting. 
+In order to encrypt or decrypt a file or a directory you need only a pair of PEM keys - a public one for encrypting and a private one for decrypting. 
 For testing purposes you could use the included `.pem` keys in `/key_examples`.
 
 The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latter can be used independently as a library.
 
 
 #### When encrypting the tool: 
+
+- Zips the file or directory
 
 - Generates a random symmetric AES-GSM 256-bit key and a random 96-bit nonce - both _unique_ for each file. 
 
@@ -23,7 +25,7 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 - Puts the encrypted symmetric key, the nonce and the encrypted file in an envelope .
 
-- Writes the envelope on the file system in subdirectory `encrypted`. The name of the encrypted file will be `FILE_NAME.EXT.crypto`.
+- Writes the envelope in the current directory. The name of the encrypted path will be `./FILE_NAME.crypto` or `./DIRECTORY_NAME.crypto`.
 
 #### When decrypting the tool:
 
@@ -33,7 +35,10 @@ The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latt
 
 - Decrypts the file with the symmetric key and the nonce.
 
-- Writes the decrypted file on the file system in subdirectory `decrypted`, removing the `.crypto` extension.
+- Unzips the file or directory
+
+- Writes the decrypted file or directory on the file system in the current directory, removing the `.crypto` extension. 
+If a file was encrypted, the decrypted path will be `./FILE_NAME/FILE_NAME.ext`
   <br/><br/>
 
 ### USAGE
