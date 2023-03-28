@@ -124,22 +124,26 @@ pub enum CryptoError {
 // Encrypt file with AES-GCM algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
     let file_stem = &archiver::archive(file_path)?;
-    // let dir_path = file_path.substring(0, dir_path_index);
-    // let file_name = file_path.substring(dir_path_index + 1, file_path.len());
-    // fs::create_dir_all(format!("{}/encrypted", dir_path))?;
     // The byte string for the nonce should be 96-bit (12-bytes)
     let rand_bytes_12 = random_bytes(12);
+
     // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
     let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
+
     // Create the AES-GCM cipher with a 256-bit key and 96-bit nonce
     let cipher = Aes256Gcm::new(&symmetric_key);
+
     // Create the 96-bit nonce, unique per file
     let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
-    let file_original = get_file_as_byte_vec(&format!("{file_stem}.zip"))?;
+
+    let file_name_zipped = &format!("{file_stem}.zip");
+    let file_original = get_file_as_byte_vec(file_name_zipped)?;
     let ciphertext = cipher.encrypt(nonce, &*file_original)?;
+
     // Encrypt the data key
     let pub_key_str = fs::read_to_string(rsa_public_pem)?;
     let encrypted_symmetric_key: Vec<u8> = encrypt_key(symmetric_key.to_vec(), &pub_key_str)?;
+
     let mut file_path_encrypted = OpenOptions::new()
         .write(true)
         .append(true)
@@ -151,7 +155,10 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
     file_path_encrypted.write_all(&nonce)?;
     file_path_encrypted.write_all(&ciphertext)?;
 
-    fs::remove_file(&format!("{file_stem}.zip"))?;
+    fs::remove_file(file_name_zipped)?;
+    let file_name_encrypted = &format!("{file_stem}.crypto");
+    println!();
+    println!("encrypted to {file_name_encrypted}");
 
     Ok(())
 }
@@ -160,13 +167,13 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
     let priv_key_str = fs::read_to_string(rsa_private_pem)?;
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
-        // let dir_path: &str = encrypted_file_path.substring(0, dir_path_index);
         let crypto_ext: &str = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
         if crypto_ext == ".crypto" {
-            // fs::create_dir_all(format!("{}/decrypted", dir_path))?;
             let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
+
             // Get public key size
             let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
+
             // Split the encrypted_symmetric_key, nonce and the encrypted file
             let (encrypted_symmetric_key, data_file) = data.split_at(rsa_pub_pem_size as usize);
             let (nonce_vec, ciphertext) = data_file.split_at(12);
@@ -174,16 +181,19 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
 
             // Decrypt the data key
             let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
+
             let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(decrypted_symmetric_key);
             let cipher = Aes256Gcm::new(symmetric_key);
             let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
-            // let my_str = str::from_utf8(&plaintext).unwrap();
             let file_stem_decrypted: &str = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
             let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
             File::create(&decrypted_file_path)?;
             fs::write(&decrypted_file_path, file_decrypted)?;
             archiver::unarchive(&decrypted_file_path)?;
             fs::remove_file(&decrypted_file_path)?;
+            let decrypted_dir_path: String = format!("{}", file_stem_decrypted);
+            println!();
+            println!("decrypted to {decrypted_dir_path}");
         } else {
             return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
         }

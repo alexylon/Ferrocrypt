@@ -74,6 +74,7 @@ fn archive_file(file_path: &str) -> zip::result::ZipResult<String> {
     buffer.clear();
 
     zip.finish()?;
+
     Ok(file_stem.to_string())
 }
 
@@ -134,22 +135,23 @@ fn archive_dir(mut dir_path: &str) -> zip::result::ZipResult<String> {
     }
 
     zip.finish()?;
+
     Ok(dir_name.to_string())
 }
 
 pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
-    let file = File::open(Path::new(&file_path)).unwrap();
-    let file_name = Path::new(&file_path).file_stem().unwrap().to_str().unwrap();
-    let mut archive = zip::ZipArchive::new(file).unwrap();
+    let file = File::open(Path::new(&file_path))?;
+    let file_stem = Path::new(&file_path).file_stem().unwrap().to_str().unwrap();
+    let mut archive = zip::ZipArchive::new(file)?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
+        let mut file = archive.by_index(i)?;
         let outpath = match file.enclosed_name() {
             Some(path) => path,
             None => continue,
         };
         let outpath_str = outpath.to_str().unwrap();
-        let outpath_str_full = format!("{file_name}/{outpath_str}");
+        let outpath_str_full = format!("{file_stem}/{outpath_str}");
         let outpath_full = Path::new(&outpath_str_full);
 
         {
@@ -161,7 +163,7 @@ pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
 
         if (*file.name()).ends_with('/') {
             println!("extracting dir to \"{}\"...", outpath_full.display());
-            fs::create_dir_all(&outpath_full).unwrap();
+            fs::create_dir_all(&outpath_full)?;
         } else {
             println!(
                 "extracting file to \"{}\" ({} bytes)...",
@@ -170,11 +172,11 @@ pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
             );
             if let Some(p) = outpath_full.parent() {
                 if !p.exists() {
-                    fs::create_dir_all(p).unwrap();
+                    fs::create_dir_all(p)?;
                 }
             }
-            let mut outfile = File::create(&outpath_full).unwrap();
-            io::copy(&mut file, &mut outfile).unwrap();
+            let mut outfile = File::create(&outpath_full)?;
+            io::copy(&mut file, &mut outfile)?;
         }
 
         //// Get and Set permissions
@@ -188,5 +190,5 @@ pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
         // }
     }
 
-    Ok(file_name.to_string())
+    Ok(file_stem.to_string())
 }
