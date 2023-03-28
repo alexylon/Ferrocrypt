@@ -28,7 +28,7 @@ mod tests {
     use crate::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_key_pair, get_public_key_size_from_private_key, random_bytes};
 
     const FILE_PATH: &str = "src/test_files/test-file.txt";
-    const DIR_PATH: &str = "src/test_files/test-folder";
+    const DIR_PATH: &str = "src/test_files/test-folder/";
     const FILE_PATH_ENCRYPTED: &str = "./test-file.crypto";
     const FILE_PATH_DECRYPTED: &str = "./test-file/test-file.txt";
     const DIR_PATH_ENCRYPTED: &str = "./test-folder.crypto";
