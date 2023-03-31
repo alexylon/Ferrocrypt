@@ -3,6 +3,7 @@ extern crate openssl;
 use std::{fs, str};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::path::Path;
 
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
@@ -167,39 +168,36 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
     let priv_key_str = fs::read_to_string(rsa_private_pem)?;
-    if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
-        let crypto_ext: &str = encrypted_file_path.substring(encrypted_file_path.len() - 7, encrypted_file_path.len());
-        if crypto_ext == ".crypto" {
-            let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
+    if encrypted_file_path.ends_with(".crypto") {
+        let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
 
-            // Get public key size
-            let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
+        // Get public key size
+        let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
 
-            // Split the encrypted_symmetric_key, nonce and the encrypted file
-            let (encrypted_symmetric_key, data_file) = data.split_at(rsa_pub_pem_size as usize);
-            let (nonce_vec, ciphertext) = data_file.split_at(12);
-            let nonce = Nonce::from_slice(nonce_vec);
+        // Split the encrypted_symmetric_key, nonce and the encrypted file
+        let (encrypted_symmetric_key, data_file) = data.split_at(rsa_pub_pem_size as usize);
+        let (nonce_vec, ciphertext) = data_file.split_at(12);
+        let nonce = Nonce::from_slice(nonce_vec);
 
-            // Decrypt the data key
-            let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
+        // Decrypt the data key
+        let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
 
-            let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(decrypted_symmetric_key);
-            let cipher = Aes256Gcm::new(symmetric_key);
-            let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
-            let file_stem_decrypted: &str = encrypted_file_path.substring(dir_path_index + 1, encrypted_file_path.len() - 7);
-            let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
-            File::create(&decrypted_file_path)?;
-            fs::write(&decrypted_file_path, file_decrypted)?;
-            archiver::unarchive(&decrypted_file_path)?;
-            fs::remove_file(&decrypted_file_path)?;
-            let decrypted_dir_path: String = format!("{}", file_stem_decrypted);
-            println!();
-            println!("decrypted to {decrypted_dir_path}");
-        } else {
-            return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
-        }
+        let symmetric_key: &GenericArray<u8, typenum::U32> = &GenericArray::from(decrypted_symmetric_key);
+        let cipher = Aes256Gcm::new(symmetric_key);
+        let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
+        let file_stem_decrypted = Path::new(&encrypted_file_path)
+            .file_stem().ok_or(CryptoError::Message("Cannot get file stem".to_string()))?
+            .to_str().ok_or(CryptoError::Message("Cannot convert file stem to &str".to_string()))?;
+        let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
+        File::create(&decrypted_file_path)?;
+        fs::write(&decrypted_file_path, file_decrypted)?;
+        archiver::unarchive(&decrypted_file_path)?;
+        fs::remove_file(&decrypted_file_path)?;
+        let decrypted_dir_path: String = format!("{}", file_stem_decrypted);
+        println!();
+        println!("decrypted to {decrypted_dir_path}");
     } else {
-        return Err(CryptoError::Message("No directory specified!".to_string()));
+        return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
     }
 
     Ok(())

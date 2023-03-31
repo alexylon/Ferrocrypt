@@ -24,11 +24,11 @@ mod tests {
         // let mut password = rpassword::prompt_password_stdout("password:")?;
 
         if FILE_PATH.ends_with(".encrypted") {
-            let dist = FILE_PATH.strip_suffix(".encrypted").unwrap().to_string() + ".decrypted";
-            decrypt_file(&FILE_PATH, &dist, PASSPHRASE)?;
+            let dest_file_path = FILE_PATH.strip_suffix(".encrypted").unwrap().to_string() + ".decrypted";
+            decrypt_file(&FILE_PATH, &dest_file_path, PASSPHRASE)?;
         } else {
-            let dist = FILE_PATH.to_string() + ".encrypted";
-            encrypt_file(&FILE_PATH, &dist, PASSPHRASE)?;
+            let dest_file_path = FILE_PATH.to_string() + ".encrypted";
+            encrypt_file(&FILE_PATH, &dest_file_path, PASSPHRASE)?;
         }
 
         // password.zeroize();
