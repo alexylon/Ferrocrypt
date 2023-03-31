@@ -8,6 +8,7 @@ use zip::write::FileOptions;
 use std::fs::File;
 use std::path::{Path};
 use walkdir::{WalkDir};
+use zip::result::ZipError;
 
 #[cfg(test)]
 mod tests {
@@ -54,8 +55,12 @@ pub fn archive(path: &str) -> zip::result::ZipResult<String> {
 }
 
 fn archive_file(file_path: &str) -> zip::result::ZipResult<String> {
-    let file_name_ext = Path::new(&file_path).file_name().unwrap().to_str().unwrap();
-    let file_stem = Path::new(&file_name_ext).file_stem().unwrap().to_str().unwrap();
+    let file_name_ext = Path::new(&file_path)
+        .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
+        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
+    let file_stem = Path::new(&file_name_ext)
+        .file_stem().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
+        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
     println!("adding file {file_path:?} as {file_stem}/{file_name_ext} ...");
     let path_dest = format!("{file_stem}.zip");
     let file = File::create(&path_dest)?;
@@ -80,7 +85,7 @@ fn archive_file(file_path: &str) -> zip::result::ZipResult<String> {
 
 fn archive_dir(mut dir_path: &str) -> zip::result::ZipResult<String> {
     // If last char is '/' or '\', remove it
-    let last_char = dir_path.chars().last().unwrap();
+    let last_char = dir_path.chars().last().ok_or(ZipError::InvalidArchive("Cannot get last char"))?;
     if last_char == '/' || last_char == '\\' {
         dir_path = &dir_path[0..dir_path.len() - 1];
     }
@@ -141,7 +146,9 @@ fn archive_dir(mut dir_path: &str) -> zip::result::ZipResult<String> {
 
 pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
     let file = File::open(Path::new(&file_path))?;
-    let file_stem = Path::new(&file_path).file_stem().unwrap().to_str().unwrap();
+    let file_stem = Path::new(&file_path)
+        .file_stem().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
+        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
     let mut archive = zip::ZipArchive::new(file)?;
 
     for i in 0..archive.len() {
@@ -150,7 +157,7 @@ pub fn unarchive(file_path: &str) -> zip::result::ZipResult<String> {
             Some(path) => path,
             None => continue,
         };
-        let outpath_str = outpath.to_str().unwrap();
+        let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert outpath to &str"))?;
         let outpath_str_full = format!("{file_stem}/{outpath_str}");
         let outpath_full = Path::new(&outpath_str_full);
 
