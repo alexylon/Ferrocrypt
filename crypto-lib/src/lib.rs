@@ -1,4 +1,5 @@
 mod archiver;
+mod symmetric;
 
 extern crate openssl;
 
@@ -121,7 +122,7 @@ pub enum CryptoError {
     Unknown,
 }
 
-// Encrypt file with AES-GCM algorithm
+// Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
     let file_stem = &archiver::archive(file_path)?;
     // The byte string for the nonce should be 96-bit (12-bytes)
@@ -163,7 +164,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
     Ok(())
 }
 
-// Decrypt file with AES-GCM algorithm
+// Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
     let priv_key_str = fs::read_to_string(rsa_private_pem)?;
     if let Some(dir_path_index) = encrypted_file_path.rfind('/') {
