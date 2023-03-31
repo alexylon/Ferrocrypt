@@ -4,7 +4,6 @@ use std::{fs, str};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::Path;
-
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 // Or `Aes128Gcm`
@@ -14,7 +13,6 @@ use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
-use substring::Substring;
 use thiserror::Error;
 use crate::archiver;
 

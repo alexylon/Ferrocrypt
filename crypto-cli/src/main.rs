@@ -1,8 +1,6 @@
 use std::error::Error;
 use std::fs;
-
 use clap::Parser;
-
 use crypto_lib;
 
 #[derive(Parser, Debug)]

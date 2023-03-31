@@ -4,7 +4,6 @@ use std::io::prelude::*;
 use std::io::{Write};
 use std::iter::Iterator;
 use zip::write::FileOptions;
-
 use std::fs::File;
 use std::path::{Path};
 use walkdir::{WalkDir};
