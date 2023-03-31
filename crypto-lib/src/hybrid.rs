@@ -55,13 +55,13 @@ mod tests {
     }
 
     #[test]
-    fn encrypt_dir_test() {
-        encrypt_file(DIR_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
+    fn decrypt_file_test() {
+        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, RSA_PRIV_PEM, PASSPHRASE).unwrap();
     }
 
     #[test]
-    fn decrypt_file_test() {
-        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, RSA_PRIV_PEM, PASSPHRASE).unwrap();
+    fn encrypt_dir_test() {
+        encrypt_file(DIR_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
     }
 
     #[test]

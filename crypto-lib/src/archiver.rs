@@ -15,7 +15,7 @@ mod tests {
 
     const SRC_FILEPATH: &str = "src/test_files/test-file.txt";
     const SRC_DIRPATH: &str = "src/test_files/test-folder";
-    const DEST_DIRPATH: &str = "src/dest";
+    const DEST_DIRPATH: &str = "src/dest/";
     const SRC_FILEPATH_ZIPPED: &str = "src/dest/test-file.zip";
     const SRC_DIRPATH_ZIPPED: &str = "src/dest/test-folder.zip";
 
@@ -72,7 +72,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
     let mut buffer = Vec::new();
 
     #[allow(deprecated)]
-    zip.start_file_from_path(Path::new(src_file_path), options)?;
+    zip.start_file_from_path(Path::new(file_name_ext), options)?;
     let mut f = File::open(src_file_path)?;
 
     f.read_to_end(&mut buffer)?;
@@ -84,8 +84,8 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
     Ok(file_stem.to_string())
 }
 
-//TODO archive to dest path
 fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
+    println!("dest_dir_path: {dest_dir_path}");
     // If last char is '/' or '\', remove it
     let last_char = src_dir_path.chars().last().ok_or(ZipError::InvalidArchive("Cannot get last char"))?;
     if last_char == '/' || last_char == '\\' {
@@ -103,9 +103,9 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
         }
     }
 
-    let path_dest = format!("{dir_name}.zip");
-    let path = Path::new(&path_dest);
-    let file = File::create(path)?;
+    let path_dest_str = format!("{dest_dir_path}{dir_name}.zip");
+    let path_dest = Path::new(&path_dest_str);
+    let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
@@ -118,6 +118,8 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
         let path = entry.path();
         match path.strip_prefix(Path::new(src_dir_path)) {
             Ok(name) => {
+                let name_str = name.to_str().unwrap();
+                let dest_path = format!("{dir_name}/{name_str}");
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
@@ -163,7 +165,9 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
         let file_name = Path::new(&outpath)
             .file_name().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
             .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
-        let outpath_str_full = format!("{dest_dir_path}{file_name}");
+        println!("outpath: {}", outpath.display());
+        let outpath_str = outpath.to_str().unwrap();
+        let outpath_str_full = format!("{dest_dir_path}{outpath_str}");
         let outpath_full = Path::new(&outpath_str_full);
 
         {
@@ -203,4 +207,62 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
     }
 
     Ok(file_stem.to_string())
+}
+
+fn real_main() -> i32 {
+    let args: Vec<_> = std::env::args().collect();
+    if args.len() < 2 {
+        println!("Usage: {} <filename>", args[0]);
+        return 1;
+    }
+    let fname = Path::new(&*args[1]);
+    let file = File::open(fname).unwrap();
+
+    let mut archive = zip::ZipArchive::new(file).unwrap();
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).unwrap();
+        let outpath = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+
+        {
+            let comment = file.comment();
+            if !comment.is_empty() {
+                println!("File {i} comment: {comment}");
+            }
+        }
+
+        if (*file.name()).ends_with('/') {
+            println!("File {} extracted to \"{}\"", i, outpath.display());
+            fs::create_dir_all(&outpath).unwrap();
+        } else {
+            println!(
+                "File {} extracted to \"{}\" ({} bytes)",
+                i,
+                outpath.display(),
+                file.size()
+            );
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(p).unwrap();
+                }
+            }
+            let mut outfile = fs::File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+        }
+
+        // Get and Set permissions
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if let Some(mode) = file.unix_mode() {
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+            }
+        }
+    }
+
+    0
 }
