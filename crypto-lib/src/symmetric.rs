@@ -55,10 +55,10 @@ pub fn encrypt_file(source_file_path: &str, dest_file_path: &str, password: &str
     let mut buffer = [0u8; BUFFER_LEN];
 
     let mut source_file = File::open(source_file_path)?;
-    let mut dist_file = File::create(dest_file_path)?;
+    let mut dest_file = File::create(dest_file_path)?;
 
-    dist_file.write(&salt)?;
-    dist_file.write(&nonce)?;
+    dest_file.write(&salt)?;
+    dest_file.write(&nonce)?;
 
     loop {
         let read_count = source_file.read(&mut buffer)?;
@@ -67,12 +67,12 @@ pub fn encrypt_file(source_file_path: &str, dest_file_path: &str, password: &str
             let ciphertext = stream_encryptor
                 .encrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
+            dest_file.write(&ciphertext)?;
         } else {
             let ciphertext = stream_encryptor
                 .encrypt_last(&buffer[..read_count])
                 .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
+            dest_file.write(&ciphertext)?;
             break;
         }
     }
@@ -90,7 +90,7 @@ pub fn decrypt_file(source_file_path: &str, dest_file_path: &str, password: &str
     let mut nonce = [0u8; 19];
 
     let mut encrypted_file = File::open(source_file_path)?;
-    let mut dist_file = File::create(dest_file_path)?;
+    let mut dest_file = File::create(dest_file_path)?;
 
     let mut read_count = encrypted_file.read(&mut salt)?;
     if read_count != salt.len() {
@@ -119,14 +119,14 @@ pub fn decrypt_file(source_file_path: &str, dest_file_path: &str, password: &str
             let plaintext = stream_decryptor
                 .decrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
+            dest_file.write(&plaintext)?;
         } else if read_count == 0 {
             break;
         } else {
             let plaintext = stream_decryptor
                 .decrypt_last(&buffer[..read_count])
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
+            dest_file.write(&plaintext)?;
             break;
         }
     }

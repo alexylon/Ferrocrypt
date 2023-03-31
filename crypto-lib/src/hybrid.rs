@@ -28,9 +28,10 @@ mod tests {
 
     const FILE_PATH: &str = "src/test_files/test-file.txt";
     const DIR_PATH: &str = "src/test_files/test-folder/";
-    const FILE_PATH_ENCRYPTED: &str = "./test-file.crypto";
-    const FILE_PATH_DECRYPTED: &str = "./test-file/test-file.txt";
-    const DIR_PATH_ENCRYPTED: &str = "./test-folder.crypto";
+    const DEST_DIRPATH: &str = "src/dest";
+    const FILE_PATH_ENCRYPTED: &str = "src/dest/test-file.crypto";
+    const FILE_PATH_DECRYPTED: &str = "src/dest/test-file.txt";
+    const DIR_PATH_ENCRYPTED: &str = "src/dest/test-folder.crypto";
     // RSA-4096 PKCS#1 public key encoded as PEM
     const RSA_PUB_PEM: &str = "src/key_examples/rsa-4096-pub-key.pem";
     // RSA-4096 PKCS#1 private key encoded as PEM
@@ -39,8 +40,8 @@ mod tests {
 
     #[test]
     fn encrypt_decrypt_file_test() {
-        encrypt_file(FILE_PATH, RSA_PUB_PEM).unwrap();
-        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
+        encrypt_file(FILE_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, RSA_PRIV_PEM, PASSPHRASE).unwrap();
 
         let file_original = fs::read_to_string(FILE_PATH).unwrap();
         let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
@@ -50,22 +51,22 @@ mod tests {
 
     #[test]
     fn encrypt_file_test() {
-        encrypt_file(FILE_PATH, RSA_PUB_PEM).unwrap();
+        encrypt_file(FILE_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
     }
 
     #[test]
     fn encrypt_dir_test() {
-        encrypt_file(DIR_PATH, RSA_PUB_PEM).unwrap();
+        encrypt_file(DIR_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
     }
 
     #[test]
     fn decrypt_file_test() {
-        decrypt_file(FILE_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
+        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, RSA_PRIV_PEM, PASSPHRASE).unwrap();
     }
 
     #[test]
     fn decrypt_dir_test() {
-        decrypt_file(DIR_PATH_ENCRYPTED, RSA_PRIV_PEM, PASSPHRASE).unwrap();
+        decrypt_file(DIR_PATH_ENCRYPTED, DEST_DIRPATH, RSA_PRIV_PEM, PASSPHRASE).unwrap();
     }
 
     #[test]
@@ -122,8 +123,14 @@ pub enum CryptoError {
 }
 
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
-    let file_stem = &archiver::archive(file_path)?;
+pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
+    let mut dest_path = dest_dir_path.to_string();
+
+    if !dest_dir_path.ends_with("/") && dest_dir_path != "" {
+        dest_path = format!("{dest_dir_path}/");
+    }
+
+    let file_stem = &archiver::archive(src_file_path, &dest_path)?;
     // The byte string for the nonce should be 96-bit (12-bytes)
     let rand_bytes_12 = random_bytes(12);
 
@@ -136,7 +143,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
     // Create the 96-bit nonce, unique per file
     let nonce: &GenericArray<u8, typenum::U12> = Nonce::from_slice(&rand_bytes_12);
 
-    let file_name_zipped = &format!("{file_stem}.zip");
+    let file_name_zipped = &format!("{dest_path}{file_stem}.zip");
     let file_original = get_file_as_byte_vec(file_name_zipped)?;
     let ciphertext = cipher.encrypt(nonce, &*file_original)?;
 
@@ -148,7 +155,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}.crypto", file_stem))?;
+        .open(format!("{}{}.crypto", &dest_path, file_stem))?;
 
     // The output contains the encrypted data key, the nonce and the encrypted file
     file_path_encrypted.write_all(&encrypted_symmetric_key)?;
@@ -156,7 +163,7 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
     file_path_encrypted.write_all(&ciphertext)?;
 
     fs::remove_file(file_name_zipped)?;
-    let file_name_encrypted = &format!("{file_stem}.crypto");
+    let file_name_encrypted = &format!("{dest_path}{file_stem}.crypto");
     println!();
     println!("encrypted to {file_name_encrypted}");
 
@@ -164,7 +171,13 @@ pub fn encrypt_file(file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoE
 }
 
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
+pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
+    let mut dest_path = dest_dir_path.to_string();
+
+    if !dest_dir_path.ends_with("/") && dest_dir_path != "" {
+        dest_path = format!("{dest_dir_path}/");
+    }
+
     let priv_key_str = fs::read_to_string(rsa_private_pem)?;
     if encrypted_file_path.ends_with(".crypto") {
         let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
@@ -186,14 +199,13 @@ pub fn decrypt_file(encrypted_file_path: &str, rsa_private_pem: &str, passphrase
         let file_stem_decrypted = Path::new(&encrypted_file_path)
             .file_stem().ok_or(CryptoError::Message("Cannot get file stem".to_string()))?
             .to_str().ok_or(CryptoError::Message("Cannot convert file stem to &str".to_string()))?;
-        let decrypted_file_path: String = format!("{}.zip", file_stem_decrypted);
+        let decrypted_file_path: String = format!("{}{}.zip", dest_path, file_stem_decrypted);
         File::create(&decrypted_file_path)?;
         fs::write(&decrypted_file_path, file_decrypted)?;
-        archiver::unarchive(&decrypted_file_path)?;
+        archiver::unarchive(&decrypted_file_path, &dest_path)?;
         fs::remove_file(&decrypted_file_path)?;
-        let decrypted_dir_path: String = format!("{}", file_stem_decrypted);
         println!();
-        println!("decrypted to {decrypted_dir_path}");
+        println!("decrypted to {dest_path}");
     } else {
         return Err(CryptoError::Message("This file has no '.crypto' extension!".to_string()));
     }
