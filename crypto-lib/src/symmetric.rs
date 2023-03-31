@@ -38,11 +38,7 @@ mod tests {
 }
 
 // Encrypt file with XChaCha20Poly1305 algorithm
-pub fn encrypt_file(
-    source_file_path: &str,
-    dest_file_path: &str,
-    password: &str,
-) -> Result<(), anyhow::Error> {
+pub fn encrypt_file(source_file_path: &str, dest_file_path: &str, password: &str) -> Result<(), anyhow::Error> {
     let argon2_config = argon2_config();
 
     let mut salt = [0u8; 32];
@@ -89,11 +85,7 @@ pub fn encrypt_file(
 }
 
 // Decrypt file with XChaCha20Poly1305 algorithm
-pub fn decrypt_file(
-    source_file_path: &str,
-    dest_file_path: &str,
-    password: &str,
-) -> Result<(), anyhow::Error> {
+pub fn decrypt_file(source_file_path: &str, dest_file_path: &str, password: &str) -> Result<(), anyhow::Error> {
     let mut salt = [0u8; 32];
     let mut nonce = [0u8; 19];
 

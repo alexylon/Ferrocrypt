@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let key = fs::read_to_string(args.key)?;
         if args.encrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::encrypt_file(&args.encrypt, &key) {
+            match crypto_lib::encrypt_file_hybrid(&args.encrypt, &key) {
                 Ok(_) => {
                     println!("Encrypting {} ...", &args.encrypt);
                 }
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if args.decrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::decrypt_file(&args.decrypt, &key, &args.passphrase) {
+            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &key, &args.passphrase) {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }
