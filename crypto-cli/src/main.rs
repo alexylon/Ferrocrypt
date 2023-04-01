@@ -1,12 +1,11 @@
 use std::error::Error;
-use std::fs;
 use clap::Parser;
 use crypto_lib;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// File path to be encrypted
+    /// File or directory path to be encrypted
     #[clap(short, long, value_parser, default_value = "")]
     encrypt: String,
 
@@ -14,7 +13,11 @@ struct Args {
     #[clap(short, long, value_parser, default_value = "")]
     decrypt: String,
 
-    /// Key path
+    /// Destination path
+    #[clap(short, long, value_parser, default_value = "")]
+    out: String,
+
+    /// Key path: public key for encryption or private key for decryption
     #[clap(short, long, value_parser)]
     key: String,
 
@@ -25,11 +28,14 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    if args.encrypt != "" || args.decrypt != "" {
-        let key = fs::read_to_string(args.key)?;
+    if args.encrypt == "" && args.decrypt == "" {
+        return Err(format!("Encrypt or decrypt path should be provided!").into());
+    } else if args.encrypt != "" && args.decrypt != "" {
+        return Err(format!("Only encrypt or only decrypt path should be provided!").into());
+    } else {
         if args.encrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::encrypt_file_hybrid(&args.encrypt, &key) {
+            match crypto_lib::encrypt_file_hybrid(&args.encrypt, &args.out, &args.key) {
                 Ok(_) => {
                     println!("Encrypting {} ...", &args.encrypt);
                 }
@@ -41,15 +47,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if args.decrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &key, &args.passphrase) {
+            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &args.out, &args.key, &args.passphrase) {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }
                 Err(e) => { return Err(format!("Cannot decrypt file: {:?}", e).into()); }
             };
         }
-    } else {
-        return Err(format!("No path provided!").into());
     }
 
     Ok(())

@@ -93,23 +93,15 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
 }
 
 fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
-    println!("dest_dir_path: {dest_dir_path}");
-    // If last char is '/' or '\', remove it
-    let last_char = src_dir_path.chars().last().ok_or(ZipError::InvalidArchive("Cannot get last char"))?;
-    if last_char == '/' || last_char == '\\' {
+    // If last char is '/', remove it
+    if src_dir_path.ends_with("/") {
         src_dir_path = &src_dir_path[0..src_dir_path.len() - 1];
     }
-    let dir_name;
 
     // Get dir name from path
-    match src_dir_path.chars().rev().position(|c| c == '/') {
-        None => { dir_name = src_dir_path }
-        Some(slash_position) => {
-            let dir_chars_number = src_dir_path.chars().count();
-            let last_slash = dir_chars_number - slash_position;
-            dir_name = &src_dir_path[last_slash..];
-        }
-    }
+    let dir_name = Path::new(&src_dir_path)
+        .file_name().ok_or(ZipError::InvalidArchive("Cannot get directory name"))?
+        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert directory name to &str"))?;
 
     let path_dest_str = format!("{dest_dir_path}{dir_name}.zip");
     let path_dest = Path::new(&path_dest_str);
@@ -171,10 +163,6 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
             Some(path) => path,
             None => continue,
         };
-        let file_name = Path::new(&outpath)
-            .file_name().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
-            .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
-        println!("outpath: {}", outpath.display());
         let outpath_str = outpath.to_str().unwrap();
         let outpath_str_full = format!("{dest_dir_path}{outpath_str}");
         let outpath_full = Path::new(&outpath_str_full);
