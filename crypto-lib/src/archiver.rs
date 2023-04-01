@@ -28,6 +28,14 @@ mod tests {
     }
 
     #[test]
+    fn unarchive_file_test() {
+        match unarchive(SRC_FILEPATH_ZIPPED, DEST_DIRPATH) {
+            Ok(_) => println!("Unzipped: {SRC_FILEPATH_ZIPPED}"),
+            Err(e) => println!("Error: {e:?}"),
+        }
+    }
+
+    #[test]
     fn archive_dir_test() {
         match archive(SRC_DIRPATH, DEST_DIRPATH) {
             Ok(_) => println!("Zipped {SRC_DIRPATH}"),
@@ -36,9 +44,9 @@ mod tests {
     }
 
     #[test]
-    fn unarchive_test() {
-        match unarchive(SRC_FILEPATH_ZIPPED, DEST_DIRPATH) {
-            Ok(_) => println!("Unzipped: {SRC_FILEPATH_ZIPPED}"),
+    fn unarchive_dir_test() {
+        match unarchive(SRC_DIRPATH_ZIPPED, DEST_DIRPATH) {
+            Ok(_) => println!("Unzipped: {SRC_DIRPATH_ZIPPED}"),
             Err(e) => println!("Error: {e:?}"),
         }
     }
@@ -116,27 +124,28 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
 
     for entry in it {
         let path = entry.path();
-        match path.strip_prefix(Path::new(src_dir_path)) {
+        match path.strip_prefix(src_dir_path) {
             Ok(name) => {
                 let name_str = name.to_str().unwrap();
-                let dest_path = format!("{dir_name}/{name_str}");
+                let dest_path_str = format!("{dir_name}/{name_str}");
+                let dest_path = Path::new(&dest_path_str);
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
-                    println!("adding file {path:?} as {name:?} ...");
+                    println!("adding file {path:?} as {dest_path:?} ...");
                     #[allow(deprecated)]
-                    zip.start_file_from_path(name, options)?;
+                    zip.start_file_from_path(dest_path, options)?;
                     let mut f = File::open(path)?;
 
                     f.read_to_end(&mut buffer)?;
                     zip.write_all(&buffer)?;
                     buffer.clear();
-                } else if !name.as_os_str().is_empty() {
+                } else if !dest_path.as_os_str().is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
-                    println!("adding dir {path:?} as {name:?} ...");
+                    println!("adding dir {path:?} as {dest_path:?} ...");
                     #[allow(deprecated)]
-                    zip.add_directory_from_path(name, options)?;
+                    zip.add_directory_from_path(dest_path, options)?;
                 }
             }
             Err(err) => { println!("StripPrefixError: {err:?}"); }
@@ -207,62 +216,4 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
     }
 
     Ok(file_stem.to_string())
-}
-
-fn real_main() -> i32 {
-    let args: Vec<_> = std::env::args().collect();
-    if args.len() < 2 {
-        println!("Usage: {} <filename>", args[0]);
-        return 1;
-    }
-    let fname = Path::new(&*args[1]);
-    let file = File::open(fname).unwrap();
-
-    let mut archive = zip::ZipArchive::new(file).unwrap();
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
-        let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => continue,
-        };
-
-        {
-            let comment = file.comment();
-            if !comment.is_empty() {
-                println!("File {i} comment: {comment}");
-            }
-        }
-
-        if (*file.name()).ends_with('/') {
-            println!("File {} extracted to \"{}\"", i, outpath.display());
-            fs::create_dir_all(&outpath).unwrap();
-        } else {
-            println!(
-                "File {} extracted to \"{}\" ({} bytes)",
-                i,
-                outpath.display(),
-                file.size()
-            );
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    fs::create_dir_all(p).unwrap();
-                }
-            }
-            let mut outfile = fs::File::create(&outpath).unwrap();
-            io::copy(&mut file, &mut outfile).unwrap();
-        }
-
-        // Get and Set permissions
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-
-            if let Some(mode) = file.unix_mode() {
-                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
-            }
-        }
-    }
-
-    0
 }

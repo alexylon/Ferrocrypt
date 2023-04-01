@@ -28,7 +28,7 @@ mod tests {
 
     const FILE_PATH: &str = "src/test_files/test-file.txt";
     const DIR_PATH: &str = "src/test_files/test-folder/";
-    const DEST_DIRPATH: &str = "src/dest";
+    const DEST_DIRPATH: &str = "src/dest/";
     const FILE_PATH_ENCRYPTED: &str = "src/dest/test-file.crypto";
     const FILE_PATH_DECRYPTED: &str = "src/dest/test-file.txt";
     const DIR_PATH_ENCRYPTED: &str = "src/dest/test-folder.crypto";
@@ -179,8 +179,11 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
     }
 
     let priv_key_str = fs::read_to_string(rsa_private_pem)?;
+    println!("test 1");
     if encrypted_file_path.ends_with(".crypto") {
+        println!("test 2");
         let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path)?;
+        println!("test 3");
 
         // Get public key size
         let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
