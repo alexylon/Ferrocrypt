@@ -1,8 +1,5 @@
 use anyhow::anyhow;
-use chacha20poly1305::{
-    aead::{stream, NewAead},
-    XChaCha20Poly1305,
-};
+use chacha20poly1305::{aead::{stream, KeyInit}, XChaCha20Poly1305};
 use rand::{rngs::OsRng, RngCore};
 use std::{
     fs::File,
@@ -21,7 +18,7 @@ mod tests {
 
     #[test]
     fn encrypt_decrypt_file_test() -> Result<(), anyhow::Error> {
-        // let mut password = rpassword::prompt_password_stdout("password:")?;
+        // let mut password = rpassword::prompt_password("password:")?;
 
         if FILE_PATH.ends_with(".encrypted") {
             let dest_file_path = FILE_PATH.strip_suffix(".encrypted").unwrap().to_string() + ".decrypted";
