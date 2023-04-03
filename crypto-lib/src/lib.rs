@@ -3,6 +3,7 @@ use thiserror::Error;
 mod archiver;
 mod symmetric;
 mod hybrid;
+mod common;
 
 
 #[derive(Error, Debug)]
@@ -41,13 +42,13 @@ pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str) -> Result<
     Ok(())
 }
 
-pub fn encrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &str) -> Result<(), anyhow::Error> {
+pub fn encrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
     symmetric::encrypt_file(source_file_path, dest_file_path, password)?;
 
     Ok(())
 }
 
-pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &str) -> Result<(), anyhow::Error> {
+pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
     symmetric::decrypt_file(source_file_path, dest_file_path, password)?;
 
     Ok(())

@@ -14,6 +14,7 @@ use openssl::symm::Cipher;
 use rand::prelude::*;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
+use crate::common::normalize_paths;
 
 
 #[cfg(test)]
@@ -101,14 +102,8 @@ mod tests {
 
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
-    let src_file_path_norm = &src_file_path.replace("\\", "/");
-    let mut dest_dir_path_norm = dest_dir_path.replace("\\", "/");
-
-    if !dest_dir_path.ends_with("/") && dest_dir_path != "" {
-        dest_dir_path_norm = format!("{dest_dir_path}/");
-    }
-
-    let file_stem = &archiver::archive(src_file_path_norm, &dest_dir_path_norm)?;
+    let (src_file_path_norm, dest_dir_path_norm) = normalize_paths(src_file_path, dest_dir_path);
+    let file_stem = &archiver::archive(&src_file_path_norm, &dest_dir_path_norm)?;
 
     // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
     let mut symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
@@ -152,18 +147,12 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &s
 
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
-    let encrypted_file_path_norm = &encrypted_file_path.replace("\\", "/");
-    let mut dest_dir_path_norm = dest_dir_path.replace("\\", "/");
+    let (encrypted_file_path_norm, dest_dir_path_norm) = normalize_paths(encrypted_file_path, dest_dir_path);
     let nonce_len = 12;
-
-    if !dest_dir_path_norm.ends_with("/") && dest_dir_path_norm != "" {
-        dest_dir_path_norm = format!("{dest_dir_path}/");
-    }
-
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
     if encrypted_file_path_norm.ends_with(".rch") {
-        let data: Vec<u8> = get_file_as_byte_vec(encrypted_file_path_norm)?;
+        let data: Vec<u8> = get_file_as_byte_vec(&encrypted_file_path_norm)?;
 
         // Get public key size
         let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
@@ -194,7 +183,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
         rsa_private_pem.zeroize();
         passphrase.zeroize();
     } else {
-        return Err(CryptoError::Message("This file has no '.rch' extension!".to_string()));
+        return Err(CryptoError::Message("This file should have '.rch' extension!".to_string()));
     }
 
     Ok(())
