@@ -1,6 +1,5 @@
 use clap::Parser;
-use crypto_lib;
-use crypto_lib::CryptoError;
+use crypto_lib::{CryptoError, decrypt_file_hybrid, encrypt_file_hybrid};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -28,14 +27,14 @@ struct Args {
 
 fn main() -> Result<(), CryptoError> {
     let mut args = Args::parse();
-    if args.encrypt == "" && args.decrypt == "" {
+    if args.encrypt.is_empty() && args.decrypt.is_empty() {
         println!("Encrypt or decrypt path should be provided!");
-    } else if args.encrypt != "" && args.decrypt != "" {
+    } else if !args.encrypt.is_empty() && !args.decrypt.is_empty() {
         println!("Only encrypt or only decrypt path should be provided!");
     } else {
-        if args.encrypt != "" {
+        if !args.encrypt.is_empty() {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::encrypt_file_hybrid(&args.encrypt, &args.out, &args.key) {
+            match encrypt_file_hybrid(&args.encrypt, &args.out, &args.key) {
                 Ok(_) => {
                     println!("Encrypting {} ...", &args.encrypt);
                 }
@@ -45,9 +44,9 @@ fn main() -> Result<(), CryptoError> {
             };
         }
 
-        if args.decrypt != "" {
+        if !args.decrypt.is_empty() {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase) {
+            match decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase) {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }

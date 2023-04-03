@@ -190,10 +190,10 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
 }
 
 fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(&filename)?;
-    let metadata = fs::metadata(&filename)?;
+    let mut file = File::open(filename)?;
+    let metadata = fs::metadata(filename)?;
     let mut buffer = vec![0; metadata.len() as usize];
-    file.read(&mut buffer)?;
+    file.read_exact(&mut buffer)?;
 
     Ok(buffer)
 }
@@ -211,7 +211,7 @@ fn encrypt_key(symmetric_key: Vec<u8>, rsa_public_pem: &str) -> Result<Vec<u8>, 
     // Encrypt with public key
     let rsa = Rsa::public_key_from_pem(rsa_public_pem.as_bytes())?;
     let mut buf: Vec<u8> = vec![0; rsa.size() as usize];
-    rsa.public_encrypt(&*symmetric_key, &mut buf, Padding::PKCS1)?;
+    rsa.public_encrypt(&symmetric_key, &mut buf, Padding::PKCS1)?;
 
     Ok(buf)
 }
@@ -221,7 +221,7 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
     // Decrypt with private key
     let rsa = Rsa::private_key_from_pem_passphrase(rsa_private_pem.as_bytes(), passphrase.as_bytes())?;
     let mut buf: Vec<u8> = vec![0; rsa.size() as usize];
-    rsa.private_decrypt(&symmetric_key, &mut buf, Padding::PKCS1)?;
+    rsa.private_decrypt(symmetric_key, &mut buf, Padding::PKCS1)?;
 
     // Return only the first 32 elements of the vector as a fixed-size array
     let mut result: [u8; 32] = Default::default();

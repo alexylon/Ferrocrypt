@@ -53,14 +53,11 @@ mod tests {
 }
 
 pub fn archive(src_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
-    let file_name;
     if Path::new(src_path).is_file() {
-        file_name = archive_file(src_path, dest_dir_path)?;
+        archive_file(src_path, dest_dir_path)
     } else {
-        file_name = archive_dir(src_path, dest_dir_path)?;
+        archive_dir(src_path, dest_dir_path)
     }
-
-    Ok(file_name)
 }
 
 fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
@@ -72,7 +69,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
     println!("adding file {src_file_path:?} as {dest_dir_path}{file_stem}/{file_name_ext} ...");
     let path_dest = format!("{dest_dir_path}{file_stem}.zip");
-    let file = File::create(&path_dest)?;
+    let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
@@ -94,7 +91,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
 
 fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
     // If last char is '/', remove it
-    if src_dir_path.ends_with("/") {
+    if src_dir_path.ends_with('/') {
         src_dir_path = &src_dir_path[0..src_dir_path.len() - 1];
     }
 
@@ -176,7 +173,7 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
 
         if (*file.name()).ends_with('/') {
             println!("extracting dir to \"{}\"...", outpath_full.display());
-            fs::create_dir_all(&outpath_full)?;
+            fs::create_dir_all(outpath_full)?;
         } else {
             println!(
                 "extracting file to \"{}\" ({} bytes)...",
@@ -188,7 +185,7 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
                     fs::create_dir_all(p)?;
                 }
             }
-            let mut outfile = File::create(&outpath_full)?;
+            let mut outfile = File::create(outpath_full)?;
             io::copy(&mut file, &mut outfile)?;
         }
 

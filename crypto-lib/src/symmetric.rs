@@ -195,12 +195,12 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &m
 }
 
 fn argon2_config<'a>() -> argon2::Config<'a> {
-    return argon2::Config {
+    argon2::Config {
         variant: argon2::Variant::Argon2id,
         hash_length: 32,
         lanes: 8,
         mem_cost: 16 * 1024,
         time_cost: 8,
         ..Default::default()
-    };
+    }
 }
