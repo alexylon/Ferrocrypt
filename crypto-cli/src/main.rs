@@ -27,7 +27,7 @@ struct Args {
 }
 
 fn main() -> Result<(), CryptoError> {
-    let args = Args::parse();
+    let mut args = Args::parse();
     if args.encrypt == "" && args.decrypt == "" {
         println!("Encrypt or decrypt path should be provided!");
     } else if args.encrypt != "" && args.decrypt != "" {
@@ -47,7 +47,7 @@ fn main() -> Result<(), CryptoError> {
 
         if args.decrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
-            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &args.out, &args.key, &args.passphrase) {
+            match crypto_lib::decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase) {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }

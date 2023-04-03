@@ -1,6 +1,5 @@
 use anyhow::anyhow;
-use chacha20poly1305::{aead::{stream, KeyInit}, XChaCha20Poly1305};
-use rand::{rngs::OsRng, RngCore};
+use chacha20poly1305::{aead::{stream, KeyInit, OsRng}, {aead::rand_core::RngCore}, XChaCha20Poly1305};
 use std::{
     fs::File,
     io::{Read, Write},

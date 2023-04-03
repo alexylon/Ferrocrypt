@@ -29,7 +29,7 @@ pub fn encrypt_file_hybrid(src_file_path: &str, dest_file_path: &str, rsa_public
     Ok(())
 }
 
-pub fn decrypt_file_hybrid(encrypted_file_path: &str, dest_path: &str, rsa_private_pem: &str, passphrase: &str) -> Result<(), CryptoError> {
+pub fn decrypt_file_hybrid(encrypted_file_path: &str, dest_path: &str, rsa_private_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
     hybrid::decrypt_file(encrypted_file_path, dest_path, rsa_private_pem, passphrase)?;
 
     Ok(())
