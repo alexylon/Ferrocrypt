@@ -172,11 +172,11 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
         }
 
         if (*file.name()).ends_with('/') {
-            println!("extracting dir to \"{}\"...", outpath_full.display());
+            println!("extracting dir to \"{}\" ...", outpath_full.display());
             fs::create_dir_all(outpath_full)?;
         } else {
             println!(
-                "extracting file to \"{}\" ({} bytes)...",
+                "extracting file to \"{}\" ({} bytes) ...",
                 outpath_full.display(),
                 file.size()
             );

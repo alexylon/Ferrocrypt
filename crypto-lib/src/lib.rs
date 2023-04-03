@@ -36,8 +36,8 @@ pub fn decrypt_file_hybrid(encrypted_file_path: &str, dest_path: &str, rsa_priva
     Ok(())
 }
 
-pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str) -> Result<(), CryptoError> {
-    hybrid::generate_asymmetric_key_pair(byte_size, passphrase)?;
+pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_path: &str) -> Result<(), CryptoError> {
+    hybrid::generate_asymmetric_key_pair(byte_size, passphrase, dest_dir_path)?;
 
     Ok(())
 }

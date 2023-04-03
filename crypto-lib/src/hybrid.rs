@@ -88,8 +88,8 @@ mod tests {
 
     #[test]
     fn generate_key_pair_test() {
-        let passphrase = "MyPassword";
-        generate_asymmetric_key_pair(4096, passphrase).unwrap();
+        let passphrase = "test";
+        generate_asymmetric_key_pair(4096, passphrase, DEST_DIRPATH).unwrap();
     }
 
     #[test]
@@ -230,22 +230,28 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
     Ok(result)
 }
 
-pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str) -> Result<(), CryptoError> {
+pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &str, dest_dir_path: &str) -> Result<(), CryptoError> {
+    let (_, dest_dir_path_norm) = normalize_paths("", dest_dir_path);
+
     // Generate asymmetric key pair
-    let rsa: Rsa<Private> = Rsa::generate(byte_size)?;
+    let rsa: Rsa<Private> = Rsa::generate(bit_size)?;
     let private_key: Vec<u8> = rsa.private_key_to_pem_passphrase(Cipher::aes_256_cbc(), passphrase.as_bytes())?;
     let public_key: Vec<u8> = rsa.public_key_to_pem()?;
+    let private_key_path = format!("{}rsa-{}-priv-key.pem", &dest_dir_path_norm, bit_size);
+    let public_key_path = format!("{}rsa-{}-pub-key.pem", &dest_dir_path_norm, bit_size);
 
+    println!("Writing private key to {} ...", &private_key_path);
     let mut private_key_file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(format!("rsa-{}-priv-key.pem", byte_size))?;
+        .open(&private_key_path)?;
     private_key_file.write_all(&private_key)?;
 
+    println!("Writing public key to {} ...", &public_key_path);
     let mut public_key_file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(format!("rsa-{}-pub-key.pem", byte_size))?;
+        .open(&public_key_path)?;
     public_key_file.write_all(&public_key)?;
 
     Ok(())
