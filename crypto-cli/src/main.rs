@@ -1,6 +1,6 @@
-use std::error::Error;
 use clap::Parser;
 use crypto_lib;
+use crypto_lib::CryptoError;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -26,12 +26,12 @@ struct Args {
     passphrase: String,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), CryptoError> {
     let args = Args::parse();
     if args.encrypt == "" && args.decrypt == "" {
-        return Err(format!("Encrypt or decrypt path should be provided!").into());
+        println!("Encrypt or decrypt path should be provided!");
     } else if args.encrypt != "" && args.decrypt != "" {
-        return Err(format!("Only encrypt or only decrypt path should be provided!").into());
+        println!("Only encrypt or only decrypt path should be provided!");
     } else {
         if args.encrypt != "" {
             // Error propagation intentionally not simplified with the question mark (?) operator
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("Encrypting {} ...", &args.encrypt);
                 }
                 Err(e) => {
-                    return Err(format!("Cannot encrypt file: {:?}", e).into());
+                    return Err(e)?;
                 }
             };
         }
@@ -51,7 +51,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Ok(_) => {
                     println!("Decrypting {} ...", &args.decrypt);
                 }
-                Err(e) => { return Err(format!("Cannot decrypt file: {:?}", e).into()); }
+                Err(e) => {
+                    return Err(e)?;
+                }
             };
         }
     }

@@ -13,8 +13,7 @@ use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
-use thiserror::Error;
-use crate::archiver;
+use crate::{archiver, CryptoError};
 
 
 #[cfg(test)]
@@ -101,25 +100,6 @@ mod tests {
         let rsa_pub_key_size = get_public_key_size_from_private_key(&priv_key, PASSPHRASE).unwrap();
         println!("rsa_pub_key_size: {rsa_pub_key_size}");
     }
-}
-
-
-#[derive(Error, Debug)]
-pub enum CryptoError {
-    #[error("IO Error!")]
-    Io(#[from] std::io::Error),
-    #[error("AES encryption/decryption failure!")]
-    AesError(#[from] aes_gcm::Error),
-    #[error("RSA encryption/decryption failure!")]
-    OpensslError(#[from] openssl::error::ErrorStack),
-    #[error("WalkDir Error!")]
-    WalkDirError(#[from] walkdir::Error),
-    #[error("Zip Error!")]
-    ZipError(#[from] zip::result::ZipError),
-    #[error("")]
-    Message(String),
-    #[error("Unknown error!")]
-    Unknown,
 }
 
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm

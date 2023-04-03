@@ -1,8 +1,27 @@
-use crate::hybrid::CryptoError;
+use thiserror::Error;
 
 mod archiver;
 mod symmetric;
 mod hybrid;
+
+
+#[derive(Error, Debug)]
+pub enum CryptoError {
+    #[error("IO Error!")]
+    Io(#[from] std::io::Error),
+    #[error("AES encryption/decryption failure!")]
+    AesError(#[from] aes_gcm::Error),
+    #[error("RSA encryption/decryption failure!")]
+    OpensslError(#[from] openssl::error::ErrorStack),
+    #[error("WalkDir Error!")]
+    WalkDirError(#[from] walkdir::Error),
+    #[error("Zip Error!")]
+    ZipError(#[from] zip::result::ZipError),
+    #[error("")]
+    Message(String),
+    #[error("Unknown error!")]
+    Unknown,
+}
 
 pub fn encrypt_file_hybrid(src_file_path: &str, dest_file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
     hybrid::encrypt_file(src_file_path, dest_file_path, rsa_public_pem)?;
