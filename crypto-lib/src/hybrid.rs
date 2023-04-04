@@ -104,6 +104,8 @@ mod tests {
 pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
     let (src_file_path_norm, dest_dir_path_norm) = normalize_paths(src_file_path, dest_dir_path);
     let file_stem = &archiver::archive(&src_file_path_norm, &dest_dir_path_norm)?;
+    let file_name_zipped = &format!("{dest_dir_path_norm}{file_stem}.zip");
+    println!("\nencrypting {} ...", file_name_zipped);
 
     // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
     let mut symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
@@ -115,7 +117,6 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &s
     let mut nonce = [0u8; 12];
     OsRng.fill_bytes(&mut nonce);
 
-    let file_name_zipped = &format!("{dest_dir_path_norm}{file_stem}.zip");
     let file_original = get_file_as_byte_vec(file_name_zipped)?;
     let ciphertext = cipher.encrypt(nonce.as_ref().into(), &*file_original)?;
 
@@ -136,8 +137,7 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &s
 
     fs::remove_file(file_name_zipped)?;
     let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.rch");
-    println!();
-    println!("encrypted to {file_name_encrypted}");
+    println!("\nencrypted to {}", file_name_encrypted);
 
     nonce.zeroize();
     symmetric_key.zeroize();
@@ -152,6 +152,8 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
     if encrypted_file_path_norm.ends_with(".rch") {
+        println!("decrypting {} ...\n", encrypted_file_path);
+
         let data: Vec<u8> = get_file_as_byte_vec(&encrypted_file_path_norm)?;
 
         // Get public key size
@@ -176,8 +178,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
         fs::write(&decrypted_file_path, file_decrypted)?;
         archiver::unarchive(&decrypted_file_path, &dest_dir_path_norm)?;
         fs::remove_file(&decrypted_file_path)?;
-        println!();
-        println!("decrypted to {dest_dir_path_norm}");
+        println!("\ndecrypted to {}", dest_dir_path_norm);
 
         symmetric_key.zeroize();
         rsa_private_pem.zeroize();
@@ -231,7 +232,7 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
 }
 
 pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &str, dest_dir_path: &str) -> Result<(), CryptoError> {
-    let (_, dest_dir_path_norm) = normalize_paths("", dest_dir_path);
+    let dest_dir_path_norm = normalize_paths("", dest_dir_path).1;
 
     // Generate asymmetric key pair
     let rsa: Rsa<Private> = Rsa::generate(bit_size)?;

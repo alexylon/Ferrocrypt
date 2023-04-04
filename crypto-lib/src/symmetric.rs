@@ -10,6 +10,7 @@ use crate::CryptoError::{ChaCha20Poly1305Error, Message};
 
 #[cfg(test)]
 mod tests {
+    use crate::CryptoError;
     // use zeroize::Zeroize;
     use crate::symmetric::{decrypt_file, encrypt_file};
 
@@ -23,7 +24,7 @@ mod tests {
     const PASSPHRASE: &str = "strong_passphrase";
 
     #[test]
-    fn encrypt_file_test() -> Result<(), anyhow::Error> {
+    fn encrypt_file_test() -> Result<(), CryptoError> {
         // let mut passphrase = rpassword::prompt_password("passphrase:")?;
         let mut passphrase = PASSPHRASE.to_string();
         encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
@@ -34,7 +35,7 @@ mod tests {
     }
 
     #[test]
-    fn decrypt_file_test() -> Result<(), anyhow::Error> {
+    fn decrypt_file_test() -> Result<(), CryptoError> {
         // let mut password = rpassword::prompt_password("password:")?;
         let mut passphrase = PASSPHRASE.to_string();
         decrypt_file(ENCRYPTED_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
@@ -50,6 +51,8 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, passphrase: &mut s
     let (src_file_path_norm, dest_dir_path_norm) = normalize_paths(src_file_path, dest_dir_path);
     let file_stem = &archiver::archive(&src_file_path_norm, &dest_dir_path_norm)?;
     let file_name_zipped = &format!("{dest_dir_path_norm}{file_stem}.zip");
+    println!("\nencrypting {} ...", file_name_zipped);
+
     let mut source_file = File::open(file_name_zipped)?;
     let argon2_config = argon2_config();
     let mut salt = [0u8; 32];
@@ -107,6 +110,8 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: 
     let (encrypted_file_path_norm, dest_dir_path_norm) = normalize_paths(encrypted_file_path, dest_dir_path);
 
     if encrypted_file_path_norm.ends_with(".rcs") {
+        println!("decrypting {} ...\n", encrypted_file_path);
+
         let mut salt = [0u8; 32];
         let mut nonce = [0u8; 19];
         let mut encrypted_file = File::open(&encrypted_file_path_norm)?;
@@ -161,8 +166,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: 
 
         archiver::unarchive(&decrypted_file_path, &dest_dir_path_norm)?;
         fs::remove_file(&decrypted_file_path)?;
-        println!();
-        println!("decrypted to {dest_dir_path_norm}");
+        println!("\ndecrypted to {dest_dir_path_norm}");
 
         salt.zeroize();
         nonce.zeroize();

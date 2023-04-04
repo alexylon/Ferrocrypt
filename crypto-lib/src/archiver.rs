@@ -8,6 +8,7 @@ use std::fs::File;
 use std::path::{Path};
 use walkdir::{WalkDir};
 use zip::result::ZipError;
+use crate::common::normalize_paths;
 
 #[cfg(test)]
 mod tests {
@@ -72,7 +73,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
     let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated)
+        .compression_method(zip::CompressionMethod::Stored)
         .unix_permissions(0o755);
     let mut buffer = Vec::new();
 
@@ -105,7 +106,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
     let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated)
+        .compression_method(zip::CompressionMethod::Stored)
         .unix_permissions(0o755);
     let walkdir = WalkDir::new(src_dir_path);
     let it = walkdir.into_iter().filter_map(|e| e.ok());
@@ -115,13 +116,16 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
         let path = entry.path();
         match path.strip_prefix(src_dir_path) {
             Ok(name) => {
-                let name_str = name.to_str().unwrap();
+                let path_str = path.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
+                let path_str_norm = &normalize_paths(path_str, "").0;
+                let name_str = name.to_str().ok_or(ZipError::InvalidArchive("Cannot convert name to &str"))?;
                 let dest_path_str = format!("{dir_name}/{name_str}");
+                let dest_path_str_norm = &normalize_paths(&dest_path_str, "").0;
                 let dest_path = Path::new(&dest_path_str);
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
-                    println!("adding file {path:?} as {dest_path:?} ...");
+                    println!("adding file {path_str_norm} as {dest_path_str_norm} ...");
                     #[allow(deprecated)]
                     zip.start_file_from_path(dest_path, options)?;
                     let mut f = File::open(path)?;
@@ -132,7 +136,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
                 } else if !dest_path.as_os_str().is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
-                    println!("adding dir {path:?} as {dest_path:?} ...");
+                    println!("adding dir {path_str_norm} as {dest_path_str_norm} ...");
                     #[allow(deprecated)]
                     zip.add_directory_from_path(dest_path, options)?;
                 }
@@ -160,8 +164,9 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
             Some(path) => path,
             None => continue,
         };
-        let outpath_str = outpath.to_str().unwrap();
+        let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
         let outpath_str_full = format!("{dest_dir_path}{outpath_str}");
+        let outpath_str_full_norm = normalize_paths(&outpath_str_full, "").0;
         let outpath_full = Path::new(&outpath_str_full);
 
         {
@@ -172,12 +177,12 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRe
         }
 
         if (*file.name()).ends_with('/') {
-            println!("extracting dir to \"{}\" ...", outpath_full.display());
+            println!("extracting dir to \"{}\" ...", &outpath_str_full_norm);
             fs::create_dir_all(outpath_full)?;
         } else {
             println!(
                 "extracting file to \"{}\" ({} bytes) ...",
-                outpath_full.display(),
+                &outpath_str_full_norm,
                 file.size()
             );
             if let Some(p) = outpath_full.parent() {
