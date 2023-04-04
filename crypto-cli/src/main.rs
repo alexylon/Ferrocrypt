@@ -1,5 +1,5 @@
 use clap::Parser;
-use crypto_lib::{CryptoError, decrypt_file_hybrid, encrypt_file_hybrid, generate_asymmetric_key_pair};
+use crypto_lib::{CryptoError, decrypt_file_hybrid, encrypt_file_hybrid, generate_asymmetric_key_pair, encrypt_file_symmetric, decrypt_file_symmetric};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -20,7 +20,7 @@ struct Args {
     #[clap(short, long, value_parser, default_value = "")]
     key: String,
 
-    /// Passphrase for decrypting the private key
+    /// Passphrase for decrypting the private key or for symmetric key derivation
     #[clap(short, long, value_parser, default_value = "")]
     passphrase: String,
 
@@ -35,38 +35,31 @@ struct Args {
 
 fn main() -> Result<(), CryptoError> {
     let mut args = Args::parse();
-    if args.generate && generate_asymmetric_key_pair(args.bit_size, &args.passphrase, &args.out).is_ok() {}
 
-    if !args.key.is_empty() {
-        if args.encrypt.is_empty() && args.decrypt.is_empty() {
-            println!("Encrypt or decrypt path should be provided!");
-        } else if !args.encrypt.is_empty() && !args.decrypt.is_empty() {
-            println!("Only encrypt or only decrypt path should be provided!");
-        } else {
-            if !args.encrypt.is_empty() {
-                // Error propagation intentionally not simplified with the question mark (?) operator
-                match encrypt_file_hybrid(&args.encrypt, &args.out, &args.key) {
-                    Ok(_) => {
-                        println!("Encrypting {} ...", &args.encrypt);
-                    }
-                    Err(e) => {
-                        return Err(e)?;
-                    }
-                };
-            }
-
-            if !args.decrypt.is_empty() {
-                // Error propagation intentionally not simplified with the question mark (?) operator
-                match decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase) {
-                    Ok(_) => {
-                        println!("Decrypting {} ...", &args.decrypt);
-                    }
-                    Err(e) => {
-                        return Err(e)?;
-                    }
-                };
-            }
+    if args.generate {
+        generate_asymmetric_key_pair(args.bit_size, &args.passphrase, &args.out)?;
+    } else if args.encrypt.is_empty() && args.decrypt.is_empty() {
+        eprintln!("No sufficient arguments supplied!");
+    } else if !args.encrypt.is_empty() && !args.decrypt.is_empty() {
+        eprintln!("Only encrypt or only decrypt path should be provided!");
+    } else if !args.key.is_empty() {
+        if !args.encrypt.is_empty() {
+            encrypt_file_hybrid(&args.encrypt, &args.out, &args.key)?;
         }
+
+        if !args.decrypt.is_empty() {
+            decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase)?;
+        }
+    } else if !args.passphrase.is_empty() {
+        if !args.encrypt.is_empty() {
+            encrypt_file_symmetric(&args.encrypt, &args.out, &mut args.passphrase)?;
+        }
+
+        if !args.decrypt.is_empty() {
+            decrypt_file_symmetric(&args.decrypt, &args.out, &mut args.passphrase)?;
+        }
+    } else {
+        eprintln!("Error: No sufficient arguments supplied!");
     }
 
     Ok(())

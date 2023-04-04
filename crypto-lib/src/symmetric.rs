@@ -1,11 +1,11 @@
-use anyhow::anyhow;
 use chacha20poly1305::{aead::{stream, KeyInit, OsRng}, {aead::rand_core::RngCore}, XChaCha20Poly1305};
 use std::{fs, fs::File, io::{Read, Write}};
 use std::fs::OpenOptions;
 use std::path::Path;
 use zeroize::Zeroize;
-use crate::archiver;
+use crate::{archiver, CryptoError};
 use crate::common::normalize_paths;
+use crate::CryptoError::{ChaCha20Poly1305Error, Message};
 
 
 #[cfg(test)]
@@ -23,31 +23,12 @@ mod tests {
     const PASSPHRASE: &str = "strong_passphrase";
 
     #[test]
-    fn encrypt_decrypt_file_test() -> Result<(), anyhow::Error> {
-        // let mut password = rpassword::prompt_password("password:")?;
-
-        let mut passphrase = PASSPHRASE.to_string();
-        if SRC_FILE_PATH.ends_with(".rcs") {
-            decrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
-        } else {
-            encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
-        }
-
-        encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
-        decrypt_file(ENCRYPTED_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
-
-        // password.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
     fn encrypt_file_test() -> Result<(), anyhow::Error> {
-        // let mut password = rpassword::prompt_password("password:")?;
+        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
         let mut passphrase = PASSPHRASE.to_string();
         encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
 
-        // password.zeroize();
+        // passphrase.zeroize();
 
         Ok(())
     }
@@ -65,7 +46,7 @@ mod tests {
 }
 
 // Encrypt file with XChaCha20Poly1305 algorithm
-pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
+pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (src_file_path_norm, dest_dir_path_norm) = normalize_paths(src_file_path, dest_dir_path);
     let file_stem = &archiver::archive(&src_file_path_norm, &dest_dir_path_norm)?;
     let file_name_zipped = &format!("{dest_dir_path_norm}{file_stem}.zip");
@@ -76,7 +57,7 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, password: &mut str
     OsRng.fill_bytes(&mut salt);
     OsRng.fill_bytes(&mut nonce);
 
-    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt, &argon2_config)?;
     let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
     let mut stream_encryptor = stream::EncryptorBE32::from_aead(aead, nonce.as_ref().into());
 
@@ -97,12 +78,12 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, password: &mut str
         if read_count == BUFFER_LEN {
             let ciphertext = stream_encryptor
                 .encrypt_next(buffer.as_slice())
-                .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
+                .map_err(ChaCha20Poly1305Error)?;
             file_path_encrypted.write_all(&ciphertext)?;
         } else {
             let ciphertext = stream_encryptor
                 .encrypt_last(&buffer[..read_count])
-                .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
+                .map_err(ChaCha20Poly1305Error)?;
             file_path_encrypted.write_all(&ciphertext)?;
             break;
         }
@@ -116,13 +97,13 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, password: &mut str
     salt.zeroize();
     nonce.zeroize();
     key.zeroize();
-    password.zeroize();
+    passphrase.zeroize();
 
     Ok(())
 }
 
 // Decrypt file with XChaCha20Poly1305 algorithm
-pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
+pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (encrypted_file_path_norm, dest_dir_path_norm) = normalize_paths(encrypted_file_path, dest_dir_path);
 
     if encrypted_file_path_norm.ends_with(".rcs") {
@@ -130,8 +111,8 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &m
         let mut nonce = [0u8; 19];
         let mut encrypted_file = File::open(&encrypted_file_path_norm)?;
         let file_stem_decrypted = Path::new(&encrypted_file_path_norm)
-            .file_stem().ok_or(anyhow!("Cannot get file stem".to_string()))?
-            .to_str().ok_or(anyhow!("Cannot convert file stem to &str".to_string()))?;
+            .file_stem().ok_or(Message("Cannot get file stem".to_string()))?
+            .to_str().ok_or(Message("Cannot convert file stem to &str".to_string()))?;
         // let decrypted_file_path: String = format!("{}{}.zip", dest_dir_path_norm, file_stem_decrypted);
         // File::create(&decrypted_file_path)?;
         let decrypted_file_path = format!("{}{}.zip", dest_dir_path_norm, file_stem_decrypted);
@@ -143,16 +124,16 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &m
 
         let mut read_count = encrypted_file.read(&mut salt)?;
         if read_count != salt.len() {
-            return Err(anyhow!("Error reading salt."));
+            return Err(Message("Error reading salt!".to_string()));
         }
 
         read_count = encrypted_file.read(&mut nonce)?;
         if read_count != nonce.len() {
-            return Err(anyhow!("Error reading nonce."));
+            return Err(Message("Error reading nonce!".to_string()));
         }
 
         let argon2_config = argon2_config();
-        let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
+        let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt, &argon2_config)?;
         let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let mut stream_decryptor = stream::DecryptorBE32::from_aead(aead, nonce.as_ref().into());
 
@@ -165,14 +146,14 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &m
             if read_count == BUFFER_LEN {
                 let plaintext = stream_decryptor
                     .decrypt_next(buffer.as_slice())
-                    .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
+                    .map_err(ChaCha20Poly1305Error)?;
                 decrypted_file.write_all(&plaintext)?;
             } else if read_count == 0 {
                 break;
             } else {
                 let plaintext = stream_decryptor
                     .decrypt_last(&buffer[..read_count])
-                    .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
+                    .map_err(ChaCha20Poly1305Error)?;
                 decrypted_file.write_all(&plaintext)?;
                 break;
             }
@@ -186,9 +167,9 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, password: &m
         salt.zeroize();
         nonce.zeroize();
         key.zeroize();
-        password.zeroize();
+        passphrase.zeroize();
     } else {
-        return Err(anyhow!("This file should have '.rcs' extension!".to_string()));
+        return Err(Message("This file should have '.rcs' extension!".to_string()));
     }
 
     Ok(())

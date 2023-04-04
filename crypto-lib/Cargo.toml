@@ -7,9 +7,6 @@ edition = "2021"
 
 [dependencies]
 openssl = "0.10"
-hex = "0.4"
-num-traits = "0.2"
-hex-literal = "0.4"
 zeroize = "1"
 rand = "0.8"
 aes-gcm = { version = "0.10", features = ["std"] }
@@ -18,7 +15,6 @@ substring = "1"
 walkdir = "2"
 zip = "0.6.4"
 chacha20poly1305 = { version = "0.10", features = ["stream"] }
-anyhow = "1.0"
 rust-argon2 = "1.0"
 rpassword = "7.2"
 

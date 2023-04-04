@@ -10,8 +10,10 @@ mod common;
 pub enum CryptoError {
     #[error("IO Error!")]
     Io(#[from] std::io::Error),
-    #[error("AES encryption/decryption failure!")]
-    AesError(#[from] aes_gcm::Error),
+    #[error("ChaCha20Poly1305 encryption/decryption failure!")]
+    ChaCha20Poly1305Error(#[from] chacha20poly1305::Error),
+    #[error("Argon2 Error!")]
+    Argon2Error(#[from] argon2::Error),
     #[error("RSA encryption/decryption failure!")]
     OpensslError(#[from] openssl::error::ErrorStack),
     #[error("WalkDir Error!")]
@@ -42,13 +44,13 @@ pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_p
     Ok(())
 }
 
-pub fn encrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
+pub fn encrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
     symmetric::encrypt_file(source_file_path, dest_file_path, password)?;
 
     Ok(())
 }
 
-pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), anyhow::Error> {
+pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
     symmetric::decrypt_file(source_file_path, dest_file_path, password)?;
 
     Ok(())
