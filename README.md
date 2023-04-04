@@ -1,87 +1,100 @@
 # rusty-crypto
+
 ## CLI encrypting / decrypting tool
 
 ### ABOUT
-**rusty-crypto** is a pure Rust implementation of a client-side encryption tool, 
-relying on the combination of using both symmetric and asymmetric algorithms together, 
-also known as hybrid encryption.
 
-Both crates, implementing the AES-GCM and RSA encryption ciphers - `aes-gcm` and `rsa` - have received security audits, with no significant findings.
-In order to encrypt or decrypt a file or a directory you need only a pair of PEM keys - a public one for encrypting and a private one for decrypting. 
-For testing purposes you could use the included `.pem` keys in `/key_examples`.
+**rusty-crypto** is a pure Rust implementation of a client-side encryption tool.
 
-The code is separated in two projects - `crypto-cli` and `crypto-lib` - the latter can be used independently as a library.
+Supports two kinds of encryption:
 
+- Hybrid, relying on the combination of using both symmetric AES-GCM algorithm, for encrypting the data
+  and asymmetric RSA algorithm, for encrypting the symmetric data key.
+- Symmetric, using XChaCha20Poly1305 algorithms and Argon2id password-based key derivation function.
 
-#### When encrypting the tool: 
+The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms
 
-- Zips the file or directory
+- `aes-gcm` and `chacha20poly1305` - have received security audits, with no significant findings.
 
-- Generates a random symmetric AES-GSM 256-bit key and a random 96-bit nonce - both _unique_ for each file. 
-
-- Encrypts the file with the symmetric key.
-
-- Encrypts the symmetric key with the public RSA key in PEM format and deletes the plain text one from memory.
-
-- Puts the encrypted symmetric key, the nonce and the encrypted file in an envelope .
-
-- Writes the envelope in the current directory. The encrypted path will be `./{FILE_NAME}.crypto` or `./{DIRECTORY_NAME}.crypto`.
-
-#### When decrypting the tool:
-
-- Splits the envelope in three: the encrypted symmetric key, the nonce and the encrypted file.
-
-- Decrypts the encrypted symmetric key with the private RSA key in PEM format.
-
-- Decrypts the file with the symmetric key and the nonce.
-
-- Unzips the file or directory
-
-- Writes the decrypted file or directory on the file system in the current directory, removing the `.crypto` extension. 
-If a file was encrypted, the decrypted path will be `./{FILE_NAME}/{FILE_NAME.ext}`. 
-If a directory was encrypted, the decrypted path will be `./{DIRECTORY_NAME}`.
-  <br/><br/>
+The code is separated in two projects - a client `crypto-cli` and a library `crypto-lib`.
 
 ### USAGE
 
 #### BUILD
 
-`cargo build --release` - the binary file is located in `target\release\crypto.exe` (Windows) 
+`cargo build --release` - the binary file is located in `target\release\crypto.exe` (Windows)
 or `target/release/crypto` (macOS and Linux).
 
-#### Encrypt file:
+### macOS and Linux
 
-##### Windows:
+#### Hybrid encryption
 
-`crypto --encrypt <FILE_PATH> --key <PUBLIC_PEM_KEY>`
+##### Generate private / public key pair with a passphrase for the encryption of the private key
 
-OR
-
-`crypto -e <FILE_PATH> -k <PUBLIC_PEM_KEY>`
-
-#### Decrypt file:
-
-`crypto --decrypt <FILE_PATH> --key <PRIVATE_PEM_KEY>`
+`./crypto --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
 
 OR
 
-`crypto -d <FILE_PATH> -k <PRIVATE_PEM_KEY>`
+`./crypto -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
+
+##### Encrypt file or directory
+
+`./crypto --encrypt <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
+
+OR
+
+`./crypto -e <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
+
+##### Decrypt file:
+
+`./crypto --decrypt <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY>`
+
+OR
+
+`./crypto -d <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY>`
 <br/><br/>
 
-##### macOS and Linux:
+#### Symmetric encryption with password-based key derivation
 
-Just replace the command with `./crypto`
+##### Encrypt file or directory
+
+`./crypto --encrypt <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
+
+OR
+
+`./crypto -e <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+
+##### Decrypt file:
+
+`./crypto --decrypt <SRC_FILE_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
+
+OR
+
+`./crypto -d <SRC_FILE_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+<br/><br/>
+
+### Windows:
+
+Just replace the command `./crypto` with `crypto`
 
 ### OPTIONS:
 
-`-d, --decrypt <FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Decrypt file path
+`-b, --bit-size <BIT_SIZE>`        Generate private and public key pair directory path [default:4096]
 
-`-e, --encrypt <FILE_PATH>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Encrypt file path
+`-d, --decrypt <SRC_FILE_PATH>`          File path to be decrypted [default: ]
 
-`-h, --help`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print help information
+`-e, --encrypt <SRC_PATH>`        File or directory path to be encrypted [default: ]
 
-`-k, --key <KEY>`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key path (public RSA key for encryption or private RSA key for decryption)
+`-g, --generate`                   Generate private and public key pair
 
-`-V, --version`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print version information
+`-h, --help`                      Print help information
+
+`-k, --key <KEY_PATH>`                  Key path: public key for encryption or private key for decryption [default: ]
+
+`-o, --out <DEST_DIR_PATH>`                  Destination path [default: ]
+
+`-p, --passphrase <PASSPHRASE>`    Passphrase for decrypting the private key or for symmetric key derivation [default: ]
+
+`-V, --version`                    Print version information
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-rust.svg)](https://forthebadge.com)
