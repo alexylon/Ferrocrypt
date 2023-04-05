@@ -17,17 +17,24 @@ The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorit
 
 The code is separated in two projects - a client `ferrocrypt-cli` and a library `ferrocrypt-lib`.
 
-### USAGE
-
-#### BUILD
+### BUILD
 
 `cargo build --release` - the binary file is located in `target/release/fc` (macOS and Linux) or `target\release\fc.exe` (Windows).
 
-### macOS and Linux (flags after the command can be in any order)
+<br/>
 
-#### Hybrid encryption
+### USAGE
 
-##### Generate private / public key pair with a passphrase for the encryption of the private key
+#### macOS and Linux (flags after the command can be in any order)
+
+<br/>
+
+##### Hybrid encryption 
+
+Suitable for data exchange, where the files or directories can be encrypted with any public key, 
+but can be only decrypted with the corresponding private key and the passphrase, which decrypts this key.
+
+###### Generate private / public key pair with a passphrase for the encryption of the private key
 
 `./fc --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
 
@@ -35,7 +42,7 @@ or
 
 `./fc -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
 
-##### Encrypt file or directory
+###### Encrypt file or directory
 
 `./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
 
@@ -43,18 +50,21 @@ or
 
 `./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
 
-##### Decrypt file:
+###### Decrypt file:
 
 `./fc --inpath <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
 
 or
 
 `./fc -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
-<br/><br/>
 
-#### Symmetric encryption with password-based key derivation
+<br/>
 
-##### Encrypt file or directory / Decrypt file
+##### Symmetric encryption with password-based key derivation
+
+Suitable for personal use, where the data is encrypted and decrypted with the same password.
+
+###### Encrypt file or directory / Decrypt file
 
 `./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
 
@@ -62,11 +72,13 @@ or
 
 `./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
 
-<br/><br/>
+<br/>
 
-### Windows:
+#### Windows:
 
 Just replace the command `./fc` with `fc`
+
+<br/>
 
 ### OPTIONS:
 
@@ -81,5 +93,7 @@ Just replace the command `./fc` with `fc`
 | -l, --large                   | Symmetric: For large input file that doesn't fit to RAM. Much slower                                                                               |                                                                       
 | -h, --help                    | Print help                                                                                                                                         |                                                                                                                                   
 | -V, --version                 | Print version                                                                                                                                      |                                                                                                                             |
+
+<br/>
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-rust.svg)](https://forthebadge.com)
