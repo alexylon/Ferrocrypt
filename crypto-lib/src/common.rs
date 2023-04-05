@@ -27,9 +27,9 @@ pub fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
 }
 
 pub fn get_file_stem_to_string(filename: &str) -> Result<String, CryptoError> {
-    let file_stem_str = Path::new(filename)
+    let file_stem_string = Path::new(filename)
         .file_stem().ok_or(Message("Cannot get file stem".to_string()))?
         .to_str().ok_or(Message("Cannot convert file stem to &str".to_string()))?.to_string();
 
-    Ok(file_stem_str)
+    Ok(file_stem_string)
 }
