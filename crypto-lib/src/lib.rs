@@ -55,3 +55,15 @@ pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, pass
 
     Ok(())
 }
+
+pub fn encrypt_large_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
+    symmetric::encrypt_large_file(source_file_path, dest_file_path, password)?;
+
+    Ok(())
+}
+
+pub fn decrypt_large_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
+    symmetric::decrypt_large_file(source_file_path, dest_file_path, password)?;
+
+    Ok(())
+}

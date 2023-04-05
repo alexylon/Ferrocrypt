@@ -8,7 +8,8 @@ use std::fs::File;
 use std::path::{Path};
 use walkdir::{WalkDir};
 use zip::result::ZipError;
-use crate::common::normalize_paths;
+use crate::common::{get_file_stem_to_string, normalize_paths};
+use crate::CryptoError;
 
 #[cfg(test)]
 mod tests {
@@ -53,7 +54,7 @@ mod tests {
     }
 }
 
-pub fn archive(src_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
+pub fn archive(src_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
     if Path::new(src_path).is_file() {
         archive_file(src_path, dest_dir_path)
     } else {
@@ -61,13 +62,11 @@ pub fn archive(src_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<St
     }
 }
 
-fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
+fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
     let file_name_ext = Path::new(&src_file_path)
         .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
-    let file_stem = Path::new(&file_name_ext)
-        .file_stem().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
-        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
+    let file_stem = &get_file_stem_to_string(file_name_ext)?;
     println!("adding file {src_file_path:?} as {dest_dir_path}{file_stem}/{file_name_ext} ...");
     let path_dest = format!("{dest_dir_path}{file_stem}.zip");
     let file = File::create(path_dest)?;
@@ -90,7 +89,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipRes
     Ok(file_stem.to_string())
 }
 
-fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
+fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
     // If last char is '/', remove it
     if src_dir_path.ends_with('/') {
         src_dir_path = &src_dir_path[0..src_dir_path.len() - 1];
@@ -150,12 +149,9 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> zip::result::ZipR
     Ok(dir_name.to_string())
 }
 
-pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> zip::result::ZipResult<String> {
+pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
     let file = File::open(Path::new(&src_file_path))?;
-
-    let file_stem = Path::new(&src_file_path)
-        .file_stem().ok_or(ZipError::InvalidArchive("Cannot get file stem"))?
-        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file stem to &str"))?;
+    let file_stem = &get_file_stem_to_string(src_file_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
     for i in 0..archive.len() {

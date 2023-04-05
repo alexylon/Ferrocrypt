@@ -2,8 +2,7 @@ extern crate openssl;
 
 use std::{fs, str};
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
-use std::path::Path;
+use std::io::{Write};
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 // Or `Aes128Gcm`
@@ -14,7 +13,7 @@ use openssl::symm::Cipher;
 use rand::prelude::*;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::normalize_paths;
+use crate::common::{get_file_as_byte_vec, get_file_stem_to_string, normalize_paths};
 
 
 #[cfg(test)]
@@ -154,13 +153,13 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
     if encrypted_file_path_norm.ends_with(".rch") {
         println!("decrypting {} ...\n", encrypted_file_path);
 
-        let data: Vec<u8> = get_file_as_byte_vec(&encrypted_file_path_norm)?;
+        let encrypted_file: Vec<u8> = get_file_as_byte_vec(&encrypted_file_path_norm)?;
 
         // Get public key size
         let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
 
         // Split the encrypted_symmetric_key, nonce and the encrypted file
-        let (encrypted_symmetric_key, data_file) = data.split_at(rsa_pub_pem_size as usize);
+        let (encrypted_symmetric_key, data_file) = encrypted_file.split_at(rsa_pub_pem_size as usize);
         let (nonce_vec, ciphertext) = data_file.split_at(nonce_len);
         let nonce = Nonce::from_slice(nonce_vec);
 
@@ -170,9 +169,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
         let mut symmetric_key: GenericArray<u8, typenum::U32> = GenericArray::from(decrypted_symmetric_key);
         let cipher = Aes256Gcm::new(&symmetric_key);
         let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
-        let file_stem_decrypted = Path::new(&encrypted_file_path_norm)
-            .file_stem().ok_or(CryptoError::Message("Cannot get file stem".to_string()))?
-            .to_str().ok_or(CryptoError::Message("Cannot convert file stem to &str".to_string()))?;
+        let file_stem_decrypted = &get_file_stem_to_string(&encrypted_file_path_norm)?;
         let decrypted_file_path: String = format!("{}{}.zip", dest_dir_path_norm, file_stem_decrypted);
         File::create(&decrypted_file_path)?;
         fs::write(&decrypted_file_path, file_decrypted)?;
@@ -188,15 +185,6 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
     }
 
     Ok(())
-}
-
-fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(filename)?;
-    let metadata = fs::metadata(filename)?;
-    let mut buffer = vec![0; metadata.len() as usize];
-    file.read_exact(&mut buffer)?;
-
-    Ok(buffer)
 }
 
 fn get_public_key_size_from_private_key(rsa_private_pem: &str, passphrase: &str) -> Result<u32, CryptoError> {
