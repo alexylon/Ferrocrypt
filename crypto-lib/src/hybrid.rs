@@ -7,10 +7,10 @@ use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 // Or `Aes128Gcm`
 use aes_gcm::aead::generic_array::{GenericArray, typenum};
+use aes_gcm::aead::rand_core::RngCore;
 use openssl::pkey::Private;
 use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
-use rand::prelude::*;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{get_file_as_byte_vec, get_file_stem_to_string, normalize_paths};

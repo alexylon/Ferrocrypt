@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 openssl = "0.10"
 zeroize = "1"
-rand = "0.8"
 aes-gcm = { version = "0.10", features = ["std"] }
 thiserror = "1.0"
 substring = "1"

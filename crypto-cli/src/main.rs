@@ -13,31 +13,32 @@ use crypto_lib::{
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// File path to be decrypted
+    /// Hybrid and Symmetric: File or directory path to be encrypted or file path to be decrypted
     #[clap(short, long, value_parser, default_value = "")]
     inpath: String,
 
-    /// Destination path
+    /// Hybrid and Symmetric: Destination directory path
     #[clap(short, long, value_parser, default_value = "")]
     outpath: String,
 
-    /// Key path: public key for encryption or private key for decryption
+    /// Hybrid: Public key path for encryption or private key path for decryption
     #[clap(short, long, value_parser, default_value = "")]
     key: String,
 
-    /// Passphrase for decrypting the private key or for symmetric key derivation
+    /// Hybrid: Passphrase for decrypting the private key
+    /// Symmetric: Passphrase for symmetric key derivation on encryption and decryption
     #[clap(short, long, value_parser, default_value = "")]
     passphrase: String,
 
-    /// Generate private and public key pair
+    /// Hybrid: Generate private and public key pair
     #[clap(short, long)]
     generate: bool,
 
-    /// Generate private and public key pair directory path
+    /// Hybrid: Key length in bits on key pair generation
     #[clap(short, long, default_value_t = 4096)]
     bit_size: u32,
 
-    /// For large input file that doesn't fit to RAM. Much slower
+    /// Symmetric: For large input file that doesn't fit to RAM. Much slower
     #[clap(short, long)]
     large: bool,
 }
