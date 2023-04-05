@@ -1,16 +1,30 @@
 # Ferrocrypt
 
-## CLI encrypting / decrypting tool
+## CLI encryption tool
 
 ### ABOUT
 
-Ferrocrypt is a pure Rust implementation of a client-side encryption tool.
+Ferrocrypt is a very small and simple encryption tool written in pure Rust. 
+Its name comes from the Latin words for iron, "ferrum" and for rust, "ferrugo". 
+With a user-friendly command-line interface, Ferrocrypt makes it easy 
+to encrypt and decrypt data using industry-standard algorithms. 
+The tool utilizes Rust's strong memory safety guarantees and performance benefits 
+to ensure the highest level of security and speed.
 
-Supports two kinds of encryption:
+Ferrocrypt supports two different encryption modes:
 
-- Hybrid, relying on the combination of using both symmetric AES-GCM algorithm, for encrypting the data
-  and asymmetric RSA algorithm, for encrypting the symmetric data key.
-- Symmetric, using XChaCha20Poly1305 algorithms and Argon2id password-based key derivation function.
+1. Hybrid encryption: This method leverages both symmetric and asymmetric encryption algorithms 
+to provide a robust and reliable encryption process. 
+Specifically, Ferrocrypt uses the industry-standard AES-GCM symmetric algorithm to encrypt the data 
+and RSA asymmetric encryption to encrypt the symmetric data key, 
+providing an added layer of security.
+
+2. Symmetric encryption: This mode uses the XChaCha20Poly1305 encryption algorithm, 
+which is a variant of the popular ChaCha20-Poly1305 algorithm that provides stronger 
+security guarantees. 
+Additionally, Ferrocrypt employs the Argon2id password-based key derivation function 
+to generate secure encryption keys from user passwords, 
+making it easy for users to protect their data with a strong and unique password.
 
 The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
 `aes-gcm` and `chacha20poly1305`, have received security audits, with no significant findings.
@@ -31,8 +45,9 @@ The code is separated in two projects - a client `ferrocrypt-cli` and a library 
 
 ##### Hybrid encryption 
 
-Suitable for data exchange, where the files or directories can be encrypted with any public key, 
-but can be only decrypted with the corresponding private key and the passphrase, which decrypts this key.
+An ideal choice for secure data exchange, allowing files or directories 
+to be encrypted using a public key. However, decryption is only possible 
+with the corresponding private key and passphrase that unlocks the key.
 
 ###### Generate private / public key pair with a passphrase for the encryption of the private key
 
@@ -60,9 +75,11 @@ or
 
 <br/>
 
-##### Symmetric encryption with password-based key derivation
+##### Symmetric encryption, which utilizes password-based key derivation
 
-Suitable for personal use, where the data is encrypted and decrypted with the same password.
+An excellent option for personal use cases. With this mode, data is encrypted 
+and decrypted using the same password, providing a simple and straightforward 
+approach to securing sensitive information.
 
 ###### Encrypt file or directory / Decrypt file
 
