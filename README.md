@@ -1,10 +1,10 @@
-# rusty-crypto
+# Ferrocrypt
 
 ## CLI encrypting / decrypting tool
 
 ### ABOUT
 
-**rusty-crypto** is a pure Rust implementation of a client-side encryption tool.
+Ferrocrypt is a pure Rust implementation of a client-side encryption tool.
 
 Supports two kinds of encryption:
 
@@ -15,78 +15,71 @@ Supports two kinds of encryption:
 The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
 `aes-gcm` and `chacha20poly1305`, have received security audits, with no significant findings.
 
-The code is separated in two projects - a client `crypto-cli` and a library `crypto-lib`.
+The code is separated in two projects - a client `ferrocrypt-cli` and a library `ferrocrypt-lib`.
 
 ### USAGE
 
 #### BUILD
 
-`cargo build --release` - the binary file is located in `target/release/crypto` (macOS and Linux) or `target\release\crypto.exe` (Windows).
+`cargo build --release` - the binary file is located in `target/release/fc` (macOS and Linux) or `target\release\fc.exe` (Windows).
 
-### macOS and Linux
+### macOS and Linux (flags after the command can be in any order)
 
 #### Hybrid encryption
 
 ##### Generate private / public key pair with a passphrase for the encryption of the private key
 
-`./crypto --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
+`./fc --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
 
 or
 
-`./crypto -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
+`./fc -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
 
 ##### Encrypt file or directory
 
-`./crypto --encrypt <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
+`./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
 
 or
 
-`./crypto -e <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
+`./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
 
 ##### Decrypt file:
 
-`./crypto --decrypt <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY>`
+`./fc --inpath <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
 
 or
 
-`./crypto -d <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY>`
+`./fc -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
 <br/><br/>
 
 #### Symmetric encryption with password-based key derivation
 
-##### Encrypt file or directory
+##### Encrypt file or directory / Decrypt file
 
-`./crypto --encrypt <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
-
-or
-
-`./crypto -e <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
-
-##### Decrypt file:
-
-`./crypto --decrypt <SRC_FILE_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
+`./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
 
 or
 
-`./crypto -d <SRC_FILE_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+`./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+
 <br/><br/>
 
 ### Windows:
 
-Just replace the command `./crypto` with `crypto`
+Just replace the command `./fc` with `fc`
 
 ### OPTIONS:
 
-| Flag                            | Description                                                                           |
-|---------------------------------|---------------------------------------------------------------------------------------|
-| `-b, --bit-size <BIT_SIZE>`     | Generate private and public key pair directory path [default:4096]                    |
-| `-d, --decrypt <SRC_FILE_PATH>` | File path to be decrypted [default: ]                                                 |
-| `-e, --encrypt <SRC_PATH>`      | File or directory path to be encrypted [default: ]                                    |
-| `-g, --generate`                | Generate private and public key pair                                                  |
-| `-h, --help`                    | Print help information                                                                |
-| `-k, --key <KEY_PATH>`          | Key path: public key for encryption or private key for decryption [default: ]         |
-| `-o, --out <DEST_DIR_PATH>`     | Destination path [default: ]                                                          |
-| `-p, --passphrase <PASSPHRASE>` | Passphrase for decrypting the private key or for symmetric key derivation [default: ] |
-| `-V, --version`                 | Print version information                                                             |
+| Flag                          | Description                                                                                                                                        |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| -i, --inpath <INPATH>         | Hybrid and Symmetric: File or directory path to be encrypted or file path to be decrypted [default: ]                                              |
+| -o, --outpath <OUTPATH>       | Hybrid and Symmetric: Destination directory path [default: ]                                                                                       |                                                                             
+| -k, --key <KEY>               | Hybrid: Public key path for encryption or private key path for decryption [default: ]                                                              |                                                         
+| -p, --passphrase <PASSPHRASE> | Hybrid: Passphrase for decrypting the private key <br/>Symmetric: Passphrase for symmetric key derivation on encryption and decryption [default: ] |
+| -g, --generate                | Hybrid: Generate private and public key pair                                                                                                       |                                                                                                 
+| -b, --bit-size <BIT_SIZE>     | Hybrid: Key length in bits on key pair generation [default: 4096]                                                                                  |                                                                          
+| -l, --large                   | Symmetric: For large input file that doesn't fit to RAM. Much slower                                                                               |                                                                       
+| -h, --help                    | Print help                                                                                                                                         |                                                                                                                                   
+| -V, --version                 | Print version                                                                                                                                      |                                                                                                                             |
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-rust.svg)](https://forthebadge.com)
