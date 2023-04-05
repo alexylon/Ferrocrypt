@@ -1,5 +1,5 @@
 use clap::Parser;
-use ferrocrypt_lib::{
+use ferrocrypt::{
     CryptoError,
     decrypt_file_hybrid,
     encrypt_file_hybrid,
