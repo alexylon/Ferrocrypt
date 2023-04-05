@@ -13,7 +13,7 @@ use ferrocrypt::{
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Hybrid and Symmetric: File or directory path to be encrypted or file path to be decrypted
+    /// Hybrid and Symmetric: File or directory path that needs to be encrypted, or the file path that needs to be decrypted
     #[clap(short, long, value_parser, default_value = "")]
     inpath: String,
 
@@ -21,24 +21,24 @@ struct Args {
     #[clap(short, long, value_parser, default_value = "")]
     outpath: String,
 
-    /// Hybrid: Public key path for encryption or private key path for decryption
+    /// Hybrid: Path to the public key for encryption, or the path to the private key for decryption
     #[clap(short, long, value_parser, default_value = "")]
     key: String,
 
-    /// Hybrid: Passphrase for decrypting the private key
-    /// Symmetric: Passphrase for symmetric key derivation on encryption and decryption
+    /// Hybrid: Passphrase to decrypt the private key
+    /// Symmetric: Passphrase to derive the symmetric key for encryption and decryption
     #[clap(short, long, value_parser, default_value = "")]
     passphrase: String,
 
-    /// Hybrid: Generate private and public key pair
+    /// Hybrid: Generate a private/public key pair
     #[clap(short, long)]
     generate: bool,
 
-    /// Hybrid: Key length in bits on key pair generation
+    /// Hybrid: Length of the key in bits for the key pair generation
     #[clap(short, long, default_value_t = 4096)]
     bit_size: u32,
 
-    /// Symmetric: For large input file that doesn't fit to RAM. Much slower
+    /// Symmetric: For large input file that cannot fit to the RAM. This is significantly slower.
     #[clap(short, long)]
     large: bool,
 }
