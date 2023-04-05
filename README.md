@@ -1,8 +1,8 @@
 # Ferrocrypt
 
-## CLI encryption tool
+Tiny, easy-to-use, and incredibly secure CLI encryption tool
 
-### ABOUT
+## ABOUT
 
 Ferrocrypt is a very small and simple encryption tool written in pure Rust. 
 Its name comes from the Latin words for iron, "ferrum" and for rust, "ferrugo". 
@@ -31,25 +31,27 @@ The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorit
 
 The code is separated in two projects - a client `ferrocrypt-cli` and a library `ferrocrypt-lib`.
 
-### BUILD
+## BUILD
 
 `cargo build --release` - the binary file is located in `target/release/fc` (macOS and Linux) or `target\release\fc.exe` (Windows).
 
 <br/>
 
-### USAGE
+## USAGE
 
-#### macOS and Linux (flags after the command can be in any order)
+The commands listed below are compatible with macOS and Linux. 
+For Windows, simply substitute "./fc" with "fc" in each command. 
+The flags for each command can be used in any order.
 
 <br/>
 
-##### Hybrid encryption 
+### Hybrid encryption 
 
 An ideal choice for secure data exchange, allowing files or directories 
 to be encrypted using a public key. However, decryption is only possible 
 with the corresponding private key and passphrase that unlocks the key.
 
-###### Generate private / public key pair with a passphrase for the encryption of the private key
+- Generate private / public key pair with a passphrase for the encryption of the private key
 
 `./fc --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
 
@@ -57,7 +59,7 @@ or
 
 `./fc -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
 
-###### Encrypt file or directory
+- Encrypt file or directory
 
 `./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
 
@@ -65,7 +67,7 @@ or
 
 `./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
 
-###### Decrypt file:
+- Decrypt file:
 
 `./fc --inpath <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
 
@@ -75,13 +77,13 @@ or
 
 <br/>
 
-##### Symmetric encryption, which utilizes password-based key derivation
+### Symmetric encryption, which utilizes password-based key derivation
 
 An excellent option for personal use cases. With this mode, data is encrypted 
 and decrypted using the same password, providing a simple and straightforward 
 approach to securing sensitive information.
 
-###### Encrypt file or directory / Decrypt file
+- Encrypt file or directory / decrypt file
 
 `./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
 
@@ -91,13 +93,7 @@ or
 
 <br/>
 
-#### Windows:
-
-Just replace the command `./fc` with `fc`
-
-<br/>
-
-### OPTIONS:
+## OPTIONS:
 
 | Flag                          | Description                                                                                                                                        |
 |-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
