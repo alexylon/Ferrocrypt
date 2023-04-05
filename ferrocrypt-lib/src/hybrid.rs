@@ -28,9 +28,9 @@ mod tests {
     const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
     const SRC_DIR_PATH: &str = "src/test_files/test-folder/";
     const DEST_DIRPATH: &str = "src/dest/";
-    const FILE_PATH_ENCRYPTED: &str = "src/dest/test-file.rch";
+    const FILE_PATH_ENCRYPTED: &str = "src/dest/test-file.fch";
     const FILE_PATH_DECRYPTED: &str = "src/dest/test-file.txt";
-    const DIR_PATH_ENCRYPTED: &str = "src/dest/test-folder.rch";
+    const DIR_PATH_ENCRYPTED: &str = "src/dest/test-folder.fch";
     // RSA-4096 PKCS#1 public key encoded as PEM
     const RSA_PUB_PEM: &str = "src/key_examples/rsa-4096-pub-key.pem";
     // RSA-4096 PKCS#1 private key encoded as PEM
@@ -127,7 +127,7 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &s
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.rch", &dest_dir_path_norm, file_stem))?;
+        .open(format!("{}{}.fch", &dest_dir_path_norm, file_stem))?;
 
     // The output contains the encrypted data key, the nonce and the encrypted file
     file_path_encrypted.write_all(&encrypted_symmetric_key)?;
@@ -135,7 +135,7 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, rsa_public_pem: &s
     file_path_encrypted.write_all(&ciphertext)?;
 
     fs::remove_file(file_name_zipped)?;
-    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.rch");
+    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.fch");
     println!("\nencrypted to {}", file_name_encrypted);
 
     nonce.zeroize();
@@ -150,7 +150,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
     let nonce_len = 12;
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
-    if encrypted_file_path_norm.ends_with(".rch") {
+    if encrypted_file_path_norm.ends_with(".fch") {
         println!("decrypting {} ...\n", encrypted_file_path);
 
         let encrypted_file: Vec<u8> = get_file_as_byte_vec(&encrypted_file_path_norm)?;
@@ -181,7 +181,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, rsa_private_
         rsa_private_pem.zeroize();
         passphrase.zeroize();
     } else {
-        return Err(CryptoError::Message("This file should have '.rch' extension!".to_string()));
+        return Err(CryptoError::Message("This file should have '.fch' extension!".to_string()));
     }
 
     Ok(())

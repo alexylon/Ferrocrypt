@@ -1,5 +1,5 @@
 use clap::Parser;
-use crypto_lib::{
+use ferrocrypt_lib::{
     CryptoError,
     decrypt_file_hybrid,
     encrypt_file_hybrid,
@@ -51,19 +51,19 @@ fn main() -> Result<(), CryptoError> {
     } else if args.inpath.is_empty() {
         eprintln!("Source path missing!");
     } else if !args.key.is_empty() {
-        if args.inpath.ends_with(".rch") {
+        if args.inpath.ends_with(".fch") {
             decrypt_file_hybrid(&args.inpath, &args.outpath, &mut args.key, &mut args.passphrase)?;
         } else {
             encrypt_file_hybrid(&args.inpath, &args.outpath, &args.key)?;
         }
     } else if !args.passphrase.is_empty() {
-        if args.large || args.inpath.ends_with(".rcls") {
-            if args.inpath.ends_with(".rcls") {
+        if args.large || args.inpath.ends_with(".fcls") {
+            if args.inpath.ends_with(".fcls") {
                 decrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
             } else {
                 encrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
             }
-        } else if args.inpath.ends_with(".rcs") {
+        } else if args.inpath.ends_with(".fcs") {
             decrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
         } else {
             encrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;

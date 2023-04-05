@@ -1,6 +1,6 @@
 [workspace] 
 members = [ 
-	"crypto-lib", 
-	"crypto-cli",
+	"ferrocrypt-lib", 
+	"ferrocrypt-cli",
 ]
 

@@ -16,8 +16,8 @@ mod tests {
 
     const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
     const SRC_DIR_PATH: &str = "src/test_files/test-folder";
-    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.rcs";
-    const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.rcs";
+    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.fcs";
+    const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.fcs";
     const DEST_DIR_PATH: &str = "src/dest/";
     const PASSPHRASE: &str = "strong_passphrase";
 
@@ -87,14 +87,14 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, passphrase: &mut s
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.rcs", &dest_dir_path_norm, file_stem))?;
+        .open(format!("{}{}.fcs", &dest_dir_path_norm, file_stem))?;
 
     file_path_encrypted.write_all(&salt)?;
     file_path_encrypted.write_all(&nonce)?;
     file_path_encrypted.write_all(&ciphertext)?;
 
     fs::remove_file(file_name_zipped)?;
-    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.rcs");
+    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.fcs");
     println!();
     println!("encrypted to {file_name_encrypted}");
 
@@ -110,7 +110,7 @@ pub fn encrypt_file(src_file_path: &str, dest_dir_path: &str, passphrase: &mut s
 pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (encrypted_file_path_norm, dest_dir_path_norm) = normalize_paths(encrypted_file_path, dest_dir_path);
 
-    if encrypted_file_path_norm.ends_with(".rcs") {
+    if encrypted_file_path_norm.ends_with(".fcs") {
         println!("decrypting {} ...\n", encrypted_file_path);
 
         let salt_len = 32;
@@ -137,7 +137,7 @@ pub fn decrypt_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: 
         symmetric_key.zeroize();
         passphrase.zeroize();
     } else {
-        return Err(Message("This file should have '.rcs' extension!".to_string()));
+        return Err(Message("This file should have '.fcs' extension!".to_string()));
     }
 
     Ok(())
@@ -168,7 +168,7 @@ pub fn encrypt_large_file(src_file_path: &str, dest_dir_path: &str, passphrase: 
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.rcls", &dest_dir_path_norm, file_stem))?;
+        .open(format!("{}{}.fcls", &dest_dir_path_norm, file_stem))?;
 
     file_path_encrypted.write_all(&salt)?;
     file_path_encrypted.write_all(&nonce)?;
@@ -191,7 +191,7 @@ pub fn encrypt_large_file(src_file_path: &str, dest_dir_path: &str, passphrase: 
     }
 
     fs::remove_file(file_name_zipped)?;
-    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.rcls");
+    let file_name_encrypted = &format!("{dest_dir_path_norm}{file_stem}.fcls");
     println!();
     println!("encrypted to {file_name_encrypted}");
 
@@ -207,7 +207,7 @@ pub fn encrypt_large_file(src_file_path: &str, dest_dir_path: &str, passphrase: 
 pub fn decrypt_large_file(encrypted_file_path: &str, dest_dir_path: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (encrypted_file_path_norm, dest_dir_path_norm) = normalize_paths(encrypted_file_path, dest_dir_path);
 
-    if encrypted_file_path_norm.ends_with(".rcls") {
+    if encrypted_file_path_norm.ends_with(".fcls") {
         println!("decrypting {} ...\n", encrypted_file_path);
 
         let mut salt = [0u8; 32];
@@ -268,7 +268,7 @@ pub fn decrypt_large_file(encrypted_file_path: &str, dest_dir_path: &str, passph
         key.zeroize();
         passphrase.zeroize();
     } else {
-        return Err(Message("This file should have '.rcls' extension!".to_string()));
+        return Err(Message("This file should have '.fcls' extension!".to_string()));
     }
 
     Ok(())
