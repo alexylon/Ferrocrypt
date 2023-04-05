@@ -13,17 +13,13 @@ use crypto_lib::{
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// File or directory path to be encrypted
-    #[clap(short, long, value_parser, default_value = "")]
-    encrypt: String,
-
     /// File path to be decrypted
     #[clap(short, long, value_parser, default_value = "")]
-    decrypt: String,
+    inpath: String,
 
     /// Destination path
     #[clap(short, long, value_parser, default_value = "")]
-    out: String,
+    outpath: String,
 
     /// Key path: public key for encryption or private key for decryption
     #[clap(short, long, value_parser, default_value = "")]
@@ -50,36 +46,26 @@ fn main() -> Result<(), CryptoError> {
     let mut args = Args::parse();
 
     if args.generate {
-        generate_asymmetric_key_pair(args.bit_size, &args.passphrase, &args.out)?;
-    } else if args.encrypt.is_empty() && args.decrypt.is_empty() {
-        eprintln!("No sufficient arguments supplied!");
-    } else if !args.encrypt.is_empty() && !args.decrypt.is_empty() {
-        eprintln!("Only encrypt or only decrypt path should be provided!");
+        generate_asymmetric_key_pair(args.bit_size, &args.passphrase, &args.outpath)?;
+    } else if args.inpath.is_empty() {
+        eprintln!("Source path missing!");
     } else if !args.key.is_empty() {
-        if !args.encrypt.is_empty() {
-            encrypt_file_hybrid(&args.encrypt, &args.out, &args.key)?;
-        }
-
-        if !args.decrypt.is_empty() {
-            decrypt_file_hybrid(&args.decrypt, &args.out, &mut args.key, &mut args.passphrase)?;
+        if !args.inpath.ends_with(".rch") {
+            decrypt_file_hybrid(&args.inpath, &args.outpath, &mut args.key, &mut args.passphrase)?;
+        } else {
+            encrypt_file_hybrid(&args.inpath, &args.outpath, &args.key)?;
         }
     } else if !args.passphrase.is_empty() {
         if args.large {
-            if !args.encrypt.is_empty() {
-                encrypt_large_file_symmetric(&args.encrypt, &args.out, &mut args.passphrase)?;
+            if !args.inpath.ends_with(".rcls") {
+                decrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
+            } else {
+                encrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
             }
-
-            if !args.decrypt.is_empty() {
-                decrypt_large_file_symmetric(&args.decrypt, &args.out, &mut args.passphrase)?;
-            }
+        } else if !args.inpath.ends_with(".rcs") {
+            decrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
         } else {
-            if !args.encrypt.is_empty() {
-                encrypt_file_symmetric(&args.encrypt, &args.out, &mut args.passphrase)?;
-            }
-
-            if !args.decrypt.is_empty() {
-                decrypt_file_symmetric(&args.decrypt, &args.out, &mut args.passphrase)?;
-            }
+            encrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
         }
     } else {
         eprintln!("Error: No sufficient arguments supplied!");
