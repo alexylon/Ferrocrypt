@@ -33,7 +33,7 @@ The code is separated in two projects - a client `ferrocrypt-cli` and a library 
 
 ## BUILD
 
-`cargo build --release`
+```cargo build --release```
 
 The binary file will be generated in `target/release/fc` (macOS and Linux)
 or `target\release\fc.exe` (Windows).
