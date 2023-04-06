@@ -102,17 +102,17 @@ or
 
 ## OPTIONS:
 
-| Flag                          | Description                                                                                                                                    |
-|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| -i, --inpath <SRC_PATH>       | Hybrid and Symmetric: File or directory path that needs to be encrypted, or the file path that needs to be decrypted [default: ]               |
-| -o, --outpath <DEST_DIR>      | Hybrid and Symmetric: Destination directory path [default: ]                                                                                   |                                                                             
-| -k, --key <KEY>               | Hybrid: Path to the public key for encryption, or the path to the private key for decryption [default: ]                                       |                                                         
-| -p, --passphrase <PASSPHRASE> | Hybrid: Passphrase to decrypt the private key <br/>Symmetric: Passphrase to derive the symmetric key for encryption and decryption [default: ] |
-| -g, --generate                | Hybrid: Generate a private/public key pair                                                                                                     |                                                                                                 
-| -b, --bit-size <BIT_SIZE>     | Hybrid: Length of the key in bits for the key pair generation [default: 4096]                                                                  |                                                                          
-| -l, --large                   | Symmetric: For large input file that cannot fit to the RAM. This is significantly slower.                                                      |                                                                       
-| -h, --help                    | Print help                                                                                                                                     |                                                                                                                                   
-| -V, --version                 | Print version                                                                                                                                  |                                                                                                                             |
+| Flag                          | Description                                                                                                                                         |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| -i, --inpath <SRC_PATH>       | Hybrid and Symmetric: File or directory path that needs to be encrypted, <br/>or the file path that needs to be decrypted [default: ]               |
+| -o, --outpath <DEST_DIR>      | Hybrid and Symmetric: Destination directory path [default: ]                                                                                        |                                                                             
+| -k, --key <KEY_PATH>          | Hybrid: Path to the public key for encryption, <br/>or the path to the private key for decryption [default: ]                                       |                                                         
+| -p, --passphrase <PASSPHRASE> | Hybrid: Passphrase to decrypt the private key <br/>Symmetric: Passphrase to derive the symmetric key <br/>for encryption and decryption [default: ] |
+| -g, --generate                | Hybrid: Generate a private/public key pair                                                                                                          |                                                                                                 
+| -b, --bit-size <BIT_SIZE>     | Hybrid: Length of the key in bits for the key pair generation [default: 4096]                                                                       |                                                                          
+| -l, --large                   | Symmetric: For large input file that cannot fit to the RAM. <br/>This is significantly slower.                                                      |                                                                       
+| -h, --help                    | Print help                                                                                                                                          |                                                                                                                                   
+| -V, --version                 | Print version                                                                                                                                       |                                                                                                                             |
 
 <br/>
 
