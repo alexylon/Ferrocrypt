@@ -5,7 +5,6 @@ mod symmetric;
 mod hybrid;
 mod common;
 
-
 #[derive(Error, Debug)]
 pub enum CryptoError {
     #[error("IO Error!")]
@@ -20,6 +19,8 @@ pub enum CryptoError {
     WalkDirError(#[from] walkdir::Error),
     #[error("Zip Error!")]
     ZipError(#[from] zip::result::ZipError),
+    #[error("TryFromSlice Error!")]
+    TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("")]
     Message(String),
     #[error("Unknown error!")]
