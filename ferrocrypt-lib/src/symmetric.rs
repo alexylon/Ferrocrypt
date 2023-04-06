@@ -1,6 +1,7 @@
 use chacha20poly1305::{aead::{stream, KeyInit, OsRng}, {aead::rand_core::RngCore}, XChaCha20Poly1305};
 use std::{fs, fs::File, io::{Read, Write}};
 use std::fs::OpenOptions;
+use argon2::Variant;
 use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
@@ -10,6 +11,7 @@ use crate::CryptoError::{ChaCha20Poly1305Error, Message};
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use crate::CryptoError;
     // use zeroize::Zeroize;
     use crate::symmetric::{decrypt_file, encrypt_file};
@@ -23,6 +25,7 @@ mod tests {
 
     #[test]
     fn encrypt_file_test() -> Result<(), CryptoError> {
+        fs::create_dir_all("src/dest")?;
         // let mut passphrase = rpassword::prompt_password("passphrase:")?;
         let mut passphrase = PASSPHRASE.to_string();
         encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
@@ -45,6 +48,7 @@ mod tests {
 
     #[test]
     fn encrypt_dir_test() -> Result<(), CryptoError> {
+        fs::create_dir_all("src/dest")?;
         // let mut passphrase = rpassword::prompt_password("passphrase:")?;
         let mut passphrase = PASSPHRASE.to_string();
         encrypt_file(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase)?;
@@ -276,10 +280,10 @@ pub fn decrypt_large_file(encrypted_file_path: &str, dest_dir_path: &str, passph
 
 fn argon2_config<'a>() -> argon2::Config<'a> {
     argon2::Config {
-        variant: argon2::Variant::Argon2id,
+        variant: Variant::Argon2id,
         hash_length: 32,
         lanes: 8,
-        mem_cost: 16 * 1024,
+        mem_cost: 1 * 1024,
         time_cost: 8,
         ..Default::default()
     }
