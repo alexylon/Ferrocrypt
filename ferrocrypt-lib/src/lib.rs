@@ -4,6 +4,7 @@ mod archiver;
 mod symmetric;
 mod hybrid;
 mod common;
+mod reed_solomon;
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
