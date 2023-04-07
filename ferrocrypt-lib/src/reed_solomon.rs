@@ -8,7 +8,7 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 mod tests {
     use crate::reed_solomon::reed_solomon_encode;
 
-    const FILE_NAME: &str = "src/test_files/big_image.png";
+    const FILE_NAME: &str = "src/test_files/test-file.txt";
 
     #[test]
     fn reed_solomon_encode_test() {
@@ -16,7 +16,7 @@ mod tests {
     }
 }
 
-const OUTPUT_FILE_NAME: &str = "copy.jpg";
+const OUTPUT_FILE_NAME: &str = "copy.txt";
 
 
 pub fn reed_solomon_encode(file_name: &str) {
@@ -30,7 +30,7 @@ pub fn reed_solomon_encode(file_name: &str) {
     let file_length = &file.metadata().unwrap().len();
     // println!("file_length: {}", file_length);
 
-    let shard_len = (file_length / 14) as usize;
+    let shard_len = (file_length / 50) as usize;
     println!("shard_len: {}", shard_len);
 
     let len: usize = shard_len;
@@ -44,7 +44,7 @@ pub fn reed_solomon_encode(file_name: &str) {
     println!("Vector size is {} lines.", file_slices.len());
 
     //add parity slices
-    let parity = 6;
+    let parity = 5;
     for _i in 0..parity {
         let mut parity_vec: Vec<u8> = Vec::new();
         for _j in 0..len {
@@ -78,10 +78,10 @@ pub fn reed_solomon_encode(file_name: &str) {
     //     file.write_all(&shard.unwrap()).expect("TODO: panic message");
     // }
 
-    //remove 2 shards for reconstruction later
-    shards[0] = None;
-    shards[4] = None;
-    shards[15] = None;
+    //remove 3 shards for reconstruction later
+    // shards[0] = None;
+    // shards[4] = None;
+    // shards[10] = None;
 
     // Try to reconstruct missing shards
     r.reconstruct(&mut shards).unwrap();
@@ -105,7 +105,12 @@ pub fn reed_solomon_encode(file_name: &str) {
     };
 
     for i in 0..result.len() - parity {
-        file.write_all(&result[i]).expect("TODO: panic message");
+        if i < result.len() - parity - 1 {
+            file.write_all(&result[i]).expect("TODO: panic message");
+        } else {
+            let last_line = trim_trailing_zeros(result[i].clone());
+            file.write_all(&last_line).expect("TODO: panic message");
+        }
     }
 
 
@@ -132,14 +137,28 @@ fn make_file_slices(
         // read (may-be) incomplete chunk
         let bytes_read = file.read(&mut slice_buffer[bytes_in_last_row..])?;
         if bytes_read == 0 {
-            break; // EOF
+            // EOF
+            if bytes_in_last_row > 0 {
+                // keep the incomplete (zero padded) last chunk
+                file_slices.push(slice_buffer);
+            }
+            break;
         }
-
-        // the current chunk is complete
-        bytes_in_last_row = 0;
-        let mut tmp = vec![0_u8; chunk_length];
-        std::mem::swap(&mut tmp, &mut slice_buffer);
-        file_slices.push(tmp);
+        bytes_in_last_row += bytes_read;
+        if bytes_in_last_row == chunk_length {
+            // the current chunk is complete
+            bytes_in_last_row = 0;
+            let mut tmp = vec![0_u8; chunk_length];
+            std::mem::swap(&mut tmp, &mut slice_buffer);
+            file_slices.push(tmp);
+        }
     }
     Ok(file_slices)
+}
+
+fn trim_trailing_zeros(mut vec: Vec<u8>) -> Vec<u8> {
+    vec = vec.into_iter().rev().skip_while(|&x| x == 0).collect();
+    vec.reverse();
+
+    vec
 }
