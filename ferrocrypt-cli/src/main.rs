@@ -1,13 +1,9 @@
 use clap::Parser;
 use ferrocrypt::{
     CryptoError,
-    decrypt_file_hybrid,
-    encrypt_file_hybrid,
+    hybrid_encryption,
     generate_asymmetric_key_pair,
-    encrypt_file_symmetric,
-    decrypt_file_symmetric,
-    encrypt_large_file_symmetric,
-    decrypt_large_file_symmetric,
+    symmetric_encryption,
 };
 
 #[derive(Parser, Debug)]
@@ -51,23 +47,9 @@ fn main() -> Result<(), CryptoError> {
     } else if args.inpath.is_empty() {
         eprintln!("Source path missing!");
     } else if !args.key.is_empty() {
-        if args.inpath.ends_with(".fch") {
-            decrypt_file_hybrid(&args.inpath, &args.outpath, &mut args.key, &mut args.passphrase)?;
-        } else {
-            encrypt_file_hybrid(&args.inpath, &args.outpath, &args.key)?;
-        }
+        hybrid_encryption(&args.inpath, &args.outpath, &mut args.key, &mut args.passphrase)?;
     } else if !args.passphrase.is_empty() {
-        if args.large || args.inpath.ends_with(".fcls") {
-            if args.inpath.ends_with(".fcls") {
-                decrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
-            } else {
-                encrypt_large_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
-            }
-        } else if args.inpath.ends_with(".fcs") {
-            decrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
-        } else {
-            encrypt_file_symmetric(&args.inpath, &args.outpath, &mut args.passphrase)?;
-        }
+        symmetric_encryption(&args.inpath, &args.outpath, &mut args.passphrase, args.large)?;
     } else {
         eprintln!("Error: No sufficient arguments supplied!");
     }

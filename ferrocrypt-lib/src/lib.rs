@@ -28,14 +28,12 @@ pub enum CryptoError {
     Unknown,
 }
 
-pub fn encrypt_file_hybrid(src_file_path: &str, dest_file_path: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
-    hybrid::encrypt_file(src_file_path, dest_file_path, rsa_public_pem)?;
-
-    Ok(())
-}
-
-pub fn decrypt_file_hybrid(encrypted_file_path: &str, dest_path: &str, rsa_private_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
-    hybrid::decrypt_file(encrypted_file_path, dest_path, rsa_private_pem, passphrase)?;
+pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
+    if input_path.ends_with(".fch") {
+        hybrid::decrypt_file(input_path, output_dir, rsa_key_pem, passphrase)?;
+    } else {
+        hybrid::encrypt_file(input_path, output_dir, rsa_key_pem)?;
+    }
 
     Ok(())
 }
@@ -46,26 +44,12 @@ pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_p
     Ok(())
 }
 
-pub fn encrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
-    symmetric::encrypt_file(source_file_path, dest_file_path, password)?;
-
-    Ok(())
-}
-
-pub fn decrypt_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
-    symmetric::decrypt_file(source_file_path, dest_file_path, password)?;
-
-    Ok(())
-}
-
-pub fn encrypt_large_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
-    symmetric::encrypt_large_file(source_file_path, dest_file_path, password)?;
-
-    Ok(())
-}
-
-pub fn decrypt_large_file_symmetric(source_file_path: &str, dest_file_path: &str, password: &mut str) -> Result<(), CryptoError> {
-    symmetric::decrypt_large_file(source_file_path, dest_file_path, password)?;
+pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<(), CryptoError> {
+    if input_path.ends_with(".fcs") || input_path.ends_with(".fcls") {
+        symmetric::decrypt_file(input_path, output_dir, password)?;
+    } else {
+        symmetric::encrypt_file(input_path, output_dir, password, large)?;
+    }
 
     Ok(())
 }
