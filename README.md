@@ -13,7 +13,7 @@ to ensure the highest level of security and speed.
 
 Ferrocrypt supports two different encryption modes:
 
-1. Symmetric encryption: This mode uses the XChaCha20-Poly1305, based on the ChaCha20 stream cipher 
+1. Symmetric encryption: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher 
    and the Poly1305 MAC, which together provide stronger security guarantees.
    Additionally, Ferrocrypt employs the Argon2id password-based key derivation function 
    to generate secure encryption keys from user passwords,
