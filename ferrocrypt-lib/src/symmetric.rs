@@ -16,9 +16,9 @@ mod tests {
     // use zeroize::Zeroize;
     use crate::symmetric::{decrypt_file, decrypt_large_file, encrypt_file, encrypt_large_file};
 
-    const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
+    const SRC_FILE_PATH: &str = "src/test_files/test-archive.zip";
     const SRC_DIR_PATH: &str = "src/test_files/test-folder";
-    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.fcs";
+    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-archive.fcs";
     const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.fcs";
     const ENCRYPTED_LARGE_FILE_PATH: &str = "src/dest/test-file.fcls";
     const DEST_DIR_PATH: &str = "src/dest/";
@@ -97,8 +97,10 @@ mod tests {
 // Encrypt file with XChaCha20Poly1305 algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
-    let file_stem = &archiver::archive(&input_path_norm, &output_dir_norm)?;
-    let file_name_zipped = &format!("{}{}.zip", output_dir_norm, file_stem);
+    let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
+    fs::create_dir_all(tmp_dir_path)?;
+    let file_stem = &archiver::archive(&input_path_norm, tmp_dir_path)?;
+    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nencrypting {} ...", file_name_zipped);
 
     let argon2_config = argon2_config();
@@ -126,7 +128,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
     file_path_encrypted.write_all(&key_hash_ref)?;
     file_path_encrypted.write_all(&ciphertext)?;
 
-    fs::remove_file(file_name_zipped)?;
+    fs::remove_dir_all(tmp_dir_path)?;
     let file_name_encrypted = &format!("{}{}.fcs", output_dir_norm, file_stem);
     println!();
     println!("encrypted to {}", file_name_encrypted);
@@ -142,7 +144,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
 // Decrypt file with XChaCha20Poly1305 algorithm
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
-
+    let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
+    fs::create_dir_all(tmp_dir_path)?;
     if input_path_norm.ends_with(".fcs") {
         println!("decrypting {} ...\n", input_path);
 
@@ -167,12 +170,12 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
             let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
             let file_decrypted = cipher.decrypt(nonce.as_ref().into(), ciphertext.as_ref())?;
             let file_stem_decrypted = &get_file_stem_to_string(&input_path_norm)?;
-            let decrypted_file_path: String = format!("{}{}.zip", output_dir_norm, file_stem_decrypted);
+            let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
 
             File::create(&decrypted_file_path)?;
             fs::write(&decrypted_file_path, file_decrypted)?;
             archiver::unarchive(&decrypted_file_path, &output_dir_norm)?;
-            fs::remove_file(&decrypted_file_path)?;
+            fs::remove_dir_all(tmp_dir_path)?;
             println!("\ndecrypted to {}", output_dir_norm);
 
             key.zeroize();

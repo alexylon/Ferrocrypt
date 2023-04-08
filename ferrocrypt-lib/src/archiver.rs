@@ -161,7 +161,7 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cry
             None => continue,
         };
         let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
-        let outpath_str_full = format!("{dest_dir_path}{outpath_str}");
+        let outpath_str_full = format!("{}{}", dest_dir_path, outpath_str);
         let outpath_str_full_norm = normalize_paths(&outpath_str_full, "").0;
         let outpath_full = Path::new(&outpath_str_full);
 
