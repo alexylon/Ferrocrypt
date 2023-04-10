@@ -5,7 +5,7 @@ use argon2::Variant;
 use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{constant_time_compare_256_bit, get_file_as_byte_vec, get_file_stem_to_string, normalize_paths, sha3_hash};
+use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Message};
 
 
@@ -126,7 +126,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        let source_file = get_file_as_byte_vec(file_name_zipped)?;
+        let source_file = fs::read(file_name_zipped)?;
         let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*source_file)?;
 
         file_path_encrypted.write_all(&salt)?;
@@ -204,7 +204,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         let salt_len = 32;
         let nonce_len = 24;
         let key_hash_ref_len = 32;
-        let encrypted_file: Vec<u8> = get_file_as_byte_vec(input_path)?;
+        let encrypted_file: Vec<u8> = fs::read(input_path)?;
 
         // Split the salt, nonce and the encrypted file
         let (salt, rem_data) = encrypted_file.split_at(salt_len);

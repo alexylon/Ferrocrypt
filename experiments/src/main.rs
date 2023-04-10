@@ -1,9 +1,9 @@
-use std::fs::File;
+use std::fs::{File, read};
 use std::io::Write;
 use std::path::Path;
 use rand::RngCore;
 use rand::rngs::OsRng;
-use crate::reed_solomon::{DataShare, encode_data, get_file_as_byte_vec, reconstruct_data};
+use crate::reed_solomon::{DataShare, encode_data, reconstruct_data};
 use std::str;
 
 mod reed_solomon;
@@ -18,7 +18,7 @@ fn main() {
     OsRng.fill_bytes(&mut nonce_24);
     println!("nonce_24: {:?}", &nonce_24);
 
-    // let my_data: Vec<u8> = get_file_as_byte_vec(FILE_NAME).unwrap();
+    // let my_data: Vec<u8> = read(FILE_NAME).unwrap();
 
     let blocks = 6;
     // for blocks in 1..5_usize {
@@ -60,14 +60,14 @@ fn main() {
 
    // Read data =================================================================
 
-    let encoded_from_file: Vec<u8> = get_file_as_byte_vec(OUTPUT_FILE_NAME).unwrap();
+    let encoded_from_file: Vec<u8> = read(OUTPUT_FILE_NAME).unwrap();
     let (header_bytes, rem) = encoded_from_file.split_at(11);
     let header: [usize; 3] = serde_json::from_slice(header_bytes).unwrap();
     println!("header: {}:{}:{}", header[0], header[1], header[2]);
     let (salt_enc_bytes, rem) = rem.split_at(header[1]);
     let (nonce_enc_bytes, text_bytes) = rem.split_at(header[2]);
 
-    let blocks = header[0];
+    // let blocks = header[0];
     let salt_enc: Vec<DataShare> = serde_json::from_slice(salt_enc_bytes).unwrap();
     let nonce_enc: Vec<DataShare> = serde_json::from_slice(nonce_enc_bytes).unwrap();
 

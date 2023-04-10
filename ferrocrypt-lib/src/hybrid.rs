@@ -1,7 +1,7 @@
 extern crate openssl;
 
 use std::{fs, str};
-use std::fs::{File, OpenOptions};
+use std::fs::{File, OpenOptions, read};
 use std::io::{Write};
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
@@ -13,7 +13,7 @@ use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{get_file_as_byte_vec, get_file_stem_to_string, normalize_paths};
+use crate::common::{get_file_stem_to_string, normalize_paths};
 
 
 #[cfg(test)]
@@ -116,7 +116,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str) ->
     let mut nonce = [0u8; 12];
     OsRng.fill_bytes(&mut nonce);
 
-    let file_original = get_file_as_byte_vec(file_name_zipped)?;
+    let file_original = read(file_name_zipped)?;
     let ciphertext = cipher.encrypt(nonce.as_ref().into(), &*file_original)?;
 
     // Encrypt the data key
@@ -153,7 +153,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
     if input_path_norm.ends_with(".fch") {
         println!("decrypting {} ...\n", input_path);
 
-        let encrypted_file: Vec<u8> = get_file_as_byte_vec(&input_path_norm)?;
+        let encrypted_file: Vec<u8> = read(&input_path_norm)?;
 
         // Get public key size
         let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;

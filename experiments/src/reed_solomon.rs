@@ -1,6 +1,3 @@
-use std::fs;
-use std::fs::File;
-use std::io::Read;
 use reed_solomon_erasure::galois_8::ReedSolomon;
 use serde::{Deserialize, Serialize};
 
@@ -165,16 +162,6 @@ pub fn reconstruct_data(data_shares: &[DataShare]) -> Result<Vec<u8>, UniteDataE
     Ok(res_data)
 }
 
-
-pub fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(filename)?;
-    let metadata = fs::metadata(filename)?;
-    let mut buffer = vec![0; metadata.len() as usize];
-    file.read_exact(&mut buffer)?;
-
-    Ok(buffer)
-}
-
 fn pad_pkcs7(mut byte_vec: Vec<u8>, block_size: usize) -> Vec<u8> {
     let padding_size = block_size - byte_vec.len() % block_size;
     let padding_char = padding_size as u8;
@@ -197,7 +184,7 @@ fn unpad_pkcs7(mut byte_vec: Vec<u8>, padding_size: usize) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::fs::{File, read};
     use std::io::Write;
     use std::path::Path;
     use rand::RngCore;
@@ -226,7 +213,7 @@ mod tests {
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        // let my_data: Vec<u8> = get_file_as_byte_vec(FILE_NAME).unwrap();
+        // let my_data: Vec<u8> = fs::read(FILE_NAME).unwrap();
 
         let blocks = 2;
         // for blocks in 1..5_usize {
@@ -249,7 +236,7 @@ mod tests {
         };
         file.write_all(&encoded_shares_to_file).expect("TODO: panic message");
 
-        let encoded_from_file: Vec<u8> = get_file_as_byte_vec(OUTPUT_FILE_NAME).unwrap();
+        let encoded_from_file: Vec<u8> = read(OUTPUT_FILE_NAME).unwrap();
         println!("org_data.len(): {:?}", &salt_32.len());
         println!("encoded_from_file.len(): {:?}", &encoded_from_file.len());
         let data_shs_2: Vec<DataShare> = serde_json::from_slice(&encoded_from_file).unwrap();

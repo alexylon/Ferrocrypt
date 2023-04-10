@@ -1,6 +1,3 @@
-use std::fs;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use sha3::{Digest, Sha3_256};
 use constant_time_eq::constant_time_eq_32;
@@ -17,15 +14,6 @@ pub fn normalize_paths(src_file_path: &str, dest_dir_path: &str) -> (String, Str
 
 
     (src_file_path_norm, dest_dir_path_norm)
-}
-
-pub fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(filename)?;
-    let metadata = fs::metadata(filename)?;
-    let mut buffer = vec![0; metadata.len() as usize];
-    file.read_exact(&mut buffer)?;
-
-    Ok(buffer)
 }
 
 pub fn get_file_stem_to_string(filename: &str) -> Result<String, CryptoError> {
