@@ -21,6 +21,180 @@ pub enum SplitDataError {
 
 const FILE_NAME: &str = "src/test_files/test-file.txt";
 
+/// Split data to 2b - 1 blocks, where every b blocks can reconstruct the original data.
+/// (2*b - 1) must be smaller or equal to 256.
+pub fn encode_data(data: &[u8], blocks: u8) -> Result<Vec<DataShare>, SplitDataError> {
+    let num_blocks = blocks as usize;
+
+    if num_blocks == 0 {
+        return Err(SplitDataError::NumBlocksIsZero);
+    }
+
+    if 2 * num_blocks - 1 > 256 {
+        return Err(SplitDataError::NumBlocksTooLarge);
+    }
+
+    if num_blocks == 1 {
+        return Ok(vec![DataShare {
+            index: 0,
+            block: data.to_vec(),
+        }]);
+    }
+
+    let reed_solomon = ReedSolomon::new(num_blocks, num_blocks - 1).unwrap();
+
+    // // Special case of just one block. We don't need to use reed-solomon encoder.
+    // // Note that we will get an error if we try to use the
+    // // reed solomon encoder with amount of parity shards = 0
+    // let reed_solomon = match ReedSolomon::new(num_blocks, num_blocks - 1) {
+    //     Ok(reed_solomon) => reed_solomon,
+    //     Err(e) => return Err(SplitDataError::ReedSolomonInitFailed(e)),
+    // };
+
+    let block_size = (data.len() + (num_blocks - 1)) / num_blocks;
+
+    // // Add zero padding in case block_size is not a divisor of data.len():
+    // let padding_len = num_blocks * block_size - data.len();
+    // debug_assert!(padding_len < block_size);
+
+    // let mut cdata = data.to_vec();
+    // for _ in 0..padding_len {
+    //     cdata.push(0);
+    // }
+
+    let data_padded = pad_pkcs7(data.to_vec(), block_size);
+    println!("data_padded: {:?}", data_padded);
+
+    let mut shards: Vec<Box<[u8]>> = Vec::new();
+
+    // let res_data_unpadded = if res_data.len() % num_blocks == 0 {
+    //     res_data
+    // } else {
+    //     let padding_size = res_data.last().copied().unwrap() as usize;
+    //     unpad_pkcs7(res_data, padding_size)
+    // };
+    // println!("res_data_unpadded: {:?}", &res_data_unpadded);
+
+    for i in 0..num_blocks {
+        let cur_shard = data_padded[i * block_size..(i + 1) * block_size].to_vec();
+        // debug_assert!(cur_shard.len() == block_size);
+        shards.push(cur_shard.into_boxed_slice());
+    }
+
+    println!("shards: {:?}", shards);
+
+    // Add extra num_blocks - 1 empty shards to be used for encoding:
+    for _ in 0..num_blocks - 1 {
+        shards.push(vec![0u8; block_size].into_boxed_slice());
+    }
+
+    match reed_solomon.encode(&mut shards) {
+        Ok(()) => {}
+        Err(e) => return Err(SplitDataError::ReedSolomonEncodeFailed(e)),
+    };
+
+    Ok(shards
+        .into_iter()
+        .enumerate()
+        .map(|(i, shard)| {
+            DataShare {
+                index: i as u8,
+                block: shard.to_vec(),
+            }
+        }).collect::<Vec<DataShare>>())
+}
+
+#[derive(Debug)]
+pub enum UniteDataError {
+    NumBlocksIsZero,
+    NumBlocksTooLarge,
+    ReedSolomonInitFailed(reed_solomon_erasure::Error),
+    ReedSolomonDecodeFailed(reed_solomon_erasure::Error),
+}
+
+/// Reconstruct original data using given block data shares
+/// Reconstructed data might contain trailing zero padding bytes.
+pub fn reconstruct_data(data_shares: &[DataShare]) -> Result<Vec<u8>, UniteDataError> {
+    let num_blocks = data_shares.len();
+
+    if num_blocks == 0 {
+        return Err(UniteDataError::NumBlocksIsZero);
+    }
+
+    // Limit due to the amount of elements in the field.
+    if (2 * num_blocks - 1) > 256 {
+        return Err(UniteDataError::NumBlocksTooLarge);
+    }
+
+    // Special case of just one block. We don't need to use reed-solomon decoder.
+    if num_blocks == 1 {
+        return Ok(data_shares[0].block.clone());
+    }
+
+    let reed_solomon = match ReedSolomon::new(num_blocks, num_blocks - 1) {
+        Ok(reed_solomon) => reed_solomon,
+        Err(e) => return Err(UniteDataError::ReedSolomonInitFailed(e)),
+    };
+
+    // Convert data_shares into shards format:
+    let mut option_shards: Vec<Option<Box<[u8]>>> = vec![None; 2 * num_blocks - 1];
+    for data_share in data_shares {
+        let cloned_share_data = data_share.block.clone();
+        option_shards[data_share.index as usize] = Some(cloned_share_data.into_boxed_slice());
+    }
+
+    match reed_solomon.reconstruct(&mut option_shards) {
+        Ok(()) => {}
+        Err(e) => return Err(UniteDataError::ReedSolomonDecodeFailed(e)),
+    };
+
+
+    let shards: Vec<_> = option_shards.into_iter().flatten().collect();
+
+    // Reconstruct original data (Possibly with trailing zero padding):
+    let mut res_data = Vec::new();
+    for i in 0..num_blocks {
+        res_data.extend_from_slice(&shards[i]);
+    }
+
+    println!("res_data: {:?}", &res_data);
+
+    // let padding_size = res_data.last().copied().unwrap() as usize;
+    // let res_data_unpadded = unpad_pkcs7(res_data, padding_size);
+
+    Ok(res_data)
+}
+
+
+pub fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
+    let mut file = File::open(filename)?;
+    let metadata = fs::metadata(filename)?;
+    let mut buffer = vec![0; metadata.len() as usize];
+    file.read_exact(&mut buffer)?;
+
+    Ok(buffer)
+}
+
+fn pad_pkcs7(mut byte_vec: Vec<u8>, block_size: usize) -> Vec<u8> {
+    let padding_size = block_size - byte_vec.len() % block_size;
+    let padding_char = padding_size as u8;
+    // let mut padding = (0..padding_size).map(|_| padding_char).collect();
+
+    for _ in 0..padding_size {
+        byte_vec.push(padding_char);
+    }
+
+    byte_vec
+}
+
+fn unpad_pkcs7(mut byte_vec: Vec<u8>, padding_size: usize) -> Vec<u8> {
+    // Use `saturating_sub` to handle the case where there aren't N elements in the vector
+    let final_length = byte_vec.len().saturating_sub(padding_size);
+    byte_vec.truncate(final_length);
+
+    byte_vec
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
@@ -123,141 +297,4 @@ mod tests {
     //
     //     bencher.iter(|| unite_data(&data_shares[0..b]).unwrap());
     // }
-}
-
-
-/// Split data to 2b - 1 blocks, where every b blocks can reconstruct the original data.
-/// (2*b - 1) must be smaller or equal to 256.
-pub fn encode_data(data: &[u8], blocks: u8) -> Result<Vec<DataShare>, SplitDataError> {
-    let num_blocks = blocks as usize;
-
-    if num_blocks == 0 {
-        return Err(SplitDataError::NumBlocksIsZero);
-    }
-
-    if 2 * num_blocks - 1 > 256 {
-        return Err(SplitDataError::NumBlocksTooLarge);
-    }
-
-    if num_blocks == 1 {
-        return Ok(vec![DataShare {
-            index: 0,
-            block: data.to_vec(),
-        }]);
-    }
-
-    let reed_solomon = ReedSolomon::new(num_blocks, num_blocks - 1).unwrap();
-
-    // // Special case of just one block. We don't need to use reed-solomon encoder.
-    // // Note that we will get an error if we try to use the
-    // // reed solomon encoder with amount of parity shards = 0
-    // let reed_solomon = match ReedSolomon::new(num_blocks, num_blocks - 1) {
-    //     Ok(reed_solomon) => reed_solomon,
-    //     Err(e) => return Err(SplitDataError::ReedSolomonInitFailed(e)),
-    // };
-
-    let block_size = (data.len() + (num_blocks - 1)) / num_blocks;
-
-    // Add zero padding in case block_size is not a divisor of data.len():
-    let padding_len = num_blocks * block_size - data.len();
-    debug_assert!(padding_len < block_size);
-
-    let mut cdata = data.to_vec();
-    for _ in 0..padding_len {
-        cdata.push(0);
-    }
-
-    let mut shards: Vec<Box<[u8]>> = Vec::new();
-
-    for i in 0..num_blocks {
-        let cur_shard = cdata[i * block_size..(i + 1) * block_size].to_vec();
-        debug_assert!(cur_shard.len() == block_size);
-        shards.push(cur_shard.into_boxed_slice());
-    }
-
-    // Add extra num_blocks - 1 empty shards to be used for encoding:
-    for _ in 0..num_blocks - 1 {
-        shards.push(vec![0u8; block_size].into_boxed_slice());
-    }
-
-    match reed_solomon.encode(&mut shards) {
-        Ok(()) => {}
-        Err(e) => return Err(SplitDataError::ReedSolomonEncodeFailed(e)),
-    };
-
-    Ok(shards
-        .into_iter()
-        .enumerate()
-        .map(|(i, shard)| {
-            DataShare {
-                index: i as u8,
-                block: shard.to_vec(),
-            }
-        }).collect::<Vec<DataShare>>())
-}
-
-#[derive(Debug)]
-pub enum UniteDataError {
-    NumBlocksIsZero,
-    NumBlocksTooLarge,
-    ReedSolomonInitFailed(reed_solomon_erasure::Error),
-    ReedSolomonDecodeFailed(reed_solomon_erasure::Error),
-}
-
-/// Reconstruct original data using given b data shares
-/// Reconstructed data might contain trailing zero padding bytes.
-pub fn reconstruct_data(data_shares: &[DataShare]) -> Result<Vec<u8>, UniteDataError> {
-    let num_blocks = data_shares.len();
-
-    if num_blocks == 0 {
-        return Err(UniteDataError::NumBlocksIsZero);
-    }
-
-    // Limit due to the amount of elements in the field.
-    if (2 * num_blocks - 1) > 256 {
-        return Err(UniteDataError::NumBlocksTooLarge);
-    }
-
-    // Special case of just one block. We don't need to use reed-solomon decoder.
-    if num_blocks == 1 {
-        return Ok(data_shares[0].block.clone());
-    }
-
-    let reed_solomon = match ReedSolomon::new(num_blocks, num_blocks - 1) {
-        Ok(reed_solomon) => reed_solomon,
-        Err(e) => return Err(UniteDataError::ReedSolomonInitFailed(e)),
-    };
-
-    // Convert data_shares into shards format:
-    let mut option_shards: Vec<Option<Box<[u8]>>> = vec![None; 2 * num_blocks - 1];
-    for data_share in data_shares {
-        let cloned_share_data = data_share.block.clone();
-        option_shards[data_share.index as usize] = Some(cloned_share_data.into_boxed_slice());
-    }
-
-    match reed_solomon.reconstruct(&mut option_shards) {
-        Ok(()) => {}
-        Err(e) => return Err(UniteDataError::ReedSolomonDecodeFailed(e)),
-    };
-
-
-    let shards: Vec<_> = option_shards.into_iter().flatten().collect();
-
-    // Reconstruct original data (Possibly with trailing zero padding):
-    let mut res_data = Vec::new();
-    for i in 0..num_blocks {
-        res_data.extend_from_slice(&shards[i]);
-    }
-
-    Ok(res_data)
-}
-
-
-fn get_file_as_byte_vec(filename: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(filename)?;
-    let metadata = fs::metadata(filename)?;
-    let mut buffer = vec![0; metadata.len() as usize];
-    file.read_exact(&mut buffer)?;
-
-    Ok(buffer)
 }
