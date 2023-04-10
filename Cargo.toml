@@ -1,6 +1,10 @@
-[workspace] 
-members = [ 
-	"ferrocrypt-lib", 
-	"ferrocrypt-cli",
+[workspace]
+
+members = [
+    "ferrocrypt-lib",
+    "ferrocrypt-cli",
 ]
 
+exclude = [
+    "experiments",
+]
