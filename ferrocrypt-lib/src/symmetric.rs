@@ -7,7 +7,7 @@ use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Message};
-use crate::reed_solomon::{encode_data, reconstruct_data};
+use crate::reed_solomon::{sr_encode_with_double_parity, sr_reconstruct_with_double_parity};
 
 
 #[cfg(test)]
@@ -17,9 +17,9 @@ mod tests {
     // use zeroize::Zeroize;
     use crate::symmetric::{decrypt_file, encrypt_file};
 
-    const SRC_FILE_PATH: &str = "src/test_files/test-archive.zip";
+    const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
     const SRC_DIR_PATH: &str = "src/test_files/test-folder";
-    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-archive.fcs";
+    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.fcs";
     const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.fcs";
     const ENCRYPTED_LARGE_FILE_PATH: &str = "src/dest/test-archive.fcls";
     const DEST_DIR_PATH: &str = "src/dest/";
@@ -124,8 +124,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
 
     // Encode with reed-solomon and serialize
-    let salt_32_enc: Vec<Option<Vec<u8>>> = encode_data(salt_32.to_vec(), salt_32.len())?;
-    let key_hash_ref_enc: Vec<Option<Vec<u8>>> = encode_data(key_hash_ref.to_vec(), key_hash_ref.len())?;
+    let salt_32_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&salt_32)?;
+    let key_hash_ref_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&key_hash_ref)?;
     let salt_32_enc_ser: Vec<u8> = bincode::serialize(&salt_32_enc)?;
     let key_hash_ref_enc_ser: Vec<u8> = bincode::serialize(&key_hash_ref_enc)?;
 
@@ -133,7 +133,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        let nonce_24_enc: Vec<Option<Vec<u8>>> = encode_data(nonce_24.to_vec(), nonce_24.len())?;
+        let nonce_24_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&nonce_24)?;
         let nonce_24_enc_ser: Vec<u8> = bincode::serialize(&nonce_24_enc)?;
         let file_bytes_len = 0;
 
@@ -221,13 +221,13 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         let (nonce_enc_bytes, rem_data) = rem_data.split_at(header[1]);
         let (key_hash_ref_enc_bytes, ciphertext) = rem_data.split_at(header[2]);
 
-        let salt_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(salt_enc_bytes)?;
-        let nonce_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(nonce_enc_bytes)?;
-        let key_hash_ref_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(key_hash_ref_enc_bytes)?;
+        let salt_enc: Vec<Vec<u8>> = bincode::deserialize(salt_enc_bytes)?;
+        let nonce_enc: Vec<Vec<u8>> = bincode::deserialize(nonce_enc_bytes)?;
+        let key_hash_ref_enc: Vec<Vec<u8>> = bincode::deserialize(key_hash_ref_enc_bytes)?;
 
-        let salt = reconstruct_data(salt_enc)?;
-        let nonce_24 = reconstruct_data(nonce_enc)?;
-        let key_hash_ref = reconstruct_data(key_hash_ref_enc)?;
+        let salt = sr_reconstruct_with_double_parity(salt_enc, 32)?;
+        let nonce_24 = sr_reconstruct_with_double_parity(nonce_enc, 24)?;
+        let key_hash_ref = sr_reconstruct_with_double_parity(key_hash_ref_enc, 32)?;
 
         let argon2_config = argon2_config();
         let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt[0..32], &argon2_config)?;
