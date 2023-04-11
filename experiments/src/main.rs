@@ -3,11 +3,13 @@ use std::io::Write;
 use std::path::Path;
 use rand::RngCore;
 use rand::rngs::OsRng;
-use crate::reed_solomon::{DataShare, encode_data, reconstruct_data};
+use crate::reed_solomon::{DataShare, encode_data, encode_data_experiment, reconstruct_data, reconstruct_data_experiment};
 use std::str;
 
 mod reed_solomon;
 
+const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
+const OUTPUT_FILE_NAME: &str = "test.txt";
 
 fn main() {
     // Write data =================================================================
@@ -20,30 +22,32 @@ fn main() {
 
     // let my_data: Vec<u8> = read(FILE_NAME).unwrap();
 
-    let blocks = 6;
+    let blocks = 8;
     // for blocks in 1..5_usize {
-    let salt_encoded = encode_data(&salt_32, blocks as u8).unwrap();
-    let nonce_encoded = encode_data(&nonce_24, blocks as u8).unwrap();
+    let salt_encoded = encode_data_experiment(&salt_32.to_vec(), blocks as u8).unwrap();
+    println!("salt_encoded: {:?}", &salt_encoded);
+    let nonce_encoded = encode_data_experiment(&nonce_24, blocks as u8).unwrap();
+    println!("nonce_encoded: {:?}", &nonce_encoded);
 
     // Serialize it to a JSON string.
-    // let encoded_shares_to_file: Vec<u8> = serde_json::to_vec(&encoded_shares).unwrap();
-    let salt_encoded_ser: Vec<u8> = serde_json::to_vec(&salt_encoded).unwrap();
+    // let encoded_shares_to_file: Vec<u8> = bincode::serialize(&encoded_shares).unwrap();
+    let salt_encoded_ser: Vec<u8> = bincode::serialize(&salt_encoded).unwrap();
     // println!("salt_encoded_vec1: {:?}", &salt_encoded_ser);
     let salt_encoded_ser_len = salt_encoded_ser.len();
-    // println!("salt_encoded_ser_len: {}", &salt_encoded_ser_len);
+    println!("salt_encoded_ser_len: {}", &salt_encoded_ser_len);
 
-    let nonce_encoded_ser: Vec<u8> = serde_json::to_vec(&nonce_encoded).unwrap();
+    let nonce_encoded_ser: Vec<u8> = bincode::serialize(&nonce_encoded).unwrap();
     let nonce_encoded_ser_len = nonce_encoded_ser.len();
-    // println!("nonce_encoded_ser_len: {}", &nonce_encoded_ser_len);
+    println!("nonce_encoded_ser_len: {}", &nonce_encoded_ser_len);
 
-    // TODO: include original `salt` and `nonce` lengths in the header, instead of blocks
-    let header = [blocks, salt_encoded_ser_len, nonce_encoded_ser_len];
-    let header_ser: Vec<u8> = serde_json::to_vec(&header).unwrap();
-    // println!("header_ser.len(): {}", &header_ser.len());
+    let file_bytes = read(SRC_FILE_PATH).unwrap();
+    let file_bytes_len = file_bytes.len();
 
-    let text = "Hello World!";
+    // HEADER
+    let header: [usize; 3] = [salt_encoded_ser_len, nonce_encoded_ser_len, file_bytes_len];
+    let header_ser: Vec<u8> = bincode::serialize(&header).unwrap();
+    println!("header_ser.len(): {}", &header_ser.len());
 
-    const OUTPUT_FILE_NAME: &str = "test.txt";
 
     //write the file to new file to test the image
     let path = Path::new(OUTPUT_FILE_NAME);
@@ -55,24 +59,28 @@ fn main() {
     file.write_all(&header_ser).expect("Cannot write to file!");
     file.write_all(&salt_encoded_ser).expect("Cannot write to file!");
     file.write_all(&nonce_encoded_ser).expect("Cannot write to file!");
-    file.write_all(text.as_bytes()).expect("Cannot write to file!");
+    file.write_all(&file_bytes).expect("Cannot write to file!");
 
 
    // Read data =================================================================
 
     let encoded_from_file: Vec<u8> = read(OUTPUT_FILE_NAME).unwrap();
-    let (header_bytes, rem) = encoded_from_file.split_at(11);
-    let header: [usize; 3] = serde_json::from_slice(header_bytes).unwrap();
+    // Split file
+
+    let (header_bytes, rem) = encoded_from_file.split_at(24);
+    let header: [usize; 3] = bincode::deserialize(header_bytes).unwrap();
     println!("header: {}:{}:{}", header[0], header[1], header[2]);
-    let (salt_enc_bytes, rem) = rem.split_at(header[1]);
-    let (nonce_enc_bytes, text_bytes) = rem.split_at(header[2]);
 
-    // let blocks = header[0];
-    let salt_enc: Vec<DataShare> = serde_json::from_slice(salt_enc_bytes).unwrap();
-    let nonce_enc: Vec<DataShare> = serde_json::from_slice(nonce_enc_bytes).unwrap();
+    let (salt_enc_bytes, rem) = rem.split_at(header[0]);
+    let (nonce_enc_bytes, text_bytes) = rem.split_at(header[1]);
 
-    let salt = reconstruct_data(&salt_enc[0..]).unwrap();
-    let nonce = reconstruct_data(&nonce_enc[0..]).unwrap();
+    let mut salt_enc: Vec<DataShare> = bincode::deserialize(salt_enc_bytes).unwrap();
+    let nonce_enc: Vec<DataShare> = bincode::deserialize(nonce_enc_bytes).unwrap();
+
+    salt_enc[0].block[0] = 0;
+
+    let salt = reconstruct_data_experiment(&salt_enc[0..]).unwrap();
+    let nonce = reconstruct_data_experiment(&nonce_enc[0..]).unwrap();
     let text_str = str::from_utf8(text_bytes).unwrap();
 
     println!("salt    :{:?}", &salt[0..32]);

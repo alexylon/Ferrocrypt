@@ -4,6 +4,7 @@ mod archiver;
 mod symmetric;
 mod hybrid;
 mod common;
+mod reed_solomon;
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
@@ -19,6 +20,10 @@ pub enum CryptoError {
     WalkDirError(#[from] walkdir::Error),
     #[error("Zip Error!")]
     ZipError(#[from] zip::result::ZipError),
+    #[error("ReedSolomon Error!")]
+    ReedSolomonError(#[from] reed_solomon_erasure::Error),
+    #[error("BinCode Error!")]
+    BinCodeError(#[from] Box<bincode::ErrorKind>),
     #[error("TryFromSlice Error!")]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("")]

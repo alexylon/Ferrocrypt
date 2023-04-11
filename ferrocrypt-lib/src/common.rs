@@ -24,12 +24,12 @@ pub fn get_file_stem_to_string(filename: &str) -> Result<String, CryptoError> {
     Ok(file_stem_string)
 }
 
-pub fn sha3_hash(byte_string: &[u8]) -> Result<[u8; 32], CryptoError> {
+pub fn sha3_32_hash(byte_string: &[u8]) -> Result<[u8; 32], CryptoError> {
     let mut hasher = Sha3_256::new();
     hasher.update(byte_string);
-    let byte_string_hash: [u8; 32] = hasher.finalize().as_slice().try_into()?;
+    let digest: [u8; 32] = hasher.finalize().as_slice().try_into()?;
 
-    Ok(byte_string_hash)
+    Ok(digest)
 }
 
 // Compares two 256-bit byte strings in constant time

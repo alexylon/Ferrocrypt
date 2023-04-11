@@ -5,8 +5,9 @@ use argon2::Variant;
 use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_hash};
+use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Message};
+use crate::reed_solomon::{encode_data, reconstruct_data};
 
 
 #[cfg(test)]
@@ -39,7 +40,7 @@ mod tests {
     #[test]
     fn decrypt_file_test() -> Result<(), CryptoError> {
         // let mut password = rpassword::prompt_password("password:")?;
-        let mut passphrase = "strong_passphrase".to_string();
+        let mut passphrase = PASSPHRASE.to_string();
         decrypt_file(ENCRYPTED_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
 
         // password.zeroize();
@@ -104,14 +105,14 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     println!("\nencrypting {} ...", file_name_zipped);
 
     let argon2_config = argon2_config();
-    let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
+    let mut salt_32 = [0u8; 32];
+    OsRng.fill_bytes(&mut salt_32);
 
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt, &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32, &argon2_config)?;
     let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
 
     // Hash the encryption key for comparison when decrypting
-    let key_hash_ref: [u8; 32] = sha3_hash(&key)?;
+    let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
     let encr_ext = if !large { "fcs" } else { "fcls" };
 
@@ -122,19 +123,32 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         .open(format!("{}{}.{}", &output_dir_norm, file_stem, encr_ext))?;
 
 
+    // Encode with reed-solomon and serialize
+    let salt_32_enc: Vec<Option<Vec<u8>>> = encode_data(salt_32.to_vec(), salt_32.len())?;
+    let key_hash_ref_enc: Vec<Option<Vec<u8>>> = encode_data(key_hash_ref.to_vec(), key_hash_ref.len())?;
+    let salt_32_enc_ser: Vec<u8> = bincode::serialize(&salt_32_enc)?;
+    let key_hash_ref_enc_ser: Vec<u8> = bincode::serialize(&key_hash_ref_enc)?;
+
     if !large {
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
+        let nonce_24_enc: Vec<Option<Vec<u8>>> = encode_data(nonce_24.to_vec(), nonce_24.len())?;
+        let nonce_24_enc_ser: Vec<u8> = bincode::serialize(&nonce_24_enc)?;
+        let file_bytes_len = 0;
+
+        // HEADER info for decrypting
+        let header: [usize; 4] = [salt_32_enc_ser.len(), nonce_24_enc_ser.len(), key_hash_ref_enc_ser.len(), file_bytes_len];
+        let header_ser: Vec<u8> = bincode::serialize(&header).unwrap();
+
         let source_file = fs::read(file_name_zipped)?;
         let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*source_file)?;
 
-        file_path_encrypted.write_all(&salt)?;
-        file_path_encrypted.write_all(&nonce_24)?;
-        file_path_encrypted.write_all(&key_hash_ref)?;
+        file_path_encrypted.write_all(&header_ser)?;
+        file_path_encrypted.write_all(&salt_32_enc_ser)?;
+        file_path_encrypted.write_all(&nonce_24_enc_ser)?;
+        file_path_encrypted.write_all(&key_hash_ref_enc_ser)?;
         file_path_encrypted.write_all(&ciphertext)?;
-
-        nonce_24.zeroize();
     } else {
         let mut nonce_19 = [0u8; 19];
         OsRng.fill_bytes(&mut nonce_19);
@@ -145,7 +159,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         const BUFFER_LEN: usize = 500;
         let mut buffer = [0u8; BUFFER_LEN];
 
-        file_path_encrypted.write_all(&salt)?;
+        file_path_encrypted.write_all(&salt_32)?;
         file_path_encrypted.write_all(&nonce_19)?;
         file_path_encrypted.write_all(&key_hash_ref)?;
 
@@ -166,8 +180,6 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
                 break;
             }
         }
-
-        nonce_19.zeroize();
     }
 
     fs::remove_dir_all(tmp_dir_path)?;
@@ -175,7 +187,6 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let file_name_encrypted = &format!("{}{}.{}", output_dir_norm, file_stem, encr_ext);
     println!("\nencrypted to {}", file_name_encrypted);
 
-    salt.zeroize();
     key.zeroize();
     passphrase.zeroize();
 
@@ -200,29 +211,36 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
 fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     if input_path.ends_with(".fcs") {
         println!("decrypting {} ...\n", input_path);
-
-        let salt_len = 32;
-        let nonce_len = 24;
-        let key_hash_ref_len = 32;
         let encrypted_file: Vec<u8> = fs::read(input_path)?;
 
-        // Split the salt, nonce and the encrypted file
-        let (salt, rem_data) = encrypted_file.split_at(salt_len);
-        let (nonce_24, rem_data) = rem_data.split_at(nonce_len);
-        let (key_hash_ref, ciphertext) = rem_data.split_at(key_hash_ref_len);
+        // Split salt, nonce, key hash and the encrypted file
+        // Deserialize and reconstruct with reed-solomon
+        let (header_bytes, rem_data) = encrypted_file.split_at(32);
+        let header: [usize; 4] = bincode::deserialize(header_bytes)?;
+        let (salt_enc_bytes, rem_data) = rem_data.split_at(header[0]);
+        let (nonce_enc_bytes, rem_data) = rem_data.split_at(header[1]);
+        let (key_hash_ref_enc_bytes, ciphertext) = rem_data.split_at(header[2]);
+
+        let salt_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(salt_enc_bytes)?;
+        let nonce_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(nonce_enc_bytes)?;
+        let key_hash_ref_enc: Vec<Option<Vec<u8>>> = bincode::deserialize(key_hash_ref_enc_bytes)?;
+
+        let salt = reconstruct_data(salt_enc)?;
+        let nonce_24 = reconstruct_data(nonce_enc)?;
+        let key_hash_ref = reconstruct_data(key_hash_ref_enc)?;
 
         let argon2_config = argon2_config();
-        let mut key = argon2::hash_raw(passphrase.as_bytes(), salt, &argon2_config)?;
+        let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt[0..32], &argon2_config)?;
 
         // Hash the encryption key for comparison and compare it in constant time with the ref key hash
-        let key_hash: [u8; 32] = sha3_hash(&key)?;
-        let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..32].try_into()?);
+        let key_hash: [u8; 32] = sha3_32_hash(&key)?;
+        let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[0..32].try_into()?);
 
         if key_correct {
             let tmp_dir_path = &format!("{}zp_tmp/", output_dir);
             fs::create_dir_all(tmp_dir_path)?;
             let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
-            let plaintext = cipher.decrypt(nonce_24.as_ref().into(), ciphertext.as_ref())?;
+            let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..24].as_ref().into(), ciphertext.as_ref())?;
             let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
             let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
 
@@ -273,7 +291,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
         let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt, &argon2_config)?;
 
         // Hash the encryption key for comparison and compare it in constant time with the ref key hash
-        let key_hash: [u8; 32] = sha3_hash(&key)?;
+        let key_hash: [u8; 32] = sha3_32_hash(&key)?;
         let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..32].try_into()?);
 
         if key_correct {
