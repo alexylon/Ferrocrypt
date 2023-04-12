@@ -7,7 +7,7 @@ use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Message};
-use crate::reed_solomon::{sr_encode_with_double_parity, sr_reconstruct_with_double_parity};
+use crate::reed_solomon::{sr_encode, sr_reconstruct};
 
 
 #[cfg(test)]
@@ -123,31 +123,28 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         .open(format!("{}{}.{}", &output_dir_norm, file_stem, encr_ext))?;
 
 
-    // Encode with reed-solomon and serialize
-    let salt_32_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&salt_32)?;
-    let key_hash_ref_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&key_hash_ref)?;
-    let salt_32_enc_ser: Vec<u8> = bincode::serialize(&salt_32_enc)?;
-    let key_hash_ref_enc_ser: Vec<u8> = bincode::serialize(&key_hash_ref_enc)?;
+    // Encode with reed-solomon
+    let salt_32_enc: Vec<u8> = sr_encode(&salt_32)?;
+    let key_hash_ref_enc: Vec<u8> = sr_encode(&key_hash_ref)?;
 
     if !large {
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        let nonce_24_enc: Vec<Vec<u8>> = sr_encode_with_double_parity(&nonce_24)?;
-        let nonce_24_enc_ser: Vec<u8> = bincode::serialize(&nonce_24_enc)?;
-        let file_bytes_len = 0;
+        let nonce_24_enc: Vec<u8> = sr_encode(&nonce_24)?;
 
         // HEADER info for decrypting
-        let header: [usize; 4] = [salt_32_enc_ser.len(), nonce_24_enc_ser.len(), key_hash_ref_enc_ser.len(), file_bytes_len];
+        // Create a placeholder for a later use
+        let header: [usize; 4] = [0, 0, 0, 0];
         let header_ser: Vec<u8> = bincode::serialize(&header).unwrap();
 
         let source_file = fs::read(file_name_zipped)?;
         let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*source_file)?;
 
         file_path_encrypted.write_all(&header_ser)?;
-        file_path_encrypted.write_all(&salt_32_enc_ser)?;
-        file_path_encrypted.write_all(&nonce_24_enc_ser)?;
-        file_path_encrypted.write_all(&key_hash_ref_enc_ser)?;
+        file_path_encrypted.write_all(&salt_32_enc)?;
+        file_path_encrypted.write_all(&nonce_24_enc)?;
+        file_path_encrypted.write_all(&key_hash_ref_enc)?;
         file_path_encrypted.write_all(&ciphertext)?;
     } else {
         let mut nonce_19 = [0u8; 19];
@@ -213,21 +210,16 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         println!("decrypting {} ...\n", input_path);
         let encrypted_file: Vec<u8> = fs::read(input_path)?;
 
-        // Split salt, nonce, key hash and the encrypted file
-        // Deserialize and reconstruct with reed-solomon
+        // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
         let (header_bytes, rem_data) = encrypted_file.split_at(32);
-        let header: [usize; 4] = bincode::deserialize(header_bytes)?;
-        let (salt_enc_bytes, rem_data) = rem_data.split_at(header[0]);
-        let (nonce_enc_bytes, rem_data) = rem_data.split_at(header[1]);
-        let (key_hash_ref_enc_bytes, ciphertext) = rem_data.split_at(header[2]);
+        let _header: [usize; 4] = bincode::deserialize(header_bytes)?;
+        let (salt_enc, rem_data) = rem_data.split_at(96);
+        let (nonce_enc, rem_data) = rem_data.split_at(72);
+        let (key_hash_ref_enc, ciphertext) = rem_data.split_at(96);
 
-        let salt_enc: Vec<Vec<u8>> = bincode::deserialize(salt_enc_bytes)?;
-        let nonce_enc: Vec<Vec<u8>> = bincode::deserialize(nonce_enc_bytes)?;
-        let key_hash_ref_enc: Vec<Vec<u8>> = bincode::deserialize(key_hash_ref_enc_bytes)?;
-
-        let salt = sr_reconstruct_with_double_parity(salt_enc, 32)?;
-        let nonce_24 = sr_reconstruct_with_double_parity(nonce_enc, 24)?;
-        let key_hash_ref = sr_reconstruct_with_double_parity(key_hash_ref_enc, 32)?;
+        let salt = sr_reconstruct(salt_enc, 32)?;
+        let nonce_24 = sr_reconstruct(nonce_enc, 24)?;
+        let key_hash_ref = sr_reconstruct(key_hash_ref_enc, 32)?;
 
         let argon2_config = argon2_config();
         let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt[0..32], &argon2_config)?;

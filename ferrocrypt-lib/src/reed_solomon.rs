@@ -1,4 +1,4 @@
-use reed_solomon_erasure::galois_8::{ReedSolomon, ShardByShard};
+use reed_solomon_erasure::galois_8::{ReedSolomon};
 use crate::CryptoError;
 
 
@@ -6,7 +6,7 @@ use crate::CryptoError;
 mod tests {
     use chacha20poly1305::aead::OsRng;
     use chacha20poly1305::aead::rand_core::RngCore;
-    use crate::reed_solomon::{sr_encode_with_double_parity, sr_reconstruct_with_double_parity};
+    use crate::reed_solomon::{sr_encode, sr_reconstruct};
 
     #[test]
     fn encode_reconstruct_test() {
@@ -14,65 +14,88 @@ mod tests {
         OsRng.fill_bytes(&mut salt_32);
         println!("{:?}", &salt_32);
 
-        let mut encoded_salt_32 = sr_encode_with_double_parity(&salt_32).unwrap();
+        let encoded_salt_32 = sr_encode(&salt_32).unwrap();
+        println!("encoded_salt_32.len(): {}", &encoded_salt_32.len());
+        println!("encoded_salt_32: {:?}", &encoded_salt_32);
 
-        encoded_salt_32[0] = vec![];
-        println!("{:?}", &encoded_salt_32);
+        // // Corrupt some data
+        // encoded_salt_32[0] = vec![];
+        // encoded_salt_32[5] = vec![];
+        // encoded_salt_32[7] = vec![];
+        // encoded_salt_32[10] = vec![];
+        // encoded_salt_32[15] = vec![];
+        // encoded_salt_32[20] = vec![];
+        // encoded_salt_32[25] = vec![];
+        // encoded_salt_32[30] = vec![];
 
-        let reconstructed_salt_32 = sr_reconstruct_with_double_parity(encoded_salt_32, 32).unwrap();
+        let reconstructed_salt_32 = sr_reconstruct(&encoded_salt_32, 32).unwrap();
         println!("{:?}", &reconstructed_salt_32[..32]);
+
+        assert_eq!(&salt_32.to_vec(), &reconstructed_salt_32[..32]);
     }
 }
 
-pub fn sr_encode_with_double_parity(data: &[u8]) -> Result<Vec<Vec<u8>>, CryptoError> {
-    let block_size = data.len();
-    let mut data_shards: Vec<Vec<u8>> = vec![];
-    data_shards.push(data.to_vec());
 
-    //add parity shards
-    for _i in 0..2 {
-        let mut parity_vec: Vec<u8> = Vec::new();
-        for _j in 0..block_size {
-            parity_vec.push(0);
-        }
-        data_shards.push(parity_vec);
+pub fn sr_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    let data_shards_number = data.len();
+    let parity_shards_number = data_shards_number * 2;
+
+    let mut data_shards: Vec<Vec<u8>> = vec![];
+
+    for byte in data {
+        data_shards.push([*byte].to_vec())
     }
 
-    let reed_solomon = ReedSolomon::new(1, 2).unwrap();
-    let mut sbs = ShardByShard::new(&reed_solomon);
+    //add parity shards
+    for _i in 0..parity_shards_number {
+        data_shards.push(vec![0]);
+    }
+
+    let reed_solomon = ReedSolomon::new(data_shards_number, parity_shards_number).unwrap();
 
     // reed_solomon.encode(&mut data_shards)?;
-    sbs.encode(&mut data_shards).unwrap();
+    reed_solomon.encode(&mut data_shards).unwrap();
 
     let option_shards: Vec<_> = data_shards.iter().cloned().map(Some).collect();
 
-    let mut recovered_shards: Vec<Vec<u8>> = vec![];
+    let mut recovered_shards: Vec<u8> = vec![];
 
     // Convert option_shards to normal
     for option_shard in option_shards {
         match option_shard {
             None => { return Err(CryptoError::Message("None shard found!".to_string())); }
-            Some(shard) => { recovered_shards.push(shard); }
+            Some(shard) => {
+                for byte in shard {
+                    recovered_shards.push(byte);
+                }
+            }
         }
     }
 
     Ok(recovered_shards)
 }
 
-pub fn sr_reconstruct_with_double_parity(data_shards: Vec<Vec<u8>>, block_size: usize) -> Result<Vec<u8>, CryptoError> {
-    let reed_solomon = ReedSolomon::new(1, 2)?;
+pub fn sr_reconstruct(data: &[u8], block_size: usize) -> Result<Vec<u8>, CryptoError> {
+    let mut data_shards: Vec<u8> = vec![];
 
-    let mut option_shards: Vec<Option<Vec<u8>>> = vec![None; 3];
-    // for data_shard in data_shards {
-    //     let data_shard_cloned = data_shard.clone();
-    //     option_shards.push(Some(data_shard_cloned));
-    // }
+    for byte in data {
+        data_shards.push(*byte)
+    }
 
-    for i in 0..3 {
-        if data_shards.get(i).is_none() || data_shards[i].len() != block_size {
+    let data_shards_number = block_size;
+    let parity_shards_number = data_shards_number * 2;
+    let total_shards_number = data_shards_number + parity_shards_number;
+
+    let reed_solomon = ReedSolomon::new(data_shards_number, parity_shards_number)?;
+
+    let mut option_shards: Vec<Option<Vec<u8>>> = vec![None; total_shards_number];
+
+    for i in 0..total_shards_number {
+        if data_shards.get(i).is_none() {
             option_shards[i] = None;
+            println!("A 'None' shard detected: {:?}", &option_shards[i]);
         } else {
-            option_shards[i] = Some(data_shards[i].clone());
+            option_shards[i] = Some([data_shards[i]].to_vec());
         }
     }
 
@@ -84,9 +107,10 @@ pub fn sr_reconstruct_with_double_parity(data_shards: Vec<Vec<u8>>, block_size: 
 
     // Reconstruct original data
     let mut res_data = Vec::new();
-    for i in 0..3 {
-        res_data.extend_from_slice(&result[i]);
+    for vec in result {
+        res_data.extend_from_slice(&vec);
     }
 
     Ok(res_data)
 }
+
