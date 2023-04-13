@@ -7,6 +7,7 @@ use crate::reed_solomon::{DataShare, encode_data, encode_data_experiment, recons
 use std::str;
 
 mod reed_solomon;
+mod reed_solomon_32;
 
 const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
 const OUTPUT_FILE_NAME: &str = "test.txt";
