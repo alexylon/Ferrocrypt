@@ -59,7 +59,7 @@ pub fn rs_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
 
     let mut recovered_shards: Vec<u8> = vec![];
 
-    // Convert option_shards to normal
+    // Convert option_shards to normal bytes
     for option_shard in option_shards {
         match option_shard {
             None => { return Err(CryptoError::Message("None shard found!".to_string())); }
@@ -80,6 +80,7 @@ pub fn rs_decode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
 
     let mut option_shards: Vec<Option<Vec<u8>>> = vec![None; 3];
 
+    // Covert shards to option_shards to be accepted by the crate
     for i in 0..3 {
         if data_shards.get(i).is_none() || data_shards[i].len() != block_size {
             option_shards[i] = None;
@@ -95,8 +96,8 @@ pub fn rs_decode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
     // Convert back to normal shard arrangement
     let vecs: Vec<_> = option_shards.into_iter().flatten().collect();
 
-    // Compare each 3 elements with the same index and push to a new vector the element which occurs at least twice
-    // If all three elements are different, insert the element from the first input vector to the new vector
+    // Compare each 3 elements with the same index in the three vectors and push to a new vector the element which occurs at least twice
+    // If all three elements are different, insert the element from the first input vector to the new vector as a fallback option
     let mut result = vec![];
 
     for i in 0..vecs[0].len() {
