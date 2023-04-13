@@ -7,7 +7,7 @@ use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Message};
-use crate::reed_solomon::{sr_encode, sr_reconstruct};
+use crate::reed_solomon::{rs_encode, rs_decode};
 
 
 #[cfg(test)]
@@ -124,14 +124,14 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
 
     // Encode with reed-solomon
-    let salt_32_enc: Vec<u8> = sr_encode(&salt_32)?;
-    let key_hash_ref_enc: Vec<u8> = sr_encode(&key_hash_ref)?;
+    let salt_32_enc: Vec<u8> = rs_encode(&salt_32)?;
+    let key_hash_ref_enc: Vec<u8> = rs_encode(&key_hash_ref)?;
 
     if !large {
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        let nonce_24_enc: Vec<u8> = sr_encode(&nonce_24)?;
+        let nonce_24_enc: Vec<u8> = rs_encode(&nonce_24)?;
 
         // HEADER info for decrypting
         // Create a placeholder for a later use
@@ -217,9 +217,9 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         let (nonce_enc, rem_data) = rem_data.split_at(72);
         let (key_hash_ref_enc, ciphertext) = rem_data.split_at(96);
 
-        let salt = sr_reconstruct(salt_enc, 32)?;
-        let nonce_24 = sr_reconstruct(nonce_enc, 24)?;
-        let key_hash_ref = sr_reconstruct(key_hash_ref_enc, 32)?;
+        let salt = rs_decode(salt_enc)?;
+        let nonce_24 = rs_decode(nonce_enc)?;
+        let key_hash_ref = rs_decode(key_hash_ref_enc)?;
 
         let argon2_config = argon2_config();
         let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt[0..32], &argon2_config)?;

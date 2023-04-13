@@ -3,10 +3,10 @@ use std::io::Write;
 use std::path::Path;
 use rand::RngCore;
 use rand::rngs::OsRng;
-use crate::reed_solomon::{DataShare, encode_data, encode_data_experiment, reconstruct_data, reconstruct_data_experiment};
+use crate::reed_solomon1::{DataShare, encode_data, encode_data_experiment, reconstruct_data, reconstruct_data_experiment};
 use std::str;
 
-mod reed_solomon;
+mod reed_solomon1;
 mod reed_solomon_32;
 
 const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
