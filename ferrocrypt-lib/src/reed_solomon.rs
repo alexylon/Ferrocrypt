@@ -62,13 +62,10 @@ pub fn rs_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
     let mut data_shards: Vec<Vec<u8>> = vec![];
     data_shards.push(data.to_vec());
 
-    //add parity slices
+    // Add parity shards
+    let parity_vec: Vec<u8> = vec![0; data.len()];
     for _i in 0..2 {
-        let mut parity_vec: Vec<u8> = Vec::new();
-        for _j in 0..data.len() {
-            parity_vec.push(0);
-        }
-        data_shards.push(parity_vec);
+        data_shards.push(parity_vec.clone());
     }
 
     let reed_solomon = ReedSolomon::new(1, 2)?;
@@ -170,7 +167,8 @@ fn _pad_pkcs7(data: &[u8], block_size: usize) -> Vec<u8> {
     let mut byte_vec = data.to_vec();
     let padding_size = block_size - byte_vec.len() % block_size;
     let padding_char = padding_size as u8;
-    let padding: Vec<u8> = (0..padding_size).map(|_| padding_char).collect();
+    // let padding: Vec<u8> = (0..padding_size).map(|_| padding_char).collect();
+    let padding: Vec<u8> = vec![padding_char; padding_size];
     byte_vec.extend_from_slice(&padding);
 
     byte_vec
