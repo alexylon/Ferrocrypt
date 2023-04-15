@@ -4,7 +4,7 @@ use crate::CryptoError;
 
 #[cfg(test)]
 mod tests {
-    use crate::reed_solomon::{rs_encode, rs_decode};
+    use crate::reed_solomon::{rs_encode, rs_decode, _pad_pkcs7, _unpad_pkcs7};
 
     #[test]
     fn encode_reconstruct_test() {
@@ -31,6 +31,29 @@ mod tests {
         println!("{:?}", &arr_32_dec);
 
         assert_eq!(&arr_32_orig.to_vec(), &arr_32_dec);
+    }
+
+    #[test]
+    fn pkcs_padding_unpadding() {
+        let arr_12_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
+        let arr_16_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+
+        let arr_12_padded = _pad_pkcs7(&arr_12_orig, 16);
+        let arr_16_padded = _pad_pkcs7(&arr_16_orig, 16);
+
+        let arr_12_unpadded = _unpad_pkcs7(&arr_12_padded);
+        let arr_16_unpadded = _unpad_pkcs7(&arr_16_padded);
+
+        println!("{:?}", &arr_12_padded);
+        println!("{:?}", &arr_12_orig);
+        println!("{:?}", &arr_12_unpadded);
+        println!();
+        println!("{:?}", &arr_16_padded);
+        println!("{:?}", &arr_16_orig);
+        println!("{:?}", &arr_16_unpadded);
+
+        assert_eq!(&arr_12_orig, &arr_12_unpadded.as_slice());
+        assert_eq!(&arr_16_orig, &arr_16_unpadded.as_slice());
     }
 }
 
@@ -143,3 +166,22 @@ fn split_vec<T: Clone>(data: &[T], block_size: usize) -> Vec<Vec<T>> {
     chunks
 }
 
+fn _pad_pkcs7(data: &[u8], block_size: usize) -> Vec<u8> {
+    let mut byte_vec = data.to_vec();
+    let padding_size = block_size - byte_vec.len() % block_size;
+    let padding_char = padding_size as u8;
+    let padding: Vec<u8> = (0..padding_size).map(|_| padding_char).collect();
+    byte_vec.extend_from_slice(&padding);
+
+    byte_vec
+}
+
+fn _unpad_pkcs7(data: &[u8]) -> Vec<u8> {
+    let mut byte_vec = data.to_vec();
+    let padding_size = byte_vec.last().copied().unwrap() as usize;
+    // Use `saturating_sub` to handle the case where there aren't N elements in the vector
+    let final_length = byte_vec.len().saturating_sub(padding_size);
+    byte_vec.truncate(final_length);
+
+    byte_vec
+}
