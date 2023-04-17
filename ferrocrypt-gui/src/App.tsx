@@ -17,8 +17,8 @@ function App() {
         console.log("selected: ", selected);
     };
 
-    const encrypt = async () => {
-        await invoke("encrypt", {file, password});
+    const start = async () => {
+        await invoke("start", {file, password});
     }
 
     return (
@@ -51,7 +51,7 @@ function App() {
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
-                            encrypt();
+                            start().then();
                         }}
                     >
                         <button

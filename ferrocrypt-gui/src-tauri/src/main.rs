@@ -8,7 +8,7 @@ use ferrocrypt::{
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn encrypt(file: &str, mut password: String) -> Result<(), CryptoError> {
+fn start(file: &str, mut password: String) -> Result<(), CryptoError> {
     symmetric_encryption(file, "/Users/alex/", password.as_mut_str(), false)?;
 
     Ok(())
@@ -16,7 +16,7 @@ fn encrypt(file: &str, mut password: String) -> Result<(), CryptoError> {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![encrypt])
+        .invoke_handler(tauri::generate_handler![start])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
