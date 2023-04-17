@@ -32,6 +32,16 @@ pub enum CryptoError {
     Unknown,
 }
 
+// We must manually implement serde::Serialize
+impl serde::Serialize for CryptoError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.to_string().as_ref())
+    }
+}
+
 pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
     if input_path.ends_with(".fch") {
         hybrid::decrypt_file(input_path, output_dir, rsa_key_pem, passphrase)?;

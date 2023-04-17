@@ -16,6 +16,14 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "path": {
+        "all": true
+      },
+      "dialog": {
+        "all": true,
+        "open": true,
+        "save": true
       }
     },
     "bundle": {
@@ -39,9 +47,9 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": true,
-        "title": "ferrocrypt-gui",
-        "width": 800,
+        "resizable": false,
+        "title": "Ferrocrypt",
+        "width": 400,
         "height": 600
       }
     ]
