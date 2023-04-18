@@ -61,7 +61,7 @@ function App() {
                         disabled={true}
                         value={inpath}
                         onChange={(e) => setPassword(e.currentTarget.value)}
-                        style={{marginRight: 7, width: "267px"}}
+                        style={{marginRight: 10, width: "100%"}}
                     />
                     <button onClick={clear}>Clear</button>
                 </div>
@@ -72,7 +72,7 @@ function App() {
                         value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
-                        style={{width: "342px"}}
+                        style={{width: "100%", backgroundColor: "#0f0f0f"}}
                     />
                 </div>
                 <div className="helper">Save output file to this folder:</div>
@@ -82,7 +82,7 @@ function App() {
                         disabled={true}
                         value={outpath}
                         onChange={(e) => setPassword(e.currentTarget.value)}
-                        style={{marginRight: 7, width: "260px"}}
+                        style={{marginRight: 10, width: "100%"}}
                     />
                     <button onClick={selectDir}>Select</button>
                 </div>
@@ -94,11 +94,7 @@ function App() {
                             start().then();
                         }}
                     >
-                        <button
-                            type="submit"
-                            style={{width: "375px"}}
-                        >Start
-                        </button>
+                        <button type="submit" style={{width: "350px"}}>Start</button>
                     </form>
                 </div>
                 <div className="helper"> Status: {status} </div>

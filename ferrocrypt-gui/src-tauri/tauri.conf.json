@@ -47,7 +47,7 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": false,
+        "resizable": true,
         "title": "Ferrocrypt",
         "width": 400,
         "height": 600
