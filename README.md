@@ -1,6 +1,7 @@
 # Ferrocrypt
 
-Tiny, easy-to-use, and incredibly secure CLI (Command Line Interface) and GUI (Graphical User Interface) encryption tool
+Tiny, easy-to-use, and incredibly secure encryption tool with CLI (Command Line Interface) 
+and GUI (Graphical User Interface)
 
 ## ABOUT
 
