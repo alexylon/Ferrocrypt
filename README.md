@@ -122,10 +122,10 @@ or
 
 ## BUILD the GUI app
 
-After [installing Rust](https://www.rust-lang.org/learn/get-started),
-just run the following command in the `ferrocrypt-gui` directory:
+After installing [Rust](https://www.rust-lang.org/learn/get-started),
+and [Node.js](https://nodejs.org/) just run the following commands in the `ferrocrypt-gui` directory:
 
-```cargo tauri build```
+```npm install``` and ```cargo tauri build```
 
 The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
 
