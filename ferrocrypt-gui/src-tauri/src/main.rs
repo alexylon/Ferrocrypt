@@ -8,8 +8,8 @@ use ferrocrypt::{
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn start(file: &str, mut password: String) -> Result<(), CryptoError> {
-    symmetric_encryption(file, "/Users/alex/", password.as_mut_str(), false)?;
+fn start(inpath: &str, outpath: &str, mut password: String) -> Result<(), CryptoError> {
+    symmetric_encryption(inpath, outpath, password.as_mut_str(), false)?;
 
     Ok(())
 }

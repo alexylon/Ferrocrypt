@@ -23,7 +23,7 @@
       "dialog": {
         "all": true,
         "open": true,
-        "save": true
+        "save": false
       }
     },
     "bundle": {

@@ -2,23 +2,48 @@ import {useState} from "react";
 import {invoke} from "@tauri-apps/api/tauri";
 import "./App.css";
 import {open} from "@tauri-apps/api/dialog";
+import {listen} from '@tauri-apps/api/event'
 
 function App() {
-    const [file, setFile] = useState("");
+    const [inpath, setInpath] = useState("");
+    const [outpath, setOutpath] = useState("");
     const [password, setPassword] = useState("");
+    const [status, setStatus] = useState("Ready.");
 
-    const openFile = async () => {
+    listen('tauri://file-drop', (event: any) => {
+        console.log(event)
+        setInpath(event.payload[0]);
+        setOutpath("");
+    }).then();
+
+    const selectDir = async () => {
         const selected = await open({
-            multiple: false
+            multiple: false,
+            directory: true
         }) as string;
 
-        setFile(selected);
+        setOutpath(selected);
 
         console.log("selected: ", selected);
     };
 
+    const clear = async () => {
+        setInpath("");
+        setPassword("");
+        setOutpath("");
+        setStatus("Ready.");
+    };
+
     const start = async () => {
-        await invoke("start", {file, password});
+        await invoke("start", {inpath, outpath, password})
+            .then((message: any) => {
+                setStatus(message);
+                console.log(message);
+            })
+            .catch((error: any) => {
+                setStatus(error);
+                console.error(error);
+            });
     }
 
     return (
@@ -29,24 +54,39 @@ function App() {
                 </a>
             </div>
             <div>
+                <div className="helper">Drop a file or a folder into app's window</div>
                 <div className="row">
                     <input
-                        id="file-name"
+                        id="inpath"
                         disabled={true}
+                        value={inpath}
                         onChange={(e) => setPassword(e.currentTarget.value)}
-                        placeholder={file}
-                        style={{marginRight: 7, width: "215px"}}
+                        style={{marginRight: 7, width: "267px"}}
                     />
-                    <button onClick={openFile}>Open file</button>
+                    <button onClick={clear}>Clear</button>
                 </div>
+                <div className="helper">Password:</div>
                 <div className="row">
                     <input
                         id="password-input"
+                        value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
-                        style={{width: "380px"}}
+                        style={{width: "340px"}}
                     />
                 </div>
+                <div className="helper">Save output file to this folder:</div>
+                <div className="row">
+                    <input
+                        id="outpath"
+                        disabled={true}
+                        value={outpath}
+                        onChange={(e) => setPassword(e.currentTarget.value)}
+                        style={{marginRight: 7, width: "260px"}}
+                    />
+                    <button onClick={selectDir}>Select</button>
+                </div>
+                <hr className="solid"/>
                 <div className="row">
                     <form
                         onSubmit={(e) => {
@@ -57,9 +97,11 @@ function App() {
                         <button
                             type="submit"
                             style={{width: "375px"}}
-                        >Start</button>
+                        >Start
+                        </button>
                     </form>
                 </div>
+                <div className="helper"> {status} </div>
             </div>
         </div>
     );

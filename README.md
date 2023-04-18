@@ -1,6 +1,6 @@
 # Ferrocrypt
 
-Tiny, easy-to-use, and incredibly secure CLI encryption tool
+Tiny, easy-to-use, and incredibly secure CLI (Command Line Interface) and GUI (Graphical User Interface) encryption tool
 
 ## ABOUT
 
@@ -28,9 +28,10 @@ Ferrocrypt supports two different encryption modes:
 The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
 `aes-gcm` and `chacha20poly1305`, have successfully received security audits.
 
-The code is separated in two projects - a client `ferrocrypt-cli` and a library `ferrocrypt-lib`.
+The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli` 
+and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
 
-## BUILD
+## BUILD the CLI app
 
 After [installing Rust](https://www.rust-lang.org/learn/get-started), 
 just run the following command in the root directory:
@@ -42,7 +43,7 @@ or `target\release\fc.exe` (Windows).
 
 <br/>
 
-## USAGE
+## USAGE of the CLI app
 
 The tool can automatically detect whether the source path requires
 encryption or decryption, and which decryption mode should be used.
@@ -115,6 +116,28 @@ or
 | `-l, --large`                 | Symmetric: For large input file that cannot fit to the RAM. <br/>This is significantly slower.                                        |                                                                       
 | `-h, --help`                  | Print help                                                                                                                            |                                                                                                                                   
 | `-V, --version`               | Print version                                                                                                                         |                                                                                                                             |
+
+<br/>
+
+## BUILD the GUI app
+
+After [installing Rust](https://www.rust-lang.org/learn/get-started),
+just run the following command in the `ferrocrypt-gui` directory:
+
+```cargo tauri build```
+
+The execution file will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
+
+You can start a live dev session with ```cargo tauri dev```
+
+<br/>
+
+## USAGE of the GUI app
+
+To encrypt or decrypt a file or folder, simply drag and drop it into the app window. 
+Then, choose a password and a destination folder, and click the "Start" button.
+
+The GUI app only supports symmetric encryption at this time.
 
 <br/>
 
