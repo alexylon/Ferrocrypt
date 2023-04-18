@@ -39,7 +39,7 @@ just run the following command in the root directory:
 
 ```cargo build --release```
 
-The binary file will be generated in `target/release/fc` (macOS and Linux)
+The binary executable file will be generated in `target/release/fc` (macOS and Linux)
 or `target\release\fc.exe` (Windows).
 
 <br/>
@@ -127,7 +127,7 @@ just run the following command in the `ferrocrypt-gui` directory:
 
 ```cargo tauri build```
 
-The execution file will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
+The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
 
 You can start a live dev session with ```cargo tauri dev```
 
