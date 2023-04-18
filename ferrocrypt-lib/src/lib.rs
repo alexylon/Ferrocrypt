@@ -32,7 +32,7 @@ pub enum CryptoError {
     Unknown,
 }
 
-// We must manually implement serde::Serialize
+// We must manually implement serde::Serialize for `tauri`
 impl serde::Serialize for CryptoError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -58,12 +58,12 @@ pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_p
     Ok(())
 }
 
-pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<(), CryptoError> {
-    if input_path.ends_with(".fcs") || input_path.ends_with(".fcls") {
-        symmetric::decrypt_file(input_path, output_dir, password)?;
+pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
+    let result = if input_path.ends_with(".fcs") || input_path.ends_with(".fcls") {
+        symmetric::decrypt_file(input_path, output_dir, password)?
     } else {
-        symmetric::encrypt_file(input_path, output_dir, password, large)?;
-    }
+        symmetric::encrypt_file(input_path, output_dir, password, large)?
+    };
 
-    Ok(())
+    Ok(result)
 }

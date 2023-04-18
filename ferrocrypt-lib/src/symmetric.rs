@@ -96,7 +96,7 @@ mod tests {
 }
 
 // Encrypt file with XChaCha20Poly1305 algorithm
-pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<(), CryptoError> {
+pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
     let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
     fs::create_dir_all(tmp_dir_path)?;
@@ -184,13 +184,15 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let file_name_encrypted = &format!("{}{}.{}", output_dir_norm, file_stem, encr_ext);
     println!("\nencrypted to {}", file_name_encrypted);
 
+    let result = format!("encrypted to {}", file_name_encrypted);
+
     key.zeroize();
     passphrase.zeroize();
 
-    Ok(())
+    Ok(result)
 }
 
-pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
+pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<String, CryptoError> {
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
 
     if input_path_norm.ends_with(".fcs") {
@@ -200,8 +202,9 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
     }
 
     println!("\ndecrypted to {}", output_dir_norm);
+    let result = format!("decrypted to {}", output_dir_norm);
 
-    Ok(())
+    Ok(result)
 }
 
 // Decrypt file with XChaCha20Poly1305 algorithm

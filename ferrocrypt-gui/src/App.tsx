@@ -8,7 +8,7 @@ function App() {
     const [inpath, setInpath] = useState("");
     const [outpath, setOutpath] = useState("");
     const [password, setPassword] = useState("");
-    const [status, setStatus] = useState("Ready.");
+    const [status, setStatus] = useState("Ready");
 
     listen('tauri://file-drop', (event: any) => {
         console.log(event)
@@ -31,18 +31,18 @@ function App() {
         setInpath("");
         setPassword("");
         setOutpath("");
-        setStatus("Ready.");
+        setStatus("Ready");
     };
 
     const start = async () => {
         await invoke("start", {inpath, outpath, password})
             .then((message: any) => {
                 setStatus(message);
-                console.log(message);
+                console.log("message: ", message);
             })
             .catch((error: any) => {
-                setStatus(error);
-                console.error(error);
+                setStatus("Something went wrong");
+                console.error("error: ", error);
             });
     }
 
@@ -72,7 +72,7 @@ function App() {
                         value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
-                        style={{width: "340px"}}
+                        style={{width: "342px"}}
                     />
                 </div>
                 <div className="helper">Save output file to this folder:</div>
@@ -101,7 +101,7 @@ function App() {
                         </button>
                     </form>
                 </div>
-                <div className="helper"> {status} </div>
+                <div className="helper"> Status: {status} </div>
             </div>
         </div>
     );
