@@ -6,7 +6,7 @@ use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
-use crate::CryptoError::{ChaCha20Poly1305Error, Message};
+use crate::CryptoError::{ChaCha20Poly1305Error, Decryption, Message};
 use crate::reed_solomon::{rs_encode, rs_decode};
 
 
@@ -102,7 +102,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     fs::create_dir_all(tmp_dir_path)?;
     let file_stem = &archiver::archive(&input_path_norm, tmp_dir_path)?;
     let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
-    println!("\nencrypting {} ...", file_name_zipped);
+    println!("\nEncrypting {} ...", file_name_zipped);
 
     let argon2_config = argon2_config();
     let mut salt_32 = [0u8; 32];
@@ -182,9 +182,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     fs::remove_dir_all(tmp_dir_path)?;
 
     let file_name_encrypted = &format!("{}{}.{}", output_dir_norm, file_stem, encr_ext);
-    println!("\nencrypted to {}", file_name_encrypted);
-
-    let result = format!("encrypted to {}", file_name_encrypted);
+    let result = format!("Encrypted to {}", file_name_encrypted);
+    println!("\n{}", result);
 
     key.zeroize();
     passphrase.zeroize();
@@ -201,8 +200,8 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
         decrypt_large_file(&input_path_norm, &output_dir_norm, passphrase)?;
     }
 
-    println!("\ndecrypted to {}", output_dir_norm);
-    let result = format!("decrypted to {}", output_dir_norm);
+    let result = format!("Decrypted to {}", output_dir_norm);
+    println!("\n{}", result);
 
     Ok(result)
 }
@@ -210,7 +209,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
 // Decrypt file with XChaCha20Poly1305 algorithm
 fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     if input_path.ends_with(".fcs") {
-        println!("decrypting {} ...\n", input_path);
+        println!("Decrypting {} ...\n", input_path);
         let encrypted_file: Vec<u8> = fs::read(input_path)?;
 
         // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
@@ -248,7 +247,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
 
             fs::remove_dir_all(tmp_dir_path)?;
         } else {
-            return Err(Message("The provided password is incorrect!".to_string()));
+            return Err(Decryption("The provided password is incorrect!".to_string()));
         }
     } else {
         return Err(Message("This file should have '.fcs' extension!".to_string()));
@@ -260,7 +259,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
 // Decrypt large file, that doesn't fit in RAM, with XChaCha20Poly1305 algorithm. This is much slower
 fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     if input_path.ends_with(".fcls") {
-        println!("decrypting {} ...\n", input_path);
+        println!("Decrypting {} ...\n", input_path);
 
         let mut salt = [0u8; 32];
         let mut nonce_19 = [0u8; 19];

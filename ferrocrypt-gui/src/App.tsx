@@ -8,7 +8,8 @@ function App() {
     const [inpath, setInpath] = useState("");
     const [outpath, setOutpath] = useState("");
     const [password, setPassword] = useState("");
-    const [status, setStatus] = useState("Ready");
+    const [statusOk, setStatusOk] = useState("Ready");
+    const [statusErr, setStatusErr] = useState("");
 
     listen('tauri://file-drop', (event: any) => {
         console.log(event)
@@ -28,21 +29,23 @@ function App() {
     };
 
     const clear = async () => {
+        setStatusErr("");
         setInpath("");
         setPassword("");
         setOutpath("");
-        setStatus("Ready");
+        setStatusOk("Ready");
     };
 
     const start = async () => {
         await invoke("start", {inpath, outpath, password})
             .then((message: any) => {
-                setStatus(message);
+                setStatusErr("");
+                setStatusOk(message);
                 console.log("message: ", message);
             })
-            .catch((error: any) => {
-                setStatus("Something went wrong");
-                console.error("error: ", error);
+            .catch((error: string) => {
+                setStatusOk("");
+                setStatusErr(error);
             });
     }
 
@@ -63,7 +66,7 @@ function App() {
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         style={{marginRight: 10, width: "100%"}}
                     />
-                    <button onClick={clear}>Clear</button>
+                    <button onClick={clear} style={{width: "90px"}}>Clear</button>
                 </div>
                 <div className="helper">Password:</div>
                 <div className="row">
@@ -84,7 +87,7 @@ function App() {
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         style={{marginRight: 10, width: "100%"}}
                     />
-                    <button onClick={selectDir}>Select</button>
+                    <button onClick={selectDir} style={{width: "90px"}}>Select</button>
                 </div>
                 <hr className="solid"/>
                 <div className="row">
@@ -97,7 +100,8 @@ function App() {
                         <button type="submit" style={{width: "350px"}}>Start</button>
                     </form>
                 </div>
-                <div className="helper"> Status: {status} </div>
+                <div className="helper" style={{color: "darkseagreen"}}> {statusOk} </div>
+                <div className="helper" style={{color: "#C41E3A"}}> {statusErr} </div>
             </div>
         </div>
     );

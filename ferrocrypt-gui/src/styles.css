@@ -93,6 +93,7 @@ button {
 
 button {
   cursor: pointer;
+  background-color: #3b3b3b;
 }
 
 button:hover {

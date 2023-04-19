@@ -8,25 +8,29 @@ mod reed_solomon;
 
 #[derive(Error, Debug)]
 pub enum CryptoError {
-    #[error("IO Error!")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[error("ChaCha20Poly1305 encryption/decryption failure!")]
+    #[error(transparent)]
     ChaCha20Poly1305Error(#[from] chacha20poly1305::Error),
-    #[error("Argon2 Error!")]
+    #[error(transparent)]
     Argon2Error(#[from] argon2::Error),
-    #[error("RSA encryption/decryption failure!")]
+    #[error(transparent)]
     OpensslError(#[from] openssl::error::ErrorStack),
-    #[error("WalkDir Error!")]
+    #[error(transparent)]
     WalkDirError(#[from] walkdir::Error),
-    #[error("Zip Error!")]
+    #[error(transparent)]
     ZipError(#[from] zip::result::ZipError),
-    #[error("ReedSolomon Error!")]
+    #[error(transparent)]
     ReedSolomonError(#[from] reed_solomon_erasure::Error),
-    #[error("BinCode Error!")]
+    #[error(transparent)]
     BinCodeError(#[from] Box<bincode::ErrorKind>),
-    #[error("TryFromSlice Error!")]
+    #[error(transparent)]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
-    #[error("")]
+    #[error("The provided password is incorrect")]
+    Decryption(String),
+    #[error("Input file or folder missing")]
+    InputPath(String),
+    #[error("Message Error")]
     Message(String),
     #[error("Unknown error!")]
     Unknown,

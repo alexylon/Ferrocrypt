@@ -67,7 +67,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
         .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
     let file_stem = &get_file_stem_to_string(file_name_ext)?;
-    println!("adding file {src_file_path:?} as {dest_dir_path}{file_stem}/{file_name_ext} ...");
+    println!("Adding file {src_file_path:?} as {dest_dir_path}{file_stem}/{file_name_ext} ...");
     let path_dest = format!("{dest_dir_path}{file_stem}.zip");
     let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -97,7 +97,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
 
     // Get dir name from path
     let dir_name = Path::new(&src_dir_path)
-        .file_name().ok_or(ZipError::InvalidArchive("Cannot get directory name"))?
+        .file_name().ok_or(CryptoError::InputPath("Input file or folder missing!".to_string()))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert directory name to &str"))?;
 
     let path_dest_str = format!("{dest_dir_path}{dir_name}.zip");
@@ -124,7 +124,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
-                    println!("adding file {path_str_norm} as {dest_path_str_norm} ...");
+                    println!("Adding file {path_str_norm} as {dest_path_str_norm} ...");
                     #[allow(deprecated)]
                     zip.start_file_from_path(dest_path, options)?;
                     let mut f = File::open(path)?;
@@ -135,7 +135,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
                 } else if !dest_path.as_os_str().is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
-                    println!("adding dir {path_str_norm} as {dest_path_str_norm} ...");
+                    println!("Adding dir {path_str_norm} as {dest_path_str_norm} ...");
                     #[allow(deprecated)]
                     zip.add_directory_from_path(dest_path, options)?;
                 }
@@ -173,11 +173,11 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cry
         }
 
         if (*file.name()).ends_with('/') {
-            println!("extracting dir to \"{}\" ...", &outpath_str_full_norm);
+            println!("Extracting dir to \"{}\" ...", &outpath_str_full_norm);
             fs::create_dir_all(outpath_full)?;
         } else {
             println!(
-                "extracting file to \"{}\" ({} bytes) ...",
+                "Extracting file to \"{}\" ({} bytes) ...",
                 &outpath_str_full_norm,
                 file.size()
             );
