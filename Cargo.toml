@@ -3,9 +3,9 @@
 members = [
     "ferrocrypt-lib",
     "ferrocrypt-cli",
-    "ferrocrypt-gui/src-tauri",
 ]
 
 exclude = [
     "experiments",
+    "ferrocrypt-gui/src-tauri",
 ]
