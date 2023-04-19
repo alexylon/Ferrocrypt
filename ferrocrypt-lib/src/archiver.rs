@@ -73,6 +73,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
+        .large_file(true)
         .unix_permissions(0o755);
     let mut buffer = Vec::new();
 
@@ -106,6 +107,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
+        .large_file(true)
         .unix_permissions(0o755);
     let walkdir = WalkDir::new(src_dir_path);
     let it = walkdir.into_iter().filter_map(|e| e.ok());
