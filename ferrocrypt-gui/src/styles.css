@@ -30,7 +30,7 @@
   /*padding: 1.5em;*/
   will-change: filter;
   transition: 0.75s;
-  padding-bottom: 5vh;
+  padding-bottom: 4vh;
 }
 
 .logo.tauri:hover {
@@ -50,6 +50,44 @@
   justify-content: left;
   margin-left: 10px;
   color: #b3b3b3;
+}
+
+.parent {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.child {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  /* removing default appearance */
+  -webkit-appearance: none;
+  appearance: none;
+  /* creating a custom design */
+  width: 1.6em;
+  height: 1.6em;
+  /*border-radius: 0.15em;*/
+  border: 0.15em solid #007a7e;
+  outline: none;
+  cursor: pointer;
+}
+
+input:checked {
+  background-color: #007a7e;
+  position: relative;
+}
+
+input:checked::before {
+  content: inherit;
+  font-size: 1.5em;
+  color: #fff;
+  position: absolute;
+  right: 1px;
+  top: -5px;
 }
 
 hr.solid {

@@ -10,6 +10,7 @@ function App() {
     const [password, setPassword] = useState("");
     const [statusOk, setStatusOk] = useState("Ready");
     const [statusErr, setStatusErr] = useState("");
+    const [isLargeFile, setIsLargeFile] = useState(false);
 
     listen('tauri://file-drop', (event: any) => {
         console.log(event)
@@ -37,7 +38,7 @@ function App() {
     };
 
     const start = async () => {
-        await invoke("start", {inpath, outpath, password})
+        await invoke("start", {inpath, outpath, password, isLargeFile})
             .then((message: any) => {
                 setStatusErr("");
                 setStatusOk(message);
@@ -63,7 +64,6 @@ function App() {
                         id="inpath"
                         disabled={true}
                         value={inpath}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
                         style={{marginRight: 10, width: "100%"}}
                     />
                     <button onClick={clear} style={{width: "90px"}}>Clear</button>
@@ -78,13 +78,23 @@ function App() {
                         style={{width: "100%", backgroundColor: "#0f0f0f"}}
                     />
                 </div>
+                <div className="checkbox-wrapper parent">
+                    <label>
+                        <input
+                            className="child"
+                            type="checkbox"
+                            checked={isLargeFile}
+                            onChange={() => setIsLargeFile((prev) => !prev)}
+                        />
+                        <span className="child">Large file/s</span>
+                    </label>
+                </div>
                 <div className="helper">Save output to this folder:</div>
                 <div className="row">
                     <input
                         id="outpath"
                         disabled={true}
                         value={outpath}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
                         style={{marginRight: 10, width: "100%"}}
                     />
                     <button onClick={selectDir} style={{width: "90px"}}>Select</button>
