@@ -78,7 +78,7 @@ function App() {
                         style={{width: "100%", backgroundColor: "#0f0f0f"}}
                     />
                 </div>
-                <div className="helper">Save output file to this folder:</div>
+                <div className="helper">Save output to this folder:</div>
                 <div className="row">
                     <input
                         id="outpath"
