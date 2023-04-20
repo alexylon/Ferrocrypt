@@ -34,7 +34,7 @@ struct Args {
     #[clap(short, long, default_value_t = 4096)]
     bit_size: u32,
 
-    /// Symmetric: For large input file that cannot fit to the RAM. This is significantly slower.
+    /// Symmetric: For large input file(s) that cannot fit to the RAM.
     #[clap(short, long)]
     large: bool,
 }
