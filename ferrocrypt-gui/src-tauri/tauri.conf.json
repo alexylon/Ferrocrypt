@@ -7,7 +7,7 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "ferrocrypt-gui",
+    "productName": "Ferrocrypt",
     "version": "0.0.0"
   },
   "tauri": {

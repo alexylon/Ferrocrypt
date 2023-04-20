@@ -1,6 +1,10 @@
 [package]
 name = "ferrocrypt"
 version = "0.1.0"
+description = "Ferrocrypt main library"
+authors = ["Alexander Alexandrov"]
+license = ""
+repository = "https://github.com/alexylon/Ferrocrypt"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
