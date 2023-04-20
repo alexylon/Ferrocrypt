@@ -24,32 +24,32 @@ mod tests {
     #[test]
     fn archive_file_test() {
         match archive(SRC_FILEPATH, DEST_DIRPATH) {
-            Ok(_) => println!("Zipped {SRC_FILEPATH}"),
-            Err(e) => println!("Error: {e:?}"),
+            Ok(_) => println!("Zipped {}", SRC_FILEPATH),
+            Err(e) => println!("Error: {:?}", e),
         }
     }
 
     #[test]
     fn unarchive_file_test() {
         match unarchive(SRC_FILEPATH_ZIPPED, DEST_DIRPATH) {
-            Ok(_) => println!("Unzipped: {SRC_FILEPATH_ZIPPED}"),
-            Err(e) => println!("Error: {e:?}"),
+            Ok(_) => println!("Unzipped: {}", SRC_FILEPATH_ZIPPED),
+            Err(e) => println!("Error: {:?}", e),
         }
     }
 
     #[test]
     fn archive_dir_test() {
         match archive(SRC_DIRPATH, DEST_DIRPATH) {
-            Ok(_) => println!("Zipped {SRC_DIRPATH}"),
-            Err(e) => println!("Error: {e:?}"),
+            Ok(_) => println!("Zipped {}", SRC_DIRPATH),
+            Err(e) => println!("Error: {:?}", e),
         }
     }
 
     #[test]
     fn unarchive_dir_test() {
         match unarchive(SRC_DIRPATH_ZIPPED, DEST_DIRPATH) {
-            Ok(_) => println!("Unzipped: {SRC_DIRPATH_ZIPPED}"),
-            Err(e) => println!("Error: {e:?}"),
+            Ok(_) => println!("Unzipped: {}", SRC_DIRPATH_ZIPPED),
+            Err(e) => println!("Error: {:?}", e),
         }
     }
 }
@@ -67,8 +67,8 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
         .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
     let file_stem = &get_file_stem_to_string(file_name_ext)?;
-    println!("Adding file {src_file_path:?} as {dest_dir_path}{file_stem}/{file_name_ext} ...");
-    let path_dest = format!("{dest_dir_path}{file_stem}.zip");
+    println!("Adding file {:?} as {}{}/{} ...", src_file_path, dest_dir_path, file_stem, file_name_ext);
+    let path_dest = format!("{}{}.zip", dest_dir_path, file_stem);
     let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
@@ -101,7 +101,7 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
         .file_name().ok_or(CryptoError::InputPath("Input file or folder missing!".to_string()))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert directory name to &str"))?;
 
-    let path_dest_str = format!("{dest_dir_path}{dir_name}.zip");
+    let path_dest_str = format!("{}{}.zip", dest_dir_path, dir_name);
     let path_dest = Path::new(&path_dest_str);
     let file = File::create(path_dest)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -120,13 +120,13 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
                 let path_str = path.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
                 let path_str_norm = &normalize_paths(path_str, "").0;
                 let name_str = name.to_str().ok_or(ZipError::InvalidArchive("Cannot convert name to &str"))?;
-                let dest_path_str = format!("{dir_name}/{name_str}");
+                let dest_path_str = format!("{}/{}", dir_name, name_str);
                 let dest_path_str_norm = &normalize_paths(&dest_path_str, "").0;
                 let dest_path = Path::new(&dest_path_str);
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
-                    println!("Adding file {path_str_norm} as {dest_path_str_norm} ...");
+                    println!("Adding file {} as {} ...", path_str_norm, dest_path_str_norm);
                     #[allow(deprecated)]
                     zip.start_file_from_path(dest_path, options)?;
                     let mut f = File::open(path)?;
@@ -137,12 +137,12 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
                 } else if !dest_path.as_os_str().is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
-                    println!("Adding dir {path_str_norm} as {dest_path_str_norm} ...");
+                    println!("Adding dir {} as {} ...", path_str_norm, dest_path_str_norm);
                     #[allow(deprecated)]
                     zip.add_directory_from_path(dest_path, options)?;
                 }
             }
-            Err(err) => { println!("StripPrefixError: {err:?}"); }
+            Err(err) => { println!("StripPrefixError: {:?}", err); }
         }
     }
 
@@ -170,7 +170,7 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cry
         {
             let comment = file.comment();
             if !comment.is_empty() {
-                println!("File {i} comment: {comment}");
+                println!("File {} comment: {}", i, comment);
             }
         }
 

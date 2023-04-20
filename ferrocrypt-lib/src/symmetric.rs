@@ -97,6 +97,8 @@ mod tests {
 
 // Encrypt file with XChaCha20Poly1305 algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
+    let t0 = std::time::Instant::now();
+
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
     let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
     fs::create_dir_all(tmp_dir_path)?;
@@ -184,6 +186,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let file_name_encrypted = &format!("{}{}.{}", output_dir_norm, file_stem, encr_ext);
     let result = format!("Encrypted to {}", file_name_encrypted);
     println!("\n{}", result);
+    println!("\nEncryption elapsed: {}s", t0.elapsed().as_secs_f64());
 
     key.zeroize();
     passphrase.zeroize();
@@ -192,6 +195,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 }
 
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<String, CryptoError> {
+    let t0 = std::time::Instant::now();
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
 
     if input_path_norm.ends_with(".fcs") {
@@ -202,6 +206,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
 
     let result = format!("Decrypted to {}", output_dir_norm);
     println!("\n{}", result);
+    println!("\nDecryption elapsed: {}s", t0.elapsed().as_secs_f64());
 
     Ok(result)
 }
