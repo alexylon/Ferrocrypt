@@ -30,7 +30,7 @@ The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorit
 `aes-gcm` and `chacha20poly1305`, have successfully received security audits.
 
 Ferrocrypt enhances the security of header data, which comprises crucial cryptographic components, 
-by incorporating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption, 
+by generating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption, 
 which may occur due to hard drive bit rot, data transfer or other factors, these parity bytes enable Ferrocrypt 
 to successfully recover the header and decrypt your data with a high degree of reliability.
 
