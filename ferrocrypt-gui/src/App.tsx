@@ -87,7 +87,7 @@ function App() {
                             onChange={() => setIsLargeFile((prev) => !prev)}
                             // disabled={true}
                         />
-                        <span className="child">Large file(s)</span>
+                        <span className="child">Large file(s) (low memory usage)</span>
                     </label>
                 </div>
                 <div className="helper">Save output to this folder:</div>
