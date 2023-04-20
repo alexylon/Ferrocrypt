@@ -85,8 +85,9 @@ function App() {
                             type="checkbox"
                             checked={isLargeFile}
                             onChange={() => setIsLargeFile((prev) => !prev)}
+                            // disabled={true}
                         />
-                        <span className="child">Large file/s</span>
+                        <span className="child">Large file(s)</span>
                     </label>
                 </div>
                 <div className="helper">Save output to this folder:</div>

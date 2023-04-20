@@ -29,6 +29,10 @@ Ferrocrypt supports two different encryption modes:
 The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
 `aes-gcm` and `chacha20poly1305`, have successfully received security audits.
 
+Ferrocrypt enhances the security of header data by incorporating additional Reed-Solomon parity (recovery) bytes. 
+In the event of header corruption, which may occur due to hard drive bit rot or other factors, these parity bytes 
+enable Ferrocrypt to successfully recover the header and decrypt your data with a high degree of reliability.
+
 The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli` 
 and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
 

@@ -61,6 +61,7 @@
   display: inline-block;
   vertical-align: middle;
   margin-left: 5px;
+  color: #b3b3b3;
 }
 
 .checkbox-wrapper input[type="checkbox"] {
