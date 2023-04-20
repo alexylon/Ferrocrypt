@@ -114,9 +114,17 @@ or
 | `-p, --passphrase <PASSWORD>` | Hybrid: Password to decrypt the private key <br/>Symmetric: Password to derive the symmetric key [default: ]                          |
 | `-g, --generate`              | Hybrid: Generate a private/public key pair                                                                                            |                                                                                                 
 | `-b, --bit-size <BIT_SIZE>`   | Hybrid: Length of the key in bits for <br/>the key pair generation [default: 4096]                                                    |                                                                          
-| `-l, --large`                 | Symmetric: For large input file that cannot fit to the RAM. <br/>This is significantly slower.                                        |                                                                       
+| `-l, --large`                 | Symmetric: For large input file that cannot fit to the RAM. <br/>This is significantly slower.*                                       |                                                                       
 | `-h, --help`                  | Print help                                                                                                                            |                                                                                                                                   
 | `-V, --version`               | Print version                                                                                                                         |                                                                                                                             |
+
+* The decision of whether to include the `-l, --large` flag depends on the total size of the files to be encrypted. 
+If the size is smaller than the available RAM, omitting the flag can result in a much faster encryption/decryption process. 
+On the other hand, if the total size exceeds the available RAM, using the flag can significantly speed up the process.
+It's important to note that the `-l, --large` flag is recommended when minimizing RAM consumption is a priority and the encryption/decryption process 
+shouldn't affect the user's work. Using this flag significantly reduces RAM usage, providing a smoother user experience.
+If the encryption process is carried out with the specified flag, there's no need to specify it when decrypting the file(s). 
+The decryption process will automatically use the same method that was used for encryption.
 
 <br/>
 
