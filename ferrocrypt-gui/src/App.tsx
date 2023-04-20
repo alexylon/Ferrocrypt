@@ -54,7 +54,7 @@ function App() {
         <div className="container">
             <div className="row">
                 <a href="https://tauri.app" target="_blank">
-                    <img src="/tauri.svg" className="logo tauri" alt="Tauri logo"/>
+                    <img src="/padlock-red-256.png" className="logo tauri" alt="Tauri logo"/>
                 </a>
             </div>
             <div>
