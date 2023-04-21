@@ -24,7 +24,6 @@ const initialState = {
 function App() {
     const [state, setState] = useState(initialState);
 
-    // let counter = 1;
     listen('tauri://file-drop', (event: any) => {
         setState(prevState => ({
             ...prevState,
@@ -108,7 +107,7 @@ function App() {
         }
     }, [state.inpath, state.password, state.passwordRepeated, state.requirePasswordRepeated]);
 
-    const selectDir = async () => {
+    const handleOutputDirSelect = async () => {
         const selected = await open({
             multiple: false,
             directory: true
@@ -127,14 +126,14 @@ function App() {
         }));
     }
 
-    const handlePasswordRepeatedChange = (value: string) => {
+    const handleRepeatedPasswordChange = (value: string) => {
         setState(prevState => ({
             ...prevState,
             passwordRepeated: value
         }));
     }
 
-    const handleLargeFile = () => {
+    const handleLargeFileSupport = () => {
         setState(prevState => ({
             ...prevState,
             isLargeFile: !state.isLargeFile
@@ -147,8 +146,6 @@ function App() {
             hidePassword: !state.hidePassword
         }));
     }
-
-    const handleClear = () => setState(initialState);
 
     const handleStart = async () => {
         const {inpath, outpath, password, isLargeFile} = state;
@@ -168,6 +165,8 @@ function App() {
                 }));
             });
     }
+
+    const handleClear = () => setState(initialState);
 
     const {
         outpath,
@@ -226,7 +225,7 @@ function App() {
                         type="password"
                         value={requirePasswordRepeated ? passwordRepeated : ""}
                         disabled={!requirePasswordRepeated}
-                        onChange={(e) => handlePasswordRepeatedChange(e.currentTarget.value)}
+                        onChange={(e) => handleRepeatedPasswordChange(e.currentTarget.value)}
                         placeholder={requirePasswordRepeated ? "Repeat the password..." : ""}
                         style={{width: "100%"}}
                     />
@@ -237,7 +236,7 @@ function App() {
                             className="child"
                             type="checkbox"
                             checked={isLargeFile}
-                            onChange={handleLargeFile}
+                            onChange={handleLargeFileSupport}
                             disabled={checkboxDisabled}
                         />
                         <span className="child">Large file(s) (low memory usage)</span>
@@ -251,7 +250,7 @@ function App() {
                         value={outpath}
                         style={{marginRight: 10, width: "100%"}}
                     />
-                    <button onClick={selectDir} style={{width: "90px"}}>Select</button>
+                    <button onClick={handleOutputDirSelect} style={{width: "90px"}}>Select</button>
                 </div>
                 <hr className="solid"/>
                 <div className="row">
