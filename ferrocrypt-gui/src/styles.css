@@ -164,6 +164,15 @@ button:disabled {
     color: #777777;
 }
 
+.visibility-icon {
+    margin-left: 7px;
+    margin-top: 10px;
+    /*margin-bottom: auto;*/
+    cursor: pointer;
+    /*width: 10px;*/
+    /*height: 10px;*/
+}
+
 /*input,*/
 /*button {*/
 /*  !*outline: none;*!*/

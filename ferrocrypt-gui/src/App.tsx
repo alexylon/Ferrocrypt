@@ -13,12 +13,18 @@ function App() {
     const [statusOk, setStatusOk] = useState("Ready");
     const [statusErr, setStatusErr] = useState("");
     const [isLargeFile, setIsLargeFile] = useState(false);
-    const [allowed, setAllowed] = useState(false);
-    const [disabled, setDisabled] = useState(false);
-    const [startDisabled, setStartDisabled] = useState(false);
+    const [decryptionMode, setDecryptionMode] = useState(false);
+    const [checkboxDisabled, setCheckboxDisabled] = useState(false);
+    const [startDisabled, setStartDisabled] = useState(true);
+    const [hidePassword, setHidePassword] = useState(true);
+    const [passwordType, setPasswordType] = useState("password");
+    const [visibilityIcon, setVisibilityIcon] = useState("/icon-unhide-50.png");
 
+    // let counter = 1;
     listen('tauri://file-drop', (event: any) => {
-        console.log(event)
+        // console.log("counter: ", counter);
+        console.log("event: ", event)
+        // counter += 1;
         setInpath(event.payload[0]);
     }).then();
 
@@ -26,20 +32,43 @@ function App() {
         let lastIndex = inpath.lastIndexOf(".");
         let extension = inpath.substring(lastIndex);
         if (extension === ".fcv") {
-            setDisabled(true);
-            setRequirePasswordRepeated(false);
+            setDecryptionMode(true);
         } else {
-            setDisabled(false);
-            setRequirePasswordRepeated(true);
+            setDecryptionMode(false);
         }
     }, [inpath]);
 
     useEffect(() => {
+        if (decryptionMode) {
+            setCheckboxDisabled(true);
+            setRequirePasswordRepeated(false);
+            if (hidePassword) {
+                setVisibilityIcon("/icon-unhide-50.png");
+                setPasswordType("password");
+            } else {
+                setVisibilityIcon("/icon-hide-50.png");
+                setPasswordType("text");
+            }
+        } else {
+            setCheckboxDisabled(false);
+            // setRequirePasswordRepeated(true);
+            if (hidePassword) {
+                setVisibilityIcon("/icon-unhide-50.png");
+                setPasswordType("password");
+                setRequirePasswordRepeated(true);
+            } else {
+                setVisibilityIcon("/icon-hide-50.png");
+                setPasswordType("text");
+                setRequirePasswordRepeated(false);
+            }
+        }
+
+    }, [decryptionMode, hidePassword]);
+
+    useEffect(() => {
         if ((password === passwordRepeated || !requirePasswordRepeated) && inpath !== "") {
-            setAllowed(true);
             setStartDisabled(false);
         } else {
-            setAllowed(false);
             setStartDisabled(true);
         }
     }, [inpath, password, passwordRepeated, requirePasswordRepeated]);
@@ -56,13 +85,20 @@ function App() {
     };
 
     const clear = async () => {
-        setStatusErr("");
         setInpath("");
+        setOutpath("");
         setPassword("");
         setPasswordRepeated("");
-        setOutpath("");
-        setIsLargeFile(false);
+        setRequirePasswordRepeated(true);
         setStatusOk("Ready");
+        setStatusErr("");
+        setIsLargeFile(false);
+        setDecryptionMode(false);
+        setCheckboxDisabled(false);
+        setStartDisabled(true);
+        setHidePassword(true);
+        setPasswordType("password");
+        setVisibilityIcon("/icon-unhide-50.png");
     };
 
     const start = async () => {
@@ -100,18 +136,26 @@ function App() {
                 <div className="row">
                     <input
                         id="password-input"
-                        type="password"
+                        type={passwordType}
                         value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
                         style={{width: "100%"}}
                     />
+                    <div className="visibility-icon">
+                        <img
+                            src={visibilityIcon}
+                            alt="visibility icon"
+                            style={{width: "20px"}}
+                            onClick={() => setHidePassword((prev) => !prev)}
+                        ></img>
+                    </div>
                 </div>
                 <div className="row">
                     <input
                         id="repeat-password-input"
                         type="password"
-                        value={passwordRepeated}
+                        value={requirePasswordRepeated ? passwordRepeated : ""}
                         disabled={!requirePasswordRepeated}
                         onChange={(e) => setPasswordRepeated(e.currentTarget.value)}
                         placeholder={requirePasswordRepeated ? "Repeat the password..." : ""}
@@ -125,7 +169,7 @@ function App() {
                             type="checkbox"
                             checked={isLargeFile}
                             onChange={() => setIsLargeFile((prev) => !prev)}
-                            disabled={disabled}
+                            disabled={checkboxDisabled}
                         />
                         <span className="child">Large file(s) (low memory usage)</span>
                     </label>
