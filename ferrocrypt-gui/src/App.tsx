@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api/tauri";
 import "./App.css";
 import {open} from "@tauri-apps/api/dialog";
@@ -11,12 +11,22 @@ function App() {
     const [statusOk, setStatusOk] = useState("Ready");
     const [statusErr, setStatusErr] = useState("");
     const [isLargeFile, setIsLargeFile] = useState(false);
+    const [disabled, setDisabled] = useState(false);
 
     listen('tauri://file-drop', (event: any) => {
         console.log(event)
         setInpath(event.payload[0]);
-        setOutpath("");
     }).then();
+
+    useEffect(() => {
+        let lastIndex = inpath.lastIndexOf(".");
+        let extension = inpath.substring(lastIndex);
+        if (extension === ".fcv") {
+            setDisabled(true);
+        } else {
+            setDisabled(false);
+        }
+    }, [inpath]);
 
     const selectDir = async () => {
         const selected = await open({
@@ -76,7 +86,7 @@ function App() {
                         value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
-                        style={{width: "100%", backgroundColor: "#0f0f0f"}}
+                        style={{width: "100%"}}
                     />
                 </div>
                 <div className="checkbox-wrapper parent">
@@ -86,7 +96,7 @@ function App() {
                             type="checkbox"
                             checked={isLargeFile}
                             onChange={() => setIsLargeFile((prev) => !prev)}
-                            // disabled={true}
+                            disabled={disabled}
                         />
                         <span className="child">Large file(s) (low memory usage)</span>
                     </label>
