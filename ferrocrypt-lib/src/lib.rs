@@ -63,7 +63,7 @@ pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_p
 }
 
 pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
-    let result = if input_path.ends_with(".fcs") || input_path.ends_with(".fcls") {
+    let result = if input_path.ends_with(".fcv") {
         symmetric::decrypt_file(input_path, output_dir, password)?
     } else {
         symmetric::encrypt_file(input_path, output_dir, password, large)?

@@ -19,12 +19,14 @@ Ferrocrypt supports two different encryption modes:
    Additionally, Ferrocrypt employs the Argon2id password-based key derivation function 
    to generate secure encryption keys from user passwords,
    making it easy for users to protect their data with a strong and unique password.
+   The vaults that are produced have the file extension ".fcv".
 
 2. Hybrid encryption: This method leverages both symmetric and asymmetric encryption algorithms
    to provide a robust and reliable encryption process.
    Specifically, this mode uses the industry-standard AES-GCM symmetric algorithm to encrypt the data
    and the RSA asymmetric (public key) algorithm to encrypt the symmetric data key,
-   providing an added layer of security.
+   providing an added layer of security. 
+   The vaults that are produced have the file extension ".fch".
 
 The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
 `aes-gcm` and `chacha20poly1305`, have successfully received security audits.
@@ -150,7 +152,7 @@ You can start a live dev session with ```cargo tauri dev```
 
 To encrypt or decrypt a file or folder, simply drag and drop it into the app window. 
 Then, choose a password and a destination folder, and click the "Start" button.
-If you need to encrypt files that will result in a large archive exceeding the available RAM,
+If you need to encrypt files that will result in a large vault exceeding the available RAM,
 or if you simply want to prevent excessive RAM consumption,
 just check the "Large file(s) (low memory usage)" option (see the OPTIONS section above for more info).
 
