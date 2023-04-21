@@ -4,74 +4,109 @@ import "./App.css";
 import {open} from "@tauri-apps/api/dialog";
 import {listen} from '@tauri-apps/api/event'
 
+const initialState = {
+    inpath: "",
+    outpath: "",
+    password: "",
+    passwordRepeated: "",
+    requirePasswordRepeated: true,
+    statusOk: "Ready",
+    statusErr: "",
+    isLargeFile: false,
+    decryptionMode: false,
+    checkboxDisabled: false,
+    startDisabled: true,
+    hidePassword: true,
+    passwordType: "password",
+    visibilityIcon: "/icon-unhide-50.png",
+};
+
 function App() {
-    const [inpath, setInpath] = useState("");
-    const [outpath, setOutpath] = useState("");
-    const [password, setPassword] = useState("");
-    const [passwordRepeated, setPasswordRepeated] = useState("");
-    const [requirePasswordRepeated, setRequirePasswordRepeated] = useState(true);
-    const [statusOk, setStatusOk] = useState("Ready");
-    const [statusErr, setStatusErr] = useState("");
-    const [isLargeFile, setIsLargeFile] = useState(false);
-    const [decryptionMode, setDecryptionMode] = useState(false);
-    const [checkboxDisabled, setCheckboxDisabled] = useState(false);
-    const [startDisabled, setStartDisabled] = useState(true);
-    const [hidePassword, setHidePassword] = useState(true);
-    const [passwordType, setPasswordType] = useState("password");
-    const [visibilityIcon, setVisibilityIcon] = useState("/icon-unhide-50.png");
+    const [state, setState] = useState(initialState);
 
     // let counter = 1;
     listen('tauri://file-drop', (event: any) => {
-        // console.log("counter: ", counter);
-        console.log("event: ", event)
-        // counter += 1;
-        setInpath(event.payload[0]);
+        setState(prevState => ({
+            ...prevState,
+            inpath: event.payload[0]
+        }));
     }).then();
 
     useEffect(() => {
-        let lastIndex = inpath.lastIndexOf(".");
-        let extension = inpath.substring(lastIndex);
+        let lastIndex = state.inpath.lastIndexOf(".");
+        let extension = state.inpath.substring(lastIndex);
         if (extension === ".fcv") {
-            setDecryptionMode(true);
+            setState(prevState => ({
+                ...prevState,
+                decryptionMode: true
+            }));
         } else {
-            setDecryptionMode(false);
+            setState(prevState => ({
+                ...prevState,
+                decryptionMode: false
+            }));
         }
-    }, [inpath]);
+    }, [state.inpath]);
 
     useEffect(() => {
+        const {decryptionMode, hidePassword} = state;
         if (decryptionMode) {
-            setCheckboxDisabled(true);
-            setRequirePasswordRepeated(false);
+            setState(prevState => ({
+                ...prevState,
+                checkboxDisabled: true,
+                requirePasswordRepeated: false
+            }));
             if (hidePassword) {
-                setVisibilityIcon("/icon-unhide-50.png");
-                setPasswordType("password");
+                setState(prevState => ({
+                    ...prevState,
+                    visibilityIcon: "/icon-unhide-50.png",
+                    passwordType: "password"
+                }));
             } else {
-                setVisibilityIcon("/icon-hide-50.png");
-                setPasswordType("text");
+                setState(prevState => ({
+                    ...prevState,
+                    visibilityIcon: "/icon-hide-50.png",
+                    passwordType: "text"
+                }));
             }
         } else {
-            setCheckboxDisabled(false);
-            // setRequirePasswordRepeated(true);
+            setState(prevState => ({
+                ...prevState,
+                checkboxDisabled: false
+            }));
             if (hidePassword) {
-                setVisibilityIcon("/icon-unhide-50.png");
-                setPasswordType("password");
-                setRequirePasswordRepeated(true);
+                setState(prevState => ({
+                    ...prevState,
+                    visibilityIcon: "/icon-unhide-50.png",
+                    passwordType: "password",
+                    requirePasswordRepeated: true
+                }));
             } else {
-                setVisibilityIcon("/icon-hide-50.png");
-                setPasswordType("text");
-                setRequirePasswordRepeated(false);
+                setState(prevState => ({
+                    ...prevState,
+                    visibilityIcon: "/icon-hide-50.png",
+                    passwordType: "text",
+                    requirePasswordRepeated: false
+                }));
             }
         }
 
-    }, [decryptionMode, hidePassword]);
+    }, [state.decryptionMode, state.hidePassword]);
 
     useEffect(() => {
+        const {inpath, password, passwordRepeated, requirePasswordRepeated} = state;
         if ((password === passwordRepeated || !requirePasswordRepeated) && inpath !== "") {
-            setStartDisabled(false);
+            setState(prevState => ({
+                ...prevState,
+                startDisabled: false
+            }));
         } else {
-            setStartDisabled(true);
+            setState(prevState => ({
+                ...prevState,
+                startDisabled: true
+            }));
         }
-    }, [inpath, password, passwordRepeated, requirePasswordRepeated]);
+    }, [state.inpath, state.password, state.passwordRepeated, state.requirePasswordRepeated]);
 
     const selectDir = async () => {
         const selected = await open({
@@ -79,40 +114,74 @@ function App() {
             directory: true
         }) as string;
 
-        setOutpath(selected);
-
-        console.log("selected: ", selected);
+        setState(prevState => ({
+            ...prevState,
+            outpath: selected
+        }));
     };
 
-    const clear = async () => {
-        setInpath("");
-        setOutpath("");
-        setPassword("");
-        setPasswordRepeated("");
-        setRequirePasswordRepeated(true);
-        setStatusOk("Ready");
-        setStatusErr("");
-        setIsLargeFile(false);
-        setDecryptionMode(false);
-        setCheckboxDisabled(false);
-        setStartDisabled(true);
-        setHidePassword(true);
-        setPasswordType("password");
-        setVisibilityIcon("/icon-unhide-50.png");
-    };
+    const handlePasswordChange = (value: string) => {
+        setState(prevState => ({
+            ...prevState,
+            password: value
+        }));
+    }
 
-    const start = async () => {
+    const handlePasswordRepeatedChange = (value: string) => {
+        setState(prevState => ({
+            ...prevState,
+            passwordRepeated: value
+        }));
+    }
+
+    const handleLargeFile = () => {
+        setState(prevState => ({
+            ...prevState,
+            isLargeFile: !state.isLargeFile
+        }));
+    }
+
+    const handlePasswordHide = () => {
+        setState(prevState => ({
+            ...prevState,
+            hidePassword: !state.hidePassword
+        }));
+    }
+
+    const handleClear = () => setState(initialState);
+
+    const handleStart = async () => {
+        const {inpath, outpath, password, isLargeFile} = state;
         await invoke("start", {inpath, outpath, password, isLargeFile})
             .then((message: any) => {
-                setStatusErr("");
-                setStatusOk(message);
-                console.log("message: ", message);
+                setState(prevState => ({
+                    ...prevState,
+                    statusOk: message,
+                    statusErr: "",
+                }));
             })
             .catch((error: string) => {
-                setStatusOk("");
-                setStatusErr(error);
+                setState(prevState => ({
+                    ...prevState,
+                    statusOk: "",
+                    statusErr: error,
+                }));
             });
     }
+
+    const {
+        outpath,
+        password,
+        passwordRepeated,
+        requirePasswordRepeated,
+        statusOk,
+        statusErr,
+        isLargeFile,
+        checkboxDisabled,
+        startDisabled,
+        passwordType,
+        visibilityIcon,
+    } = state;
 
     return (
         <div className="container">
@@ -127,10 +196,10 @@ function App() {
                     <input
                         id="inpath"
                         disabled={true}
-                        value={inpath}
+                        value={state.inpath}
                         style={{marginRight: 10, width: "100%"}}
                     />
-                    <button onClick={clear} style={{width: "90px"}}>Clear</button>
+                    <button onClick={handleClear} style={{width: "90px"}}>Clear</button>
                 </div>
                 <div className="helper">Password:</div>
                 <div className="row">
@@ -138,7 +207,7 @@ function App() {
                         id="password-input"
                         type={passwordType}
                         value={password}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
+                        onChange={(e) => handlePasswordChange(e.currentTarget.value)}
                         placeholder="Enter a password..."
                         style={{width: "100%"}}
                     />
@@ -147,7 +216,7 @@ function App() {
                             src={visibilityIcon}
                             alt="visibility icon"
                             style={{width: "20px"}}
-                            onClick={() => setHidePassword((prev) => !prev)}
+                            onClick={handlePasswordHide}
                         ></img>
                     </div>
                 </div>
@@ -157,7 +226,7 @@ function App() {
                         type="password"
                         value={requirePasswordRepeated ? passwordRepeated : ""}
                         disabled={!requirePasswordRepeated}
-                        onChange={(e) => setPasswordRepeated(e.currentTarget.value)}
+                        onChange={(e) => handlePasswordRepeatedChange(e.currentTarget.value)}
                         placeholder={requirePasswordRepeated ? "Repeat the password..." : ""}
                         style={{width: "100%"}}
                     />
@@ -168,7 +237,7 @@ function App() {
                             className="child"
                             type="checkbox"
                             checked={isLargeFile}
-                            onChange={() => setIsLargeFile((prev) => !prev)}
+                            onChange={handleLargeFile}
                             disabled={checkboxDisabled}
                         />
                         <span className="child">Large file(s) (low memory usage)</span>
@@ -189,7 +258,7 @@ function App() {
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
-                            start().then();
+                            handleStart().then();
                         }}
                     >
                         <button
