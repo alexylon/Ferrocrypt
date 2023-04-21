@@ -34,6 +34,7 @@ function App() {
         setInpath("");
         setPassword("");
         setOutpath("");
+        setIsLargeFile(false);
         setStatusOk("Ready");
     };
 
@@ -53,8 +54,8 @@ function App() {
     return (
         <div className="container">
             <div className="row">
-                <a href="https://tauri.app" target="_blank">
-                    <img src="/padlock-red-256.png" className="logo tauri" alt="Tauri logo"/>
+                <a href="https://github.com/alexylon/Ferrocrypt" target="_blank">
+                    <img src="/padlock-red-256.png" className="logo ferrocrypt" alt="Ferrocrypt logo"/>
                 </a>
             </div>
             <div>
