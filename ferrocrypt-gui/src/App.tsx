@@ -8,10 +8,14 @@ function App() {
     const [inpath, setInpath] = useState("");
     const [outpath, setOutpath] = useState("");
     const [password, setPassword] = useState("");
+    const [passwordRepeated, setPasswordRepeated] = useState("");
+    const [requirePasswordRepeated, setRequirePasswordRepeated] = useState(true);
     const [statusOk, setStatusOk] = useState("Ready");
     const [statusErr, setStatusErr] = useState("");
     const [isLargeFile, setIsLargeFile] = useState(false);
+    const [allowed, setAllowed] = useState(false);
     const [disabled, setDisabled] = useState(false);
+    const [startDisabled, setStartDisabled] = useState(false);
 
     listen('tauri://file-drop', (event: any) => {
         console.log(event)
@@ -23,10 +27,22 @@ function App() {
         let extension = inpath.substring(lastIndex);
         if (extension === ".fcv") {
             setDisabled(true);
+            setRequirePasswordRepeated(false);
         } else {
             setDisabled(false);
+            setRequirePasswordRepeated(true);
         }
     }, [inpath]);
+
+    useEffect(() => {
+        if ((password === passwordRepeated || !requirePasswordRepeated) && inpath !== "") {
+            setAllowed(true);
+            setStartDisabled(false);
+        } else {
+            setAllowed(false);
+            setStartDisabled(true);
+        }
+    }, [inpath, password, passwordRepeated, requirePasswordRepeated]);
 
     const selectDir = async () => {
         const selected = await open({
@@ -43,6 +59,7 @@ function App() {
         setStatusErr("");
         setInpath("");
         setPassword("");
+        setPasswordRepeated("");
         setOutpath("");
         setIsLargeFile(false);
         setStatusOk("Ready");
@@ -83,9 +100,21 @@ function App() {
                 <div className="row">
                     <input
                         id="password-input"
+                        type="password"
                         value={password}
                         onChange={(e) => setPassword(e.currentTarget.value)}
                         placeholder="Enter a password..."
+                        style={{width: "100%"}}
+                    />
+                </div>
+                <div className="row">
+                    <input
+                        id="repeat-password-input"
+                        type="password"
+                        value={passwordRepeated}
+                        disabled={!requirePasswordRepeated}
+                        onChange={(e) => setPasswordRepeated(e.currentTarget.value)}
+                        placeholder={requirePasswordRepeated ? "Repeat the password..." : ""}
                         style={{width: "100%"}}
                     />
                 </div>
@@ -119,7 +148,12 @@ function App() {
                             start().then();
                         }}
                     >
-                        <button type="submit" style={{width: "350px"}}>Start</button>
+                        <button
+                            type="submit"
+                            style={{width: "350px"}}
+                            disabled={startDisabled}
+                        >Start
+                        </button>
                     </form>
                 </div>
                 <div className="helper" style={{color: "darkseagreen"}}> {statusOk} </div>
