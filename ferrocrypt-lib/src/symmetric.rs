@@ -49,29 +49,6 @@ mod tests {
     }
 
     #[test]
-    fn encrypt_dir_test() -> Result<(), CryptoError> {
-        fs::create_dir_all("src/dest")?;
-        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        encrypt_file(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
-
-        // passphrase.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn decrypt_dir_test() -> Result<(), CryptoError> {
-        // let mut password = rpassword::prompt_password("password:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        decrypt_file(ENCRYPTED_DIR_PATH, DEST_DIR_PATH, &mut passphrase)?;
-
-        // password.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
     fn encrypt_large_file_test() -> Result<(), CryptoError> {
         fs::create_dir_all("src/dest")?;
         // let mut passphrase = rpassword::prompt_password("passphrase:")?;
@@ -93,19 +70,35 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn encrypt_dir_test() -> Result<(), CryptoError> {
+        fs::create_dir_all("src/dest")?;
+        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        encrypt_file(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+
+        // passphrase.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn decrypt_dir_test() -> Result<(), CryptoError> {
+        // let mut password = rpassword::prompt_password("password:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        decrypt_file(ENCRYPTED_DIR_PATH, DEST_DIR_PATH, &mut passphrase)?;
+
+        // password.zeroize();
+
+        Ok(())
+    }
 }
 
 // Encrypt file with XChaCha20Poly1305 algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
     let t0 = std::time::Instant::now();
-
     let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
-    let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
-    fs::create_dir_all(tmp_dir_path)?;
-    let file_stem = &archiver::archive(&input_path_norm, tmp_dir_path)?;
-    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
-    println!("\nEncrypting {} ...", file_name_zipped);
-
     let argon2_config = argon2_config();
     let mut salt_32 = [0u8; 32];
     OsRng.fill_bytes(&mut salt_32);
@@ -117,6 +110,11 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
     let encr_ext = if !large { "fcs" } else { "fcls" };
+    let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
+    fs::create_dir_all(tmp_dir_path)?;
+    let file_stem = &archiver::archive(&input_path_norm, tmp_dir_path)?;
+    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
+    println!("\nEncrypting {} ...", file_name_zipped);
 
     let mut file_path_encrypted = OpenOptions::new()
         .write(true)
@@ -131,7 +129,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
     // HEADER info for decrypting
     // Create a placeholder for a later use
-    let header: [usize; 4] = [0, 0, 0, 0];
+    let header: [bool; 4] = [false, true, false, false];
     let header_ser: Vec<u8> = bincode::serialize(&header).unwrap();
 
     if !large {
@@ -218,8 +216,9 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         let encrypted_file: Vec<u8> = fs::read(input_path)?;
 
         // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
-        let (header_ser, rem_data) = encrypted_file.split_at(32);
-        let _header: [usize; 4] = bincode::deserialize(header_ser)?;
+        let (header_ser, rem_data) = encrypted_file.split_at(4);
+        let _header: [bool; 4] = bincode::deserialize(header_ser)?;
+        println!("_header: {:?}", _header);
         let (salt_enc, rem_data) = rem_data.split_at(96);
         let (nonce_24_enc, rem_data) = rem_data.split_at(72);
         let (key_hash_ref_enc, ciphertext) = rem_data.split_at(96);
@@ -266,7 +265,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
     if input_path.ends_with(".fcls") {
         println!("Decrypting {} ...\n", input_path);
 
-        let mut header_ser = [0u8; 32];
+        let mut header_ser = [0u8; 4];
         let mut salt_enc = [0u8; 96];
         let mut nonce_19_enc = [0u8; 57];
         let mut key_hash_ref_enc = [0u8; 96];
@@ -276,7 +275,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
         if read_count != header_ser.len() {
             return Err(Message("Error reading header!".to_string()));
         }
-        let _header: [usize; 4] = bincode::deserialize(&header_ser)?;
+        let _header: [bool; 4] = bincode::deserialize(&header_ser)?;
 
         read_count = encrypted_file.read(&mut salt_enc)?;
         if read_count != salt_enc.len() {
