@@ -93,7 +93,7 @@ input:checked::before {
 
 input:disabled {
     cursor: default !important;
-    background-color: #242424;
+    background-color: #202020;
     position: relative;
 }
 
@@ -180,9 +180,9 @@ button:disabled {
 /*  background-color: #0f0f0f98;*/
 /*}*/
 
-#greet-input {
-    margin-right: 5px;
-}
+/*#greet-input {*/
+/*    margin-right: 5px;*/
+/*}*/
 
 /*@media (prefers-color-scheme: dark) {*/
 /*    :root {*/
