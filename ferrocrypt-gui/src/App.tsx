@@ -41,13 +41,8 @@ function App() {
     useEffect(() => {
         const {hidePassword, inpath, password, passwordRepeated, requirePasswordRepeated} = state;
 
-        setState(prevState => ({
-            ...prevState,
-            disableStart: !((password === passwordRepeated || !requirePasswordRepeated) && inpath !== ""),
-        }));
-
-        const extension = inpath.slice(inpath.lastIndexOf("."));
-        const decryptionMode = extension === ".fcv";
+        const fileExtension = inpath.slice(inpath.lastIndexOf("."));
+        const decryptionMode = fileExtension === ".fcv";
 
         if (decryptionMode) {
             setState(prevState => ({
