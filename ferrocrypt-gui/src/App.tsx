@@ -19,6 +19,9 @@ const initialState = {
     hidePassword: true,
     passwordType: "password",
     visibilityIcon: "/icon-unhide-50.png",
+    matchIcon: "/icon-circle-red-30.png",
+    showMatchIcon: false,
+    passwordMatch: false
 };
 
 function App() {
@@ -53,7 +56,8 @@ function App() {
             setState(prevState => ({
                 ...prevState,
                 checkboxDisabled: true,
-                requirePasswordRepeated: false
+                requirePasswordRepeated: false,
+                showMatchIcon: false
             }));
             if (hidePassword) {
                 setState(prevState => ({
@@ -80,17 +84,38 @@ function App() {
                     passwordType: "password",
                     requirePasswordRepeated: true
                 }));
+                if (passwordRepeated) {
+                    if (password === passwordRepeated) {
+                        setState(prevState => ({
+                            ...prevState,
+                            showMatchIcon: true,
+                            matchIcon: "/icon-circle-green-30.png",
+                        }));
+                    } else {
+                        setState(prevState => ({
+                            ...prevState,
+                            showMatchIcon: true,
+                            matchIcon: "/icon-circle-red-30.png",
+                        }));
+                    }
+                } else {
+                    setState(prevState => ({
+                        ...prevState,
+                        showMatchIcon: false
+                    }));
+                }
             } else {
                 setState(prevState => ({
                     ...prevState,
                     visibilityIcon: "/icon-hide-50.png",
                     passwordType: "text",
-                    requirePasswordRepeated: false
+                    requirePasswordRepeated: false,
+                    showMatchIcon: false
                 }));
             }
         }
 
-    }, [state.decryptionMode, state.hidePassword]);
+    }, [state.decryptionMode, state.hidePassword, state.password, state.passwordRepeated]);
 
     useEffect(() => {
         const {inpath, password, passwordRepeated, requirePasswordRepeated} = state;
@@ -180,7 +205,10 @@ function App() {
         startDisabled,
         passwordType,
         visibilityIcon,
+        matchIcon,
+        showMatchIcon,
     } = state;
+
 
     return (
         <div className="container">
@@ -229,6 +257,15 @@ function App() {
                         placeholder={requirePasswordRepeated ? "Repeat the password..." : ""}
                         style={{width: "100%"}}
                     />
+                    <div className="match-icon">
+                        {showMatchIcon &&
+                            <img
+                                src={matchIcon}
+                                alt="match icon"
+                                style={{width: "20px"}}
+                            ></img>
+                        }
+                    </div>
                 </div>
                 <div className="checkbox-wrapper parent">
                     <label>

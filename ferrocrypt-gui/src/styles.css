@@ -167,10 +167,20 @@ button:disabled {
 .visibility-icon {
     margin-left: 7px;
     margin-top: 10px;
-    /*margin-bottom: auto;*/
+    width: 24px;
     cursor: pointer;
-    /*width: 10px;*/
-    /*height: 10px;*/
+}
+
+.match-icon {
+    margin-left: 7px;
+    margin-top: 10px;
+    width: 24px;
+}
+
+.match-icon-hidden {
+    margin-left: 7px;
+    margin-top: 10px;
+    visibility: hidden
 }
 
 /*input,*/
