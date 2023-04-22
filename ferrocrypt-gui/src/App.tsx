@@ -28,9 +28,19 @@ function App() {
     const [state, setState] = useState(initialState);
 
     listen('tauri://file-drop', (event: any) => {
+        let inputPath = event.payload[0];
+        let inputDirPath = "";
+        if (inputPath.lastIndexOf("/") !== -1) {
+            inputDirPath = inputPath.substring(0, inputPath.lastIndexOf("/"));
+        }
+        if (inputPath.lastIndexOf("\\") !== -1) {
+            inputDirPath = inputPath.substring(0, inputPath.lastIndexOf("\\"));
+        }
+
         setState(prevState => ({
             ...prevState,
-            inpath: event.payload[0]
+            inpath: inputPath,
+            outpath: inputDirPath
         }));
     }).then();
 
