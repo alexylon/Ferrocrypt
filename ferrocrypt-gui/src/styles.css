@@ -64,9 +64,22 @@
     /*color: #c3c3c3;*/
 }
 
+input {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.6em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    color: #c3c3c3;
+    background-color: #202020;
+    transition: border-color 0.25s;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+
 input:disabled {
     cursor: default !important;
-    background-color: #202020;
+    background-color: #252525;
     position: relative;
 }
 
@@ -93,19 +106,6 @@ a:hover {
 
 h1 {
     text-align: center;
-}
-
-input {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    /*color: #c3c3c3;*/
-    background-color: #0f0f0f;
-    transition: border-color 0.25s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 button {
