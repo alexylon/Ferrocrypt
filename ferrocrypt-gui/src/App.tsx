@@ -1,41 +1,67 @@
 import {useEffect, useState} from "react";
 import {invoke} from "@tauri-apps/api/tauri";
-import "./App.css";
-import {open} from "@tauri-apps/api/dialog";
 import {listen} from '@tauri-apps/api/event'
+import {open} from "@tauri-apps/api/dialog";
+import "./App.css";
 
-const initialState = {
-    inpath: "",
-    outpath: "",
-    password: "",
-    passwordRepeated: "",
-    requirePasswordRepeated: true,
-    statusOk: "Ready",
-    statusErr: "",
-    isLargeFile: false,
+interface AppState {
+    decryptionMode: boolean;
+    disableCheckbox: boolean;
+    disableStart: boolean;
+    hidePassword: boolean;
+    inpath: string;
+    isLargeFile: boolean;
+    matchingIcon: string;
+    outpath: string;
+    password: string;
+    passwordMatch: boolean;
+    passwordRepeated: string;
+    passwordType: string;
+    requirePasswordRepeated: boolean;
+    showMatchingIcon: boolean;
+    statusErr: string;
+    statusOk: string;
+    visibilityIcon: string;
+}
+
+const initialState: AppState = {
     decryptionMode: false,
     disableCheckbox: false,
     disableStart: true,
     hidePassword: true,
+    inpath: "",
+    isLargeFile: false,
+    matchingIcon: "/icon-dot-red-30.png",
+    outpath: "",
+    password: "",
+    passwordMatch: false,
+    passwordRepeated: "",
     passwordType: "password",
-    visibilityIcon: "/icon-unhide-50.png",
-    matchingIcon: "/icon-circle-red-30.png",
+    requirePasswordRepeated: true,
     showMatchingIcon: false,
-    passwordMatch: false
+    statusErr: "",
+    statusOk: "Ready",
+    visibilityIcon: "/icon-unhide-50.png"
 };
 
 function App() {
     const [state, setState] = useState(initialState);
 
+    const updateState = (stateChanges: Partial<AppState>) => {
+        setState(prevState => ({
+            ...prevState,
+            ...stateChanges,
+        }));
+    };
+
     listen('tauri://file-drop', (event: any) => {
         let inputPath = event.payload[0];
         let inputDirPath = inputPath.replace(/[/\\][^/\\]*$/, '');
 
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             inpath: inputPath,
-            outpath: inputDirPath
-        }));
+            outpath: inputDirPath,
+        });
     }).then();
 
     useEffect(() => {
@@ -45,30 +71,27 @@ function App() {
         const decryptionMode = fileExtension === ".fcv";
 
         if (decryptionMode) {
-            setState(prevState => ({
-                ...prevState,
-                disableStart: inpath === "",
+            updateState({
+                disableStart: inpath === "" || password.length < 1,
                 disableCheckbox: true,
                 requirePasswordRepeated: false,
                 visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 passwordType: hidePassword ? "password" : "text",
                 showMatchingIcon: false,
-            }));
+            });
         } else {
-            setState(prevState => ({
-                ...prevState,
-                disableStart: (password !== passwordRepeated && requirePasswordRepeated) || inpath === "",
+            updateState({
+                disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
                 disableCheckbox: false,
                 requirePasswordRepeated: hidePassword,
                 visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 passwordType: hidePassword ? "password" : "text",
                 showMatchingIcon: hidePassword ? !!passwordRepeated : false,
                 matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
-                    ? "/icon-circle-green-30.png"
-                    : "/icon-circle-red-30.png",
-            }));
+                    ? "/icon-dot-green-30.png"
+                    : "/icon-dot-red-30.png",
+            });
         }
-
     }, [state.decryptionMode, state.hidePassword, state.inpath, state.password, state.passwordRepeated, state.requirePasswordRepeated]);
 
     const handleOutputDirSelect = async () => {
@@ -77,56 +100,50 @@ function App() {
             directory: true
         }) as string;
 
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             outpath: selected
-        }));
+        });
     };
 
     const handlePasswordChange = (value: string) => {
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             password: value
-        }));
+        });
     }
 
     const handleRepeatedPasswordChange = (value: string) => {
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             passwordRepeated: value
-        }));
+        });
     }
 
     const handleLargeFileSupport = () => {
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             isLargeFile: !state.isLargeFile
-        }));
+        });
     }
 
     const handlePasswordHide = () => {
-        setState(prevState => ({
-            ...prevState,
+        updateState({
             hidePassword: !state.hidePassword
-        }));
+        });
     }
 
     const handleStart = async () => {
         const {inpath, outpath, password, isLargeFile} = state;
         await invoke("start", {inpath, outpath, password, isLargeFile})
-            .then((message: any) => {
-                setState(prevState => ({
-                    ...prevState,
+            // @ts-ignore
+            .then((message: string) => {
+                updateState({
                     statusOk: message,
                     statusErr: "",
-                }));
+                });
             })
             .catch((error: string) => {
-                setState(prevState => ({
-                    ...prevState,
+                updateState({
                     statusOk: "",
                     statusErr: error,
-                }));
+                });
             });
     }
 
