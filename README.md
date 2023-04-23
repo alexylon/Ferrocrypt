@@ -154,7 +154,7 @@ To encrypt or decrypt a file or folder, simply drag and drop it into the app win
 Then, choose a password and a destination folder, and click the "Start" button.
 If you need to encrypt files that will result in a large vault exceeding the available RAM,
 or if you simply want to prevent excessive RAM consumption,
-just check the "Large file(s) (low memory usage)" option (see the OPTIONS section above for more info).
+just check the "Large files (low RAM usage)" option (see the OPTIONS section above for more info).
 
 The GUI app only supports symmetric encryption at this time.
 

@@ -64,33 +64,6 @@
     /*color: #c3c3c3;*/
 }
 
-.checkbox-wrapper input[type="checkbox"] {
-    /* removing default appearance */
-    -webkit-appearance: none;
-    appearance: none;
-    /* creating a custom design */
-    width: 1.6em;
-    height: 1.6em;
-    /*border-radius: 0.15em;*/
-    border: 0.15em solid #007a7e;
-    outline: none;
-    cursor: pointer;
-}
-
-input:checked {
-    background-color: #007a7e;
-    position: relative;
-}
-
-input:checked::before {
-    content: inherit;
-    /*font-size: 1.5em;*/
-    color: #fff;
-    position: absolute;
-    right: 1px;
-    top: -5px;
-}
-
 input:disabled {
     cursor: default !important;
     background-color: #202020;
@@ -184,6 +157,74 @@ button:disabled {
     margin-left: 7px;
     margin-top: 10px;
     visibility: hidden
+}
+
+
+/*checkbox*/
+
+.cbx {
+    position: relative;
+    display: block;
+    float: left;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background-color: #606062;
+    background-image: linear-gradient(#474749, #606062);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.15);
+    transition: all 0.15s ease;
+}
+
+.cbx svg {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke: #fff;
+    stroke-width: 2;
+    stroke-dasharray: 17;
+    stroke-dashoffset: 17;
+    transform: translate3d(0, 0, 0);
+}
+
+.cbx + span {
+    float: left;
+    margin-left: 6px;
+}
+
+.cbx-form {
+    /*margin: auto;*/
+    user-select: none;
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.cbx-form label {
+    display: inline-block;
+    margin-left: 7px;
+    /*cursor: pointer;*/
+}
+
+.cbx-form input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.cbx-form input[type="checkbox"]:checked + .cbx {
+    background-color: #606062;
+    background-image: linear-gradient(#255cd2, #1d52c1);
+}
+
+.cbx-form input[type="checkbox"]:checked + .cbx svg {
+    stroke-dashoffset: 0;
+    transition: all 0.15s ease;
+}
+
+.cbx-form input[type="checkbox"]:disabled + .cbx + .cbx-label {
+    color: #777777 !important;
+    /*cursor: default !important;*/
 }
 
 /*input,*/

@@ -223,16 +223,20 @@ function App() {
                         }
                     </div>
                 </div>
-                <div className="checkbox-wrapper parent">
-                    <label>
-                        <input
-                            className="child"
-                            type="checkbox"
-                            checked={isLargeFile}
-                            onChange={handleLargeFileSupport}
-                            disabled={disableCheckbox}
+                <div className="cbx-form">
+                    <label htmlFor="checkbox1">
+                        <input type="checkbox"
+                               id="checkbox1"
+                               checked={isLargeFile}
+                               onChange={handleLargeFileSupport}
+                               disabled={disableCheckbox}
                         />
-                        <span className="child">Large file(s) (low memory usage)</span>
+                        <span className="cbx">
+                        <svg width="12px" height="11px" viewBox="0 0 12 11">
+                            <polyline points="1 6.29411765 4.5 10 11 1"/>
+                        </svg>
+                    </span>
+                        <span className="cbx-label">Large files (low RAM usage)</span>
                     </label>
                 </div>
                 <div className="helper">Save output to this folder:</div>
@@ -265,7 +269,8 @@ function App() {
                 <div className="helper" style={{color: "#C41E3A"}}> {statusErr} </div>
             </div>
         </div>
-    );
+    )
+        ;
 }
 
 export default App;
