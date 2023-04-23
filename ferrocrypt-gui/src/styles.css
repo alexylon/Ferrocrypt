@@ -2,11 +2,11 @@
     font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 24px;
-    font-weight: 400;
+    font-weight: 500;
 
-    /*color: #0f0f0f;*/
+    color: #c3c3c3;
     /*background-color: #f6f6f6;*/
-    color: #f6f6f6;
+    /*color: #f6f6f6;*/
     background-color: #2f2f2f;
 
     font-synthesis: none;
@@ -18,7 +18,7 @@
 
 .container {
     margin: 0;
-    padding-top: 5vh;
+    padding-top: 4vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -49,7 +49,7 @@
     display: flex;
     justify-content: left;
     margin-left: 10px;
-    color: #b3b3b3;
+    /*color: #c3c3c3;*/
 }
 
 .parent {
@@ -61,7 +61,7 @@
     display: inline-block;
     vertical-align: middle;
     margin-left: 5px;
-    color: #b3b3b3;
+    /*color: #c3c3c3;*/
 }
 
 .checkbox-wrapper input[type="checkbox"] {
@@ -129,7 +129,7 @@ input {
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    color: #b3b3b3;
+    /*color: #c3c3c3;*/
     background-color: #0f0f0f;
     transition: border-color 0.25s;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
@@ -142,11 +142,10 @@ button {
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    color: #a3a3a3;
+    color: #c3c3c3;
     cursor: pointer;
     background-color: #3b3b3b;
     transition: border-color 0.25s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 button:hover:enabled {
@@ -157,6 +156,10 @@ button:active:enabled {
     /*border-color: #396cd8;*/
     /*background-color: #e8e8e8;*/
     background-color: #0f0f0f69;
+}
+
+button:enabled {
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 button:disabled {
