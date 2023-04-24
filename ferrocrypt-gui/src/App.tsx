@@ -130,6 +130,11 @@ function App() {
     }
 
     const handleStart = async () => {
+        updateState({
+            statusOk: "Working ...",
+            statusErr: "",
+        });
+
         const {inpath, outpath, password, isLargeFile} = state;
         await invoke("start", {inpath, outpath, password, isLargeFile})
             // @ts-ignore
