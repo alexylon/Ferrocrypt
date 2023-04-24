@@ -1,3 +1,4 @@
+use std::fs;
 use thiserror::Error;
 use crate::common::normalize_paths;
 
@@ -134,13 +135,24 @@ mod tests {
 
 pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
     let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
+
+    let tmp_dir_path = &format!("{}.tmp_zip/", normalized_output_dir);
+    fs::create_dir_all(tmp_dir_path)?;
+
     let result = if input_path.ends_with(".fcv") {
-        symmetric::decrypt_file(&normalized_input_path, &normalized_output_dir, password)?
+        symmetric::decrypt_file(&normalized_input_path, &normalized_output_dir, password, tmp_dir_path)
     } else {
-        symmetric::encrypt_file(&normalized_input_path, &normalized_output_dir, password, large)?
+        symmetric::encrypt_file(&normalized_input_path, &normalized_output_dir, password, large, tmp_dir_path)
     };
 
-    Ok(result)
+    if let Err(err) = result {
+        fs::remove_dir_all(tmp_dir_path)?;
+        return Err(err);
+    }
+
+    fs::remove_dir_all(tmp_dir_path)?;
+
+    result
 }
 
 pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {

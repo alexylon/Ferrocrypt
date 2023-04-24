@@ -10,7 +10,7 @@ use crate::CryptoError::{ChaCha20Poly1305Error, Decryption, Message};
 use crate::reed_solomon::{rs_encode, rs_decode};
 
 // Encrypt file with XChaCha20Poly1305 algorithm
-pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
+pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool, tmp_dir_path: &str) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
 
     // Header information for decryption
@@ -29,8 +29,6 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
     let encrypted_extension = "fcv";
-    let tmp_dir_path = &format!("{}zp_tmp/", output_dir);
-    fs::create_dir_all(tmp_dir_path)?;
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
     let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nEncrypting {} ...", file_name_zipped);
@@ -93,8 +91,6 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         }
     }
 
-    fs::remove_dir_all(tmp_dir_path)?;
-
     let encrypted_file_name = &format!("{}{}.{}", output_dir, file_stem, encrypted_extension);
     let result = format!("Encrypted to {}", encrypted_file_name);
     println!("\n{}", result);
@@ -106,15 +102,15 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     Ok(result)
 }
 
-pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<String, CryptoError> {
+pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     let t0 = std::time::Instant::now();
     let file_bytes = read(input_path)?;
     let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
 
     if flags[0] {
-        decrypt_large_file(input_path, output_dir, passphrase)?;
+        decrypt_large_file(input_path, output_dir, passphrase, tmp_dir_path)?;
     } else {
-        decrypt_normal_file(input_path, output_dir, passphrase)?;
+        decrypt_normal_file(input_path, output_dir, passphrase, tmp_dir_path)?;
     }
 
     let result = format!("Decrypted to {}", output_dir);
@@ -125,7 +121,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) ->
 }
 
 // Decrypt file with XChaCha20Poly1305 algorithm
-fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
+fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
     println!("Decrypting {} ...\n", input_path);
     let encrypted_file: Vec<u8> = read(input_path)?;
 
@@ -148,8 +144,6 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
     let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[0..32].try_into()?);
 
     if key_correct {
-        let tmp_dir_path = &format!("{}zp_tmp/", output_dir);
-        fs::create_dir_all(tmp_dir_path)?;
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..24].as_ref().into(), ciphertext.as_ref())?;
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
@@ -161,8 +155,6 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
 
         key.zeroize();
         passphrase.zeroize();
-
-        fs::remove_dir_all(tmp_dir_path)?;
     } else {
         return Err(Decryption("The provided password is incorrect!".to_string()));
     }
@@ -171,7 +163,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
 }
 
 // Decrypt large file, that doesn't fit in RAM, with XChaCha20Poly1305 algorithm. This is much slower
-fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
+fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
     println!("Decrypting {} ...\n", input_path);
 
     let mut serialized_flags = [0u8; 4];
@@ -213,8 +205,6 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
     let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..32].try_into()?);
 
     if key_correct {
-        let tmp_dir_path = &format!("{}zp_tmp/", output_dir);
-        fs::create_dir_all(tmp_dir_path)?;
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let mut stream_decryptor = stream::DecryptorBE32::from_aead(cipher, nonce_19[..19].as_ref().into());
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
@@ -252,8 +242,6 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
 
         key.zeroize();
         passphrase.zeroize();
-
-        fs::remove_dir_all(tmp_dir_path)?;
     } else {
         return Err(Message("The provided password is incorrect!".to_string()));
     }
