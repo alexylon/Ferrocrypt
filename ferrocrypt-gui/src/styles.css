@@ -67,7 +67,7 @@
 input {
     border-radius: 8px;
     border: 1px solid transparent;
-    padding: 0.6em 1.2em;
+    padding: 0.6em 0.6em;
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
@@ -79,7 +79,7 @@ input {
 
 input:disabled {
     cursor: default !important;
-    background-color: #252525;
+    background-color: #272727;
     position: relative;
 }
 
@@ -142,20 +142,24 @@ button:disabled {
 
 .visibility-icon {
     margin-left: 7px;
-    margin-top: 10px;
+    margin-top: 8px;
     width: 24px;
+    height: 24px;
     cursor: pointer;
 }
 
 .match-icon {
     margin-left: 7px;
-    margin-top: 10px;
+    margin-top: 8px;
     width: 24px;
+    height: 24px;
 }
 
 .match-icon-hidden {
     margin-left: 7px;
-    margin-top: 10px;
+    margin-top: 8px;
+    width: 24px;
+    height: 24px;
     visibility: hidden
 }
 
