@@ -5,96 +5,9 @@ use argon2::Variant;
 use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, normalize_paths, sha3_32_hash};
+use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, Decryption, Message};
 use crate::reed_solomon::{rs_encode, rs_decode};
-
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-    use crate::CryptoError;
-    // use zeroize::Zeroize;
-    use crate::symmetric::{decrypt_file, encrypt_file};
-
-    const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
-    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.fcv";
-    const ENCRYPTED_LARGE_FILE_PATH: &str = "src/dest_large/test-file.fcv";
-    const DEST_DIR_PATH: &str = "src/dest/";
-    const DEST_DIR_PATH_LARGE: &str = "src/dest_large/";
-    const SRC_DIR_PATH: &str = "src/test_files/test-folder";
-    const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.fcv";
-    const PASSPHRASE: &str = "strong_passphrase";
-
-    #[test]
-    fn encrypt_file_test() -> Result<(), CryptoError> {
-        fs::create_dir_all(DEST_DIR_PATH)?;
-        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
-
-        // passphrase.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn decrypt_file_test() -> Result<(), CryptoError> {
-        // let mut password = rpassword::prompt_password("password:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        decrypt_file(ENCRYPTED_FILE_PATH, DEST_DIR_PATH, &mut passphrase)?;
-
-        // password.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn encrypt_large_file_test() -> Result<(), CryptoError> {
-        fs::create_dir_all(DEST_DIR_PATH_LARGE)?;
-        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        encrypt_file(SRC_FILE_PATH, DEST_DIR_PATH_LARGE, &mut passphrase, true)?;
-
-        // passphrase.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn decrypt_large_file_test() -> Result<(), CryptoError> {
-        // let mut password = rpassword::prompt_password("password:")?;
-        let mut passphrase = "strong_passphrase".to_string();
-        decrypt_file(ENCRYPTED_LARGE_FILE_PATH, DEST_DIR_PATH_LARGE, &mut passphrase)?;
-
-        // password.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn encrypt_dir_test() -> Result<(), CryptoError> {
-        fs::create_dir_all("src/dest")?;
-        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        encrypt_file(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
-
-        // passphrase.zeroize();
-
-        Ok(())
-    }
-
-    #[test]
-    fn decrypt_dir_test() -> Result<(), CryptoError> {
-        // let mut password = rpassword::prompt_password("password:")?;
-        let mut passphrase = PASSPHRASE.to_string();
-        decrypt_file(ENCRYPTED_DIR_PATH, DEST_DIR_PATH, &mut passphrase)?;
-
-        // password.zeroize();
-
-        Ok(())
-    }
-}
 
 // Encrypt file with XChaCha20Poly1305 algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
@@ -103,9 +16,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     // Header information for decryption
     let mut flags: [bool; 4] = [false, false, false, false];
     if large { flags[0] = true; }
-    let serialized_flags: Vec<u8> = bincode::serialize(&flags).unwrap();
+    let serialized_flags: Vec<u8> = bincode::serialize(&flags)?;
 
-    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
     let argon2_config = argon2_config();
     let mut salt_32 = [0u8; 32];
     OsRng.fill_bytes(&mut salt_32);
@@ -117,9 +29,9 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
     let encrypted_extension = "fcv";
-    let tmp_dir_path = &format!("{}zp_tmp/", normalized_output_dir);
+    let tmp_dir_path = &format!("{}zp_tmp/", output_dir);
     fs::create_dir_all(tmp_dir_path)?;
-    let file_stem = &archiver::archive(&normalized_input_path, tmp_dir_path)?;
+    let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
     let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nEncrypting {} ...", file_name_zipped);
 
@@ -127,7 +39,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.{}", &normalized_output_dir, file_stem, encrypted_extension))?;
+        .open(format!("{}{}.{}", &output_dir, file_stem, encrypted_extension))?;
 
 
     // Encode with reed-solomon
@@ -183,7 +95,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
     fs::remove_dir_all(tmp_dir_path)?;
 
-    let encrypted_file_name = &format!("{}{}.{}", normalized_output_dir, file_stem, encrypted_extension);
+    let encrypted_file_name = &format!("{}{}.{}", output_dir, file_stem, encrypted_extension);
     let result = format!("Encrypted to {}", encrypted_file_name);
     println!("\n{}", result);
     println!("\nEncryption elapsed: {}s", start_time.elapsed().as_secs_f64());
@@ -196,17 +108,16 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<String, CryptoError> {
     let t0 = std::time::Instant::now();
-    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
-    let file_bytes = read(&normalized_input_path)?;
+    let file_bytes = read(input_path)?;
     let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
 
     if flags[0] {
-        decrypt_large_file(&normalized_input_path, &normalized_output_dir, passphrase)?;
+        decrypt_large_file(input_path, output_dir, passphrase)?;
     } else {
-        decrypt_normal_file(&normalized_input_path, &normalized_output_dir, passphrase)?;
+        decrypt_normal_file(input_path, output_dir, passphrase)?;
     }
 
-    let result = format!("Decrypted to {}", normalized_output_dir);
+    let result = format!("Decrypted to {}", output_dir);
     println!("\n{}", result);
     println!("\nDecryption elapsed: {}s", t0.elapsed().as_secs_f64());
 

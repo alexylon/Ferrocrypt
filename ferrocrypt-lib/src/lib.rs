@@ -1,4 +1,5 @@
 use thiserror::Error;
+use crate::common::normalize_paths;
 
 mod archiver;
 mod symmetric;
@@ -46,28 +47,116 @@ impl serde::Serialize for CryptoError {
     }
 }
 
-pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
-    if input_path.ends_with(".fch") {
-        hybrid::decrypt_file(input_path, output_dir, rsa_key_pem, passphrase)?;
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use crate::{CryptoError, symmetric_encryption};
+    // use zeroize::Zeroize;
+
+    const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
+    const ENCRYPTED_FILE_PATH: &str = "src/dest/test-file.fcv";
+    const ENCRYPTED_LARGE_FILE_PATH: &str = "src/dest_large/test-file.fcv";
+    const DEST_DIR_PATH: &str = "src/dest/";
+    const DEST_DIR_PATH_LARGE: &str = "src/dest_large/";
+    const SRC_DIR_PATH: &str = "src/test_files/test-folder";
+    const ENCRYPTED_DIR_PATH: &str = "src/dest/test-folder.fcv";
+    const PASSPHRASE: &str = "strong_passphrase";
+
+    #[test]
+    fn encrypt_file_test() -> Result<(), CryptoError> {
+        fs::create_dir_all(DEST_DIR_PATH)?;
+        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+
+        // passphrase.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn decrypt_file_test() -> Result<(), CryptoError> {
+        // let mut password = rpassword::prompt_password("password:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        symmetric_encryption(ENCRYPTED_FILE_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+
+        // password.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn encrypt_large_file_test() -> Result<(), CryptoError> {
+        fs::create_dir_all(DEST_DIR_PATH_LARGE)?;
+        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH_LARGE, &mut passphrase, true)?;
+
+        // passphrase.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn decrypt_large_file_test() -> Result<(), CryptoError> {
+        // let mut password = rpassword::prompt_password("password:")?;
+        let mut passphrase = "strong_passphrase".to_string();
+        symmetric_encryption(ENCRYPTED_LARGE_FILE_PATH, DEST_DIR_PATH_LARGE, &mut passphrase, true)?;
+
+        // password.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn encrypt_dir_test() -> Result<(), CryptoError> {
+        fs::create_dir_all("src/dest")?;
+        // let mut passphrase = rpassword::prompt_password("passphrase:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        symmetric_encryption(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+
+        // passphrase.zeroize();
+
+        Ok(())
+    }
+
+    #[test]
+    fn decrypt_dir_test() -> Result<(), CryptoError> {
+        // let mut password = rpassword::prompt_password("password:")?;
+        let mut passphrase = PASSPHRASE.to_string();
+        symmetric_encryption(ENCRYPTED_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+
+        // password.zeroize();
+
+        Ok(())
+    }
+}
+
+pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
+    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
+    let result = if input_path.ends_with(".fcv") {
+        symmetric::decrypt_file(&normalized_input_path, &normalized_output_dir, password)?
     } else {
-        hybrid::encrypt_file(input_path, output_dir, rsa_key_pem)?;
+        symmetric::encrypt_file(&normalized_input_path, &normalized_output_dir, password, large)?
+    };
+
+    Ok(result)
+}
+
+pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
+    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
+    if input_path.ends_with(".fch") {
+        hybrid::decrypt_file(&normalized_input_path, &normalized_output_dir, rsa_key_pem, passphrase)?;
+    } else {
+        hybrid::encrypt_file(&normalized_input_path, &normalized_output_dir, rsa_key_pem)?;
     }
 
     Ok(())
 }
 
-pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, dest_dir_path: &str) -> Result<(), CryptoError> {
-    hybrid::generate_asymmetric_key_pair(byte_size, passphrase, dest_dir_path)?;
+pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, output_dir: &str) -> Result<(), CryptoError> {
+    let normalized_output_dir = normalize_paths("", output_dir).1;
+    hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)?;
 
     Ok(())
-}
-
-pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
-    let result = if input_path.ends_with(".fcv") {
-        symmetric::decrypt_file(input_path, output_dir, password)?
-    } else {
-        symmetric::encrypt_file(input_path, output_dir, password, large)?
-    };
-
-    Ok(result)
 }
