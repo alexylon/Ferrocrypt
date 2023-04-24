@@ -98,15 +98,14 @@ mod tests {
 
 // Encrypt file with XChaCha20Poly1305 algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool) -> Result<String, CryptoError> {
-    let t0 = std::time::Instant::now();
+    let start_time = std::time::Instant::now();
 
-    // HEADER info for decrypting
-    // Create a placeholder for a later use
+    // Header information for decryption
     let mut flags: [bool; 4] = [false, false, false, false];
     if large { flags[0] = true; }
-    let flags_ser: Vec<u8> = bincode::serialize(&flags).unwrap();
+    let serialized_flags: Vec<u8> = bincode::serialize(&flags).unwrap();
 
-    let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
+    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
     let argon2_config = argon2_config();
     let mut salt_32 = [0u8; 32];
     OsRng.fill_bytes(&mut salt_32);
@@ -117,51 +116,51 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     // Hash the encryption key for comparison when decrypting
     let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
-    let encr_ext = "fcv";
-    let tmp_dir_path = &format!("{}zp_tmp/", output_dir_norm);
+    let encrypted_extension = "fcv";
+    let tmp_dir_path = &format!("{}zp_tmp/", normalized_output_dir);
     fs::create_dir_all(tmp_dir_path)?;
-    let file_stem = &archiver::archive(&input_path_norm, tmp_dir_path)?;
+    let file_stem = &archiver::archive(&normalized_input_path, tmp_dir_path)?;
     let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nEncrypting {} ...", file_name_zipped);
 
-    let mut file_path_encrypted = OpenOptions::new()
+    let mut encrypted_file_path = OpenOptions::new()
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.{}", &output_dir_norm, file_stem, encr_ext))?;
+        .open(format!("{}{}.{}", &normalized_output_dir, file_stem, encrypted_extension))?;
 
 
     // Encode with reed-solomon
-    let salt_32_enc: Vec<u8> = rs_encode(&salt_32)?;
-    let key_hash_ref_enc: Vec<u8> = rs_encode(&key_hash_ref)?;
+    let encoded_salt_32: Vec<u8> = rs_encode(&salt_32)?;
+    let encoded_key_hash_ref: Vec<u8> = rs_encode(&key_hash_ref)?;
 
     if !large {
         let mut nonce_24 = [0u8; 24];
         OsRng.fill_bytes(&mut nonce_24);
 
-        let nonce_24_enc: Vec<u8> = rs_encode(&nonce_24)?;
+        let encoded_nonce_24: Vec<u8> = rs_encode(&nonce_24)?;
         let source_file = read(file_name_zipped)?;
         let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*source_file)?;
 
-        file_path_encrypted.write_all(&flags_ser)?;
-        file_path_encrypted.write_all(&salt_32_enc)?;
-        file_path_encrypted.write_all(&nonce_24_enc)?;
-        file_path_encrypted.write_all(&key_hash_ref_enc)?;
-        file_path_encrypted.write_all(&ciphertext)?;
+        encrypted_file_path.write_all(&serialized_flags)?;
+        encrypted_file_path.write_all(&encoded_salt_32)?;
+        encrypted_file_path.write_all(&encoded_nonce_24)?;
+        encrypted_file_path.write_all(&encoded_key_hash_ref)?;
+        encrypted_file_path.write_all(&ciphertext)?;
     } else {
         let mut nonce_19 = [0u8; 19];
         OsRng.fill_bytes(&mut nonce_19);
-        let nonce_19_enc: Vec<u8> = rs_encode(&nonce_19)?;
+        let encoded_nonce_19: Vec<u8> = rs_encode(&nonce_19)?;
         let mut stream_encryptor = stream::EncryptorBE32::from_aead(cipher, nonce_19.as_ref().into());
 
         // XChaCha20-Poly1305 is an AEAD cipher and appends a 16 bytes authentication tag to each encrypted message, so the buffer becomes 516 bits
         const BUFFER_LEN: usize = 500;
         let mut buffer = [0u8; BUFFER_LEN];
 
-        file_path_encrypted.write_all(&flags_ser)?;
-        file_path_encrypted.write_all(&salt_32_enc)?;
-        file_path_encrypted.write_all(&nonce_19_enc)?;
-        file_path_encrypted.write_all(&key_hash_ref_enc)?;
+        encrypted_file_path.write_all(&serialized_flags)?;
+        encrypted_file_path.write_all(&encoded_salt_32)?;
+        encrypted_file_path.write_all(&encoded_nonce_19)?;
+        encrypted_file_path.write_all(&encoded_key_hash_ref)?;
 
         let mut source_file = File::open(file_name_zipped)?;
         loop {
@@ -171,12 +170,12 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
                 let ciphertext = stream_encryptor
                     .encrypt_next(buffer.as_slice())
                     .map_err(ChaCha20Poly1305Error)?;
-                file_path_encrypted.write_all(&ciphertext)?;
+                encrypted_file_path.write_all(&ciphertext)?;
             } else {
                 let ciphertext = stream_encryptor
                     .encrypt_last(&buffer[..read_count])
                     .map_err(ChaCha20Poly1305Error)?;
-                file_path_encrypted.write_all(&ciphertext)?;
+                encrypted_file_path.write_all(&ciphertext)?;
                 break;
             }
         }
@@ -184,10 +183,10 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
     fs::remove_dir_all(tmp_dir_path)?;
 
-    let file_name_encrypted = &format!("{}{}.{}", output_dir_norm, file_stem, encr_ext);
-    let result = format!("Encrypted to {}", file_name_encrypted);
+    let encrypted_file_name = &format!("{}{}.{}", normalized_output_dir, file_stem, encrypted_extension);
+    let result = format!("Encrypted to {}", encrypted_file_name);
     println!("\n{}", result);
-    println!("\nEncryption elapsed: {}s", t0.elapsed().as_secs_f64());
+    println!("\nEncryption elapsed: {}s", start_time.elapsed().as_secs_f64());
 
     key.zeroize();
     passphrase.zeroize();
@@ -197,17 +196,17 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<String, CryptoError> {
     let t0 = std::time::Instant::now();
-    let (input_path_norm, output_dir_norm) = normalize_paths(input_path, output_dir);
-    let file_bytes = read(&input_path_norm)?;
+    let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
+    let file_bytes = read(&normalized_input_path)?;
     let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
 
     if flags[0] {
-        decrypt_large_file(&input_path_norm, &output_dir_norm, passphrase)?;
+        decrypt_large_file(&normalized_input_path, &normalized_output_dir, passphrase)?;
     } else {
-        decrypt_normal_file(&input_path_norm, &output_dir_norm, passphrase)?;
+        decrypt_normal_file(&normalized_input_path, &normalized_output_dir, passphrase)?;
     }
 
-    let result = format!("Decrypted to {}", output_dir_norm);
+    let result = format!("Decrypted to {}", normalized_output_dir);
     println!("\n{}", result);
     println!("\nDecryption elapsed: {}s", t0.elapsed().as_secs_f64());
 
@@ -220,18 +219,18 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
     let encrypted_file: Vec<u8> = read(input_path)?;
 
     // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
-    let (flags_ser, rem_data) = encrypted_file.split_at(4);
-    let _flags: [bool; 4] = bincode::deserialize(flags_ser)?;
-    let (salt_enc, rem_data) = rem_data.split_at(96);
-    let (nonce_24_enc, rem_data) = rem_data.split_at(72);
-    let (key_hash_ref_enc, ciphertext) = rem_data.split_at(96);
+    let (serialized_flags, rem_data) = encrypted_file.split_at(4);
+    let _flags: [bool; 4] = bincode::deserialize(serialized_flags)?;
+    let (encoded_salt_32, rem_data) = rem_data.split_at(96);
+    let (encoded_nonce_24, rem_data) = rem_data.split_at(72);
+    let (encoded_key_hash_ref, ciphertext) = rem_data.split_at(96);
 
-    let salt = rs_decode(salt_enc)?;
-    let nonce_24 = rs_decode(nonce_24_enc)?;
-    let key_hash_ref = rs_decode(key_hash_ref_enc)?;
+    let salt_32 = rs_decode(encoded_salt_32)?;
+    let nonce_24 = rs_decode(encoded_nonce_24)?;
+    let key_hash_ref = rs_decode(encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt[0..32], &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32[0..32], &argon2_config)?;
 
     // Hash the encryption key for comparison and compare it in constant time with the ref key hash
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
@@ -242,8 +241,8 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
         fs::create_dir_all(tmp_dir_path)?;
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..24].as_ref().into(), ciphertext.as_ref())?;
-        let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
-        let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
+        let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
+        let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, decrypted_file_stem);
 
         File::create(&decrypted_file_path)?;
         fs::write(&decrypted_file_path, plaintext)?;
@@ -264,39 +263,39 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str)
 fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) -> Result<(), CryptoError> {
     println!("Decrypting {} ...\n", input_path);
 
-    let mut flags_ser = [0u8; 4];
-    let mut salt_enc = [0u8; 96];
-    let mut nonce_19_enc = [0u8; 57];
-    let mut key_hash_ref_enc = [0u8; 96];
+    let mut serialized_flags = [0u8; 4];
+    let mut encoded_salt_32 = [0u8; 96];
+    let mut encoded_nonce_19 = [0u8; 57];
+    let mut encoded_key_hash_ref = [0u8; 96];
     let mut encrypted_file = File::open(input_path)?;
 
-    let mut read_count = encrypted_file.read(&mut flags_ser)?;
-    if read_count != flags_ser.len() {
+    let mut read_count = encrypted_file.read(&mut serialized_flags)?;
+    if read_count != serialized_flags.len() {
         return Err(Message("Error reading flags!".to_string()));
     }
-    let _flags: [bool; 4] = bincode::deserialize(&flags_ser)?;
+    let _flags: [bool; 4] = bincode::deserialize(&serialized_flags)?;
 
-    read_count = encrypted_file.read(&mut salt_enc)?;
-    if read_count != salt_enc.len() {
+    read_count = encrypted_file.read(&mut encoded_salt_32)?;
+    if read_count != encoded_salt_32.len() {
         return Err(Message("Error reading salt!".to_string()));
     }
 
-    read_count = encrypted_file.read(&mut nonce_19_enc)?;
-    if read_count != nonce_19_enc.len() {
+    read_count = encrypted_file.read(&mut encoded_nonce_19)?;
+    if read_count != encoded_nonce_19.len() {
         return Err(Message("Error reading nonce!".to_string()));
     }
 
-    read_count = encrypted_file.read(&mut key_hash_ref_enc)?;
-    if read_count != key_hash_ref_enc.len() {
+    read_count = encrypted_file.read(&mut encoded_key_hash_ref)?;
+    if read_count != encoded_key_hash_ref.len() {
         return Err(Message("Error reading key_hash_ref!".to_string()));
     }
 
-    let salt = rs_decode(&salt_enc)?;
-    let nonce_19: Vec<u8> = rs_decode(&nonce_19_enc)?;
-    let key_hash_ref = rs_decode(&key_hash_ref_enc)?;
+    let salt_32 = rs_decode(&encoded_salt_32)?;
+    let nonce_19: Vec<u8> = rs_decode(&encoded_nonce_19)?;
+    let key_hash_ref = rs_decode(&encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt, &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32, &argon2_config)?;
 
     // Hash the encryption key for comparison and compare it in constant time with the ref key hash
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
@@ -307,8 +306,8 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str) 
         fs::create_dir_all(tmp_dir_path)?;
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let mut stream_decryptor = stream::DecryptorBE32::from_aead(cipher, nonce_19[..19].as_ref().into());
-        let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
-        let decrypted_file_path = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
+        let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
+        let decrypted_file_path = format!("{}{}.zip", tmp_dir_path, decrypted_file_stem);
         let mut decrypted_file = OpenOptions::new()
             .write(true)
             .append(true)

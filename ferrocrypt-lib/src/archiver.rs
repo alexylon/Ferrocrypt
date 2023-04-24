@@ -54,22 +54,22 @@ mod tests {
     }
 }
 
-pub fn archive(src_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
-    if Path::new(src_path).is_file() {
-        archive_file(src_path, dest_dir_path)
+pub fn archive(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
+    if Path::new(input_path).is_file() {
+        archive_file(input_path, output_dir)
     } else {
-        archive_dir(src_path, dest_dir_path)
+        archive_dir(input_path, output_dir)
     }
 }
 
-fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
-    let file_name_ext = Path::new(&src_file_path)
+fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
+    let file_name_extension = Path::new(&input_path)
         .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
-    let file_stem = &get_file_stem_to_string(file_name_ext)?;
-    println!("Adding file {:?} as {}{}/{} ...", src_file_path, dest_dir_path, file_stem, file_name_ext);
-    let path_dest = format!("{}{}.zip", dest_dir_path, file_stem);
-    let file = File::create(path_dest)?;
+    let file_stem = &get_file_stem_to_string(file_name_extension)?;
+    println!("Adding file {:?} as {}{}/{} ...", input_path, output_dir, file_stem, file_name_extension);
+    let output_zip_filename = format!("{}{}.zip", output_dir, file_stem);
+    let file = File::create(output_zip_filename)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
@@ -77,8 +77,8 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
         .unix_permissions(0o755);
     let mut buffer = Vec::new();
 
-    zip.start_file(file_name_ext, options)?;
-    let mut f = File::open(src_file_path)?;
+    zip.start_file(file_name_extension, options)?;
+    let mut f = File::open(input_path)?;
 
     f.read_to_end(&mut buffer)?;
     zip.write_all(&buffer)?;
@@ -89,53 +89,53 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
     Ok(file_stem.to_string())
 }
 
-fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
+fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     // If last char is '/', remove it
-    if src_dir_path.ends_with('/') {
-        src_dir_path = &src_dir_path[0..src_dir_path.len() - 1];
+    if input_path.ends_with('/') {
+        input_path = &input_path[0..input_path.len() - 1];
     }
 
     // Get dir name from path
-    let dir_name = Path::new(&src_dir_path)
+    let dir_name = Path::new(&input_path)
         .file_name().ok_or(CryptoError::InputPath("Input file or folder missing!".to_string()))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert directory name to &str"))?;
 
-    let path_dest_str = format!("{}{}.zip", dest_dir_path, dir_name);
-    let path_dest = Path::new(&path_dest_str);
-    let file = File::create(path_dest)?;
+    let output_zip_filename = format!("{}{}.zip", output_dir, dir_name);
+    let output_zip_path = Path::new(&output_zip_filename);
+    let file = File::create(output_zip_path)?;
     let mut zip = zip::ZipWriter::new(file);
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
         .large_file(true)
         .unix_permissions(0o755);
-    let walkdir = WalkDir::new(src_dir_path);
-    let it = walkdir.into_iter().filter_map(|e| e.ok());
+    let walkdir = WalkDir::new(input_path);
+    let iterator = walkdir.into_iter().filter_map(|e| e.ok());
     let mut buffer = Vec::new();
 
-    for entry in it {
+    for entry in iterator {
         let path = entry.path();
-        match path.strip_prefix(src_dir_path) {
+        match path.strip_prefix(input_path) {
             Ok(name) => {
                 let path_str = path.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
-                let path_str_norm = &normalize_paths(path_str, "").0;
+                let normalized_path_str = &normalize_paths(path_str, "").0;
                 let name_str = name.to_str().ok_or(ZipError::InvalidArchive("Cannot convert name to &str"))?;
-                let dest_path_str = format!("{}/{}", dir_name, name_str);
-                let dest_path_str_norm = &normalize_paths(&dest_path_str, "").0;
+                let output_path_str = format!("{}/{}", dir_name, name_str);
+                let normalized_output_path_str = &normalize_paths(&output_path_str, "").0;
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
-                    println!("Adding file {} as {} ...", path_str_norm, dest_path_str_norm);
-                    zip.start_file(&dest_path_str, options)?;
+                    println!("Adding file {} as {} ...", normalized_path_str, normalized_output_path_str);
+                    zip.start_file(&output_path_str, options)?;
                     let mut f = File::open(path)?;
 
                     f.read_to_end(&mut buffer)?;
                     zip.write_all(&buffer)?;
                     buffer.clear();
-                } else if !&dest_path_str.is_empty() {
+                } else if !&output_path_str.is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
-                    println!("Adding dir {} as {} ...", path_str_norm, dest_path_str_norm);
-                    zip.add_directory(&dest_path_str, options)?;
+                    println!("Adding dir {} as {} ...", normalized_path_str, normalized_output_path_str);
+                    zip.add_directory(&output_path_str, options)?;
                 }
             }
             Err(err) => { println!("StripPrefixError: {:?}", err); }
@@ -147,9 +147,9 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
     Ok(dir_name.to_string())
 }
 
-pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, CryptoError> {
-    let file = File::open(Path::new(&src_file_path))?;
-    let file_stem = &get_file_stem_to_string(src_file_path)?;
+pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
+    let file = File::open(Path::new(&input_path))?;
+    let file_stem = &get_file_stem_to_string(input_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
     for i in 0..archive.len() {
@@ -159,8 +159,8 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cry
             None => continue,
         };
         let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
-        let outpath_str_full = format!("{}{}", dest_dir_path, outpath_str);
-        let outpath_str_full_norm = normalize_paths(&outpath_str_full, "").0;
+        let outpath_str_full = format!("{}{}", output_dir, outpath_str);
+        let normalized_outpath_str_full = normalize_paths(&outpath_str_full, "").0;
         let outpath_full = Path::new(&outpath_str_full);
 
         {
@@ -171,12 +171,12 @@ pub fn unarchive(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cry
         }
 
         if (*file.name()).ends_with('/') {
-            println!("Extracting dir to \"{}\" ...", &outpath_str_full_norm);
+            println!("Extracting dir to \"{}\" ...", &normalized_outpath_str_full);
             fs::create_dir_all(outpath_full)?;
         } else {
             println!(
                 "Extracting file to \"{}\" ({} bytes) ...",
-                &outpath_str_full_norm,
+                &normalized_outpath_str_full,
                 file.size()
             );
             if let Some(p) = outpath_full.parent() {
