@@ -77,8 +77,7 @@ fn archive_file(src_file_path: &str, dest_dir_path: &str) -> Result<String, Cryp
         .unix_permissions(0o755);
     let mut buffer = Vec::new();
 
-    #[allow(deprecated)]
-    zip.start_file_from_path(Path::new(file_name_ext), options)?;
+    zip.start_file(file_name_ext, options)?;
     let mut f = File::open(src_file_path)?;
 
     f.read_to_end(&mut buffer)?;
@@ -122,24 +121,21 @@ fn archive_dir(mut src_dir_path: &str, dest_dir_path: &str) -> Result<String, Cr
                 let name_str = name.to_str().ok_or(ZipError::InvalidArchive("Cannot convert name to &str"))?;
                 let dest_path_str = format!("{}/{}", dir_name, name_str);
                 let dest_path_str_norm = &normalize_paths(&dest_path_str, "").0;
-                let dest_path = Path::new(&dest_path_str);
                 // Write file or directory explicitly
                 // Some unzip tools unzip files with directory paths correctly, some do not!
                 if path.is_file() {
                     println!("Adding file {} as {} ...", path_str_norm, dest_path_str_norm);
-                    #[allow(deprecated)]
-                    zip.start_file_from_path(dest_path, options)?;
+                    zip.start_file(&dest_path_str, options)?;
                     let mut f = File::open(path)?;
 
                     f.read_to_end(&mut buffer)?;
                     zip.write_all(&buffer)?;
                     buffer.clear();
-                } else if !dest_path.as_os_str().is_empty() {
+                } else if !&dest_path_str.is_empty() {
                     // Only if not root! Avoids path spec / warning
                     // and map name conversion failed error on unzip
                     println!("Adding dir {} as {} ...", path_str_norm, dest_path_str_norm);
-                    #[allow(deprecated)]
-                    zip.add_directory_from_path(dest_path, options)?;
+                    zip.add_directory(&dest_path_str, options)?;
                 }
             }
             Err(err) => { println!("StripPrefixError: {:?}", err); }
