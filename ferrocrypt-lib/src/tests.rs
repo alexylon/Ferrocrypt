@@ -141,7 +141,7 @@ mod ferrocrypt_tests {
     #[test]
     fn hybrid_generate_key_pair_test() {
         fs::create_dir_all(DEST_DIR_PATH_HYB).unwrap();
-        let mut passphrase = PASSPHRASE.to_string();
+        let mut passphrase = "test".to_string();
         generate_asymmetric_key_pair(4096, &mut passphrase, DEST_DIR_PATH_HYB).unwrap();
     }
 }
