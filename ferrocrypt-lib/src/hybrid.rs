@@ -14,13 +14,14 @@ use openssl::symm::Cipher;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{get_file_stem_to_string};
+use crate::reed_solomon::{rs_decode, rs_encode};
 
 
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
-    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
-    println!("\nencrypting {} ...", file_name_zipped);
+    let zipped_file_name = &format!("{}{}.zip", tmp_dir_path, file_stem);
+    println!("\nencrypting {} ...", zipped_file_name);
 
     // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
     let mut symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
@@ -29,32 +30,40 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
     let cipher = Aes256Gcm::new(&symmetric_key);
 
     // Create the 96-bit nonce, unique per file
-    let mut nonce = [0u8; 12];
-    OsRng.fill_bytes(&mut nonce);
+    let mut nonce_12 = [0u8; 12];
+    OsRng.fill_bytes(&mut nonce_12);
 
-    let file_original = read(file_name_zipped)?;
-    let ciphertext = cipher.encrypt(nonce.as_ref().into(), &*file_original)?;
+    let zipped_file = read(zipped_file_name)?;
+    let ciphertext = cipher.encrypt(nonce_12.as_ref().into(), &*zipped_file)?;
 
     // Encrypt the data key
     let pub_key_str = fs::read_to_string(rsa_public_pem)?;
     let encrypted_symmetric_key: Vec<u8> = encrypt_key(symmetric_key.to_vec(), &pub_key_str)?;
 
-    let mut file_path_encrypted = OpenOptions::new()
+    let mut encrypted_file_path = OpenOptions::new()
         .write(true)
         .append(true)
         .create_new(true)
         .open(format!("{}{}.fch", &output_dir, file_stem))?;
 
+    // Reserve header information for decryption
+    let flags: [bool; 4] = [false, false, false, false];
+    let serialized_flags: Vec<u8> = bincode::serialize(&flags)?;
+
+    let encoded_encrypted_symmetric_key: Vec<u8> = rs_encode(&encrypted_symmetric_key)?;
+    let encoded_nonce_12: Vec<u8> = rs_encode(&nonce_12)?;
+
     // The output contains the encrypted data key, the nonce and the encrypted file
-    file_path_encrypted.write_all(&encrypted_symmetric_key)?;
-    file_path_encrypted.write_all(&nonce)?;
-    file_path_encrypted.write_all(&ciphertext)?;
+    encrypted_file_path.write_all(&serialized_flags)?;
+    encrypted_file_path.write_all(&encoded_encrypted_symmetric_key)?;
+    encrypted_file_path.write_all(&encoded_nonce_12)?;
+    encrypted_file_path.write_all(&ciphertext)?;
 
     let encrypted_file_name = &format!("{}{}.fch", output_dir, file_stem);
     let result = format!("Encrypted to {}", encrypted_file_name);
     println!("\n{}", result);
 
-    nonce.zeroize();
+    nonce_12.zeroize();
     symmetric_key.zeroize();
 
     Ok(result)
@@ -62,7 +71,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
 
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
 pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
-    let nonce_len = 12;
+    let nonce_12_len = 12;
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
     println!("decrypting {} ...\n", input_path);
@@ -72,17 +81,22 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
     // Get public key size
     let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
 
-    // Split the encrypted_symmetric_key, nonce and the encrypted file
-    let (encrypted_symmetric_key, data_file) = encrypted_file.split_at(rsa_pub_pem_size as usize);
-    let (nonce_vec, ciphertext) = data_file.split_at(nonce_len);
-    let nonce = Nonce::from_slice(nonce_vec);
+    // Split the flags, encrypted_symmetric_key, nonce and the encrypted file
+    let (serialized_flags, rem_data) = encrypted_file.split_at(4);
+    let _flags: [bool; 4] = bincode::deserialize(serialized_flags)?;
+    let (encoded_encrypted_symmetric_key, rem_data) = rem_data.split_at((rsa_pub_pem_size * 3) as usize);
+    let (encoded_nonce_12, ciphertext) = rem_data.split_at(nonce_12_len * 3);
+
+    let encrypted_symmetric_key = rs_decode(encoded_encrypted_symmetric_key)?;
+    let nonce_12_vec = rs_decode(encoded_nonce_12)?;
+    let nonce_12 = Nonce::from_slice(&nonce_12_vec);
 
     // Decrypt the data key
-    let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
+    let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key_str, passphrase)?;
 
     let mut symmetric_key: GenericArray<u8, typenum::U32> = GenericArray::from(decrypted_symmetric_key);
     let cipher = Aes256Gcm::new(&symmetric_key);
-    let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
+    let file_decrypted = cipher.decrypt(nonce_12, ciphertext.as_ref())?;
     let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
     let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
 

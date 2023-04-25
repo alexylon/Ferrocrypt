@@ -30,8 +30,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
     let encrypted_extension = "fcv";
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
-    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
-    println!("\nEncrypting {} ...", file_name_zipped);
+    let zipped_file_name = &format!("{}{}.zip", tmp_dir_path, file_stem);
+    println!("\nEncrypting {} ...", zipped_file_name);
 
     let mut encrypted_file_path = OpenOptions::new()
         .write(true)
@@ -40,7 +40,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         .open(format!("{}{}.{}", &output_dir, file_stem, encrypted_extension))?;
 
 
-    // Encode with reed-solomon
+    // Encode with reed-solomon. The resulting size is three times that of the original
     let encoded_salt_32: Vec<u8> = rs_encode(&salt_32)?;
     let encoded_key_hash_ref: Vec<u8> = rs_encode(&key_hash_ref)?;
 
@@ -49,8 +49,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         OsRng.fill_bytes(&mut nonce_24);
 
         let encoded_nonce_24: Vec<u8> = rs_encode(&nonce_24)?;
-        let source_file = read(file_name_zipped)?;
-        let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*source_file)?;
+        let zipped_file = read(zipped_file_name)?;
+        let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*zipped_file)?;
 
         encrypted_file_path.write_all(&serialized_flags)?;
         encrypted_file_path.write_all(&encoded_salt_32)?;
@@ -72,7 +72,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         encrypted_file_path.write_all(&encoded_nonce_19)?;
         encrypted_file_path.write_all(&encoded_key_hash_ref)?;
 
-        let mut source_file = File::open(file_name_zipped)?;
+        let mut source_file = File::open(zipped_file_name)?;
         loop {
             let read_count = source_file.read(&mut buffer)?;
 
