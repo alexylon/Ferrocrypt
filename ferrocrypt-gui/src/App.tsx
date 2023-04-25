@@ -209,7 +209,7 @@ function App() {
             .catch((error: string) => {
                 updateState({
                     statusOk: "",
-                    statusErr: error,
+                    statusErr: error.replace(/"+/g, ''),
                 });
             });
     }

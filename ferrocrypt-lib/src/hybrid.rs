@@ -12,6 +12,7 @@ use openssl::symm::Cipher;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{get_file_stem_to_string};
+use crate::CryptoError::EncryptionDecryptionError;
 use crate::reed_solomon::{rs_decode, rs_encode};
 
 
@@ -36,7 +37,10 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
 
     // Encrypt the data key
     let pub_key_str = fs::read_to_string(rsa_public_pem)?;
-    let encrypted_symmetric_key: Vec<u8> = encrypt_key(symmetric_key.to_vec(), &pub_key_str)?;
+    let encrypted_symmetric_key: Vec<u8> = match encrypt_key(symmetric_key.to_vec(), &pub_key_str) {
+        Ok(encrypted_symmetric_key) => { encrypted_symmetric_key }
+        Err(_) => { return Err(EncryptionDecryptionError { msg: "The provided public key is not valid".to_string() }); }
+    };
 
     let mut encrypted_file_path = OpenOptions::new()
         .write(true)
@@ -76,7 +80,10 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
     let encrypted_file: Vec<u8> = read(input_path)?;
 
     // Get public key size
-    let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
+    let rsa_pub_pem_size = match get_public_key_size_from_private_key(&priv_key_str, passphrase) {
+        Ok(rsa_pub_pem_size) => { rsa_pub_pem_size }
+        Err(_) => { return Err(EncryptionDecryptionError { msg: "Incorrect password or wrong private key provided".to_string() }); }
+    };
 
     // Split the flags, encrypted_symmetric_key, nonce and the encrypted file
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);

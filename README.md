@@ -14,18 +14,18 @@ to ensure the highest level of security and speed.
 
 Ferrocrypt supports two different encryption modes:
 
-1. Symmetric encryption: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher
+1. Symmetric encryption mode: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher
    and the Poly1305 MAC, which together provide stronger security guarantees.
    Additionally, Ferrocrypt employs the Argon2id password-based key derivation function
    to generate secure encryption keys from user passwords,
    making it easy for users to protect their data with a strong and unique password.
    The vaults that are produced have the file extension ".fcs".
 
-2. Hybrid encryption: This method combines both symmetric and asymmetric encryption algorithms.
+2. Hybrid encryption mode: This method combines both symmetric and asymmetric encryption algorithms.
    In this mode, the XChaCha20-Poly1305 symmetric algorithm is used to encrypt the data,
    while the RSA asymmetric (public key) algorithm is used to encrypt the symmetric data key,
    providing an added layer of security.
-   Unlike Symmetric mode above, where a password-derived key is used to encrypt all files or folders,
+   Unlike the Symmetric mode above, where a password-derived key is used to encrypt all files or folders,
    each file or folder is encrypted with a random key in Hybrid mode. Even if someone guesses your password,
    the random key renders it useless without the private key. Moreover, if someone gains access to your private key,
    they would still need the password to decrypt it.

@@ -21,8 +21,8 @@ pub enum CryptoError {
     BinCodeError(#[from] Box<bincode::ErrorKind>),
     #[error(transparent)]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
-    #[error("The provided password is incorrect")]
-    Decryption(String),
+    #[error("{msg:?}")]
+    EncryptionDecryptionError { msg: String },
     #[error("Input file or folder missing")]
     InputPath(String),
     #[error("Message Error")]

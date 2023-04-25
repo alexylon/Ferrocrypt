@@ -6,7 +6,7 @@ use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, sha3_32_hash};
-use crate::CryptoError::{ChaCha20Poly1305Error, Decryption, Message};
+use crate::CryptoError::{ChaCha20Poly1305Error, EncryptionDecryptionError, Message};
 use crate::reed_solomon::{rs_encode, rs_decode};
 
 // Encrypt file with XChaCha20Poly1305 algorithm
@@ -156,7 +156,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
         key.zeroize();
         passphrase.zeroize();
     } else {
-        return Err(Decryption("The provided password is incorrect!".to_string()));
+        return Err(EncryptionDecryptionError { msg: "The provided password is incorrect".to_string() });
     }
 
     Ok(())
