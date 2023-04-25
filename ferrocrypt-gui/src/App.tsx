@@ -68,7 +68,7 @@ function App() {
         const {hidePassword, inpath, password, passwordRepeated, requirePasswordRepeated} = state;
 
         const fileExtension = inpath.slice(inpath.lastIndexOf("."));
-        const decryptionMode = fileExtension === ".fcv";
+        const decryptionMode = fileExtension === ".fcs";
 
         if (decryptionMode) {
             updateState({

@@ -7,13 +7,13 @@ mod ferrocrypt_tests {
     // use zeroize::Zeroize;
 
     const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
-    const ENCRYPTED_FILE_PATH_SYM: &str = "src/dest/test-file.fcv";
-    const ENCRYPTED_LARGE_FILE_PATH_SYM: &str = "src/dest_large/test-file.fcv";
+    const ENCRYPTED_FILE_PATH_SYM: &str = "src/dest/test-file.fcs";
+    const ENCRYPTED_LARGE_FILE_PATH_SYM: &str = "src/dest_large/test-file.fcs";
     const DEST_DIR_PATH: &str = "src/dest/";
     const DEST_DIR_PATH_LARGE: &str = "src/dest_large/";
     const DEST_DIR_PATH_HYB: &str = "src/dest_hyb/";
     const SRC_DIR_PATH: &str = "src/test_files/test-folder";
-    const ENCRYPTED_DIR_PATH_SYM: &str = "src/dest/test-folder.fcv";
+    const ENCRYPTED_DIR_PATH_SYM: &str = "src/dest/test-folder.fcs";
     const ENCRYPTED_FILE_PATH_HYB: &str = "src/dest_hyb/test-file.fch";
     const DECRYPTED_FILE_PATH_HYB: &str = "src/dest_hyb/test-file.txt";
     const ENCRYPTED_DIR_PATH_HYB: &str = "src/dest_hyb/test-folder.fch";

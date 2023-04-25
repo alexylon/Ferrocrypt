@@ -28,7 +28,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     // Hash the encryption key for comparison when decrypting
     let key_hash_ref: [u8; 32] = sha3_32_hash(&key)?;
 
-    let encrypted_extension = "fcv";
+    let encrypted_extension = "fcs";
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
     let zipped_file_name = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nEncrypting {} ...", zipped_file_name);

@@ -17,7 +17,7 @@ pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut s
     let tmp_dir_path = &format!("{}.tmp_zip/", normalized_output_dir);
     fs::create_dir_all(tmp_dir_path)?;
 
-    let result = if input_path.ends_with(".fcv") {
+    let result = if input_path.ends_with(".fcs") {
         symmetric::decrypt_file(&normalized_input_path, &normalized_output_dir, password, tmp_dir_path)
     } else {
         symmetric::encrypt_file(&normalized_input_path, &normalized_output_dir, password, large, tmp_dir_path)

@@ -19,17 +19,20 @@ Ferrocrypt supports two different encryption modes:
    Additionally, Ferrocrypt employs the Argon2id password-based key derivation function 
    to generate secure encryption keys from user passwords,
    making it easy for users to protect their data with a strong and unique password.
-   The vaults that are produced have the file extension ".fcv".
+   The vaults that are produced have the file extension ".fcs".
 
-2. Hybrid encryption: This method leverages both symmetric and asymmetric encryption algorithms
-   to provide a robust and reliable encryption process.
-   Specifically, this mode uses the industry-standard AES-GCM symmetric algorithm to encrypt the data
-   and the RSA asymmetric (public key) algorithm to encrypt the symmetric data key,
-   providing an added layer of security. 
-   The vaults that are produced have the file extension ".fch".
+2. Hybrid encryption: This method combines both symmetric and asymmetric encryption algorithms. 
+   In this mode, the XChaCha20-Poly1305 symmetric algorithm is used to encrypt the data, 
+   while the RSA asymmetric (public key) algorithm is used to encrypt the symmetric data key, 
+   providing an added layer of security.
+   Unlike Symmetric mode above, where a password-derived key is used to encrypt all files or folders, 
+   each file or folder is encrypted with a random key in Hybrid mode. Even if someone guesses your password, 
+   the random key renders it useless without the private key. Moreover, if someone gains access to your private key, 
+   they would still need the password to decrypt it. 
+   Vaults produced by the Hybrid mode have a file extension of ".fch".
 
-The two crates, implementing the AES-GCM and ChaCha20Poly1305 encryption algorithms,
-`aes-gcm` and `chacha20poly1305`, have successfully received security audits.
+The `chacha20poly1305` crate, which implements the ChaCha20Poly1305 encryption algorithms, 
+has undergone successful security audits.
 
 Ferrocrypt enhances the security of header data, which comprises crucial cryptographic components, 
 by generating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption, 
@@ -81,7 +84,7 @@ or
 
 ### Hybrid encryption
 
-An ideal choice for secure data exchange, allowing files or directories
+Apart from personal use, this mode is an ideal choice for secure data exchange, allowing files or directories
 to be encrypted using a public key. However, decryption is only possible
 with the corresponding private key and passphrase that unlocks the key.
 
