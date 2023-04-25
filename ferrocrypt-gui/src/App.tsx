@@ -5,7 +5,6 @@ import {open} from "@tauri-apps/api/dialog";
 import "./App.css";
 
 interface AppState {
-    symmetricDecryptionMode: boolean;
     disableLargeFilesCheckbox: boolean;
     disableStart: boolean;
     hidePassword: boolean;
@@ -24,12 +23,12 @@ interface AppState {
     showVisibilityIcon: boolean;
     statusErr: string;
     statusOk: string;
+    symmetricDecryptionMode: boolean;
     symmetricEncryptionMode: boolean;
     visibilityIcon: string;
 }
 
 const initialState: AppState = {
-    symmetricDecryptionMode: false,
     disableLargeFilesCheckbox: false,
     disableStart: true,
     hidePassword: true,
@@ -48,6 +47,7 @@ const initialState: AppState = {
     showVisibilityIcon: true,
     statusErr: "",
     statusOk: "Ready",
+    symmetricDecryptionMode: false,
     symmetricEncryptionMode: true,
     visibilityIcon: "/icon-unhide-50.png"
 };
@@ -83,59 +83,59 @@ function App() {
             updateState({
                 disableStart: inpath === "" || password.length < 1,
                 disableLargeFilesCheckbox: true,
-                requirePasswordRepeated: false,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 passwordType: hidePassword ? "password" : "text",
+                requirePasswordRepeated: false,
                 showMatchingIcon: false,
                 showVisibilityIcon: true,
+                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
             });
         } else if (hybridDecryptionMode) {
             updateState({
-                disableStart: inpath === "" || password.length < 1 || keypath === "",
                 disableLargeFilesCheckbox: true,
-                requirePasswordRepeated: false,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
+                disableStart: inpath === "" || password.length < 1 || keypath === "",
                 passwordType: hidePassword ? "password" : "text",
+                requirePasswordRepeated: false,
                 showMatchingIcon: false,
                 showVisibilityIcon: true,
-                symmetricEncryptionMode: false
+                symmetricEncryptionMode: false,
+                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png"
             });
         } else if (!hybridDecryptionMode && !symmetricEncryptionMode && !symmetricDecryptionMode) { // Hybrid encryption mode
             updateState({
-                disableStart: inpath === "" || keypath === "",
                 disableLargeFilesCheckbox: false,
+                disableStart: inpath === "" || keypath === "",
+                passwordType: hidePassword ? "password" : "text",
                 requirePassword: false,
                 requirePasswordRepeated: false,
-                passwordType: hidePassword ? "password" : "text",
                 showMatchingIcon: false,
                 showVisibilityIcon: false,
                 symmetricEncryptionMode: false
             });
         } else { // Symmetric encryption mode
             updateState({
-                disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
                 disableLargeFilesCheckbox: false,
-                requirePassword: true,
-                requirePasswordRepeated: hidePassword,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
-                passwordType: hidePassword ? "password" : "text",
-                showMatchingIcon: hidePassword ? !!passwordRepeated : false,
-                showVisibilityIcon: true,
+                disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
                 matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
                     ? "/icon-dot-green-30.png"
                     : "/icon-dot-red-30.png",
+                requirePassword: true,
+                requirePasswordRepeated: hidePassword,
+                passwordType: hidePassword ? "password" : "text",
+                showMatchingIcon: hidePassword ? !!passwordRepeated : false,
+                showVisibilityIcon: true,
+                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
             });
         }
     }, [
-        state.symmetricEncryptionMode,
-        state.symmetricDecryptionMode,
         state.hidePassword,
         state.inpath,
         state.keypath,
         state.password,
         state.passwordRepeated,
         state.requirePassword,
-        state.requirePasswordRepeated
+        state.requirePasswordRepeated,
+        state.symmetricDecryptionMode,
+        state.symmetricEncryptionMode
     ]);
 
 
@@ -217,23 +217,23 @@ function App() {
     const handleClear = () => setState(initialState);
 
     const {
+        disableLargeFilesCheckbox,
+        disableStart,
+        isLargeFile,
         keypath,
+        matchingIcon,
         outpath,
         password,
         passwordRepeated,
-        requirePasswordRepeated,
-        requirePassword,
-        statusOk,
-        statusErr,
-        isLargeFile,
-        disableLargeFilesCheckbox,
-        disableStart,
         passwordType,
-        visibilityIcon,
-        matchingIcon,
-        symmetricEncryptionMode,
+        requirePassword,
+        requirePasswordRepeated,
         showMatchingIcon,
         showVisibilityIcon,
+        statusErr,
+        statusOk,
+        symmetricEncryptionMode,
+        visibilityIcon,
     } = state;
 
 
