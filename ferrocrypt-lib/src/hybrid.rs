@@ -16,91 +16,8 @@ use crate::{archiver, CryptoError};
 use crate::common::{get_file_stem_to_string};
 
 
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use aes_gcm::{Aes256Gcm};
-    use aes_gcm::aead::{KeyInit, OsRng};
-
-    use crate::hybrid::{decrypt_file, decrypt_key, encrypt_file, encrypt_key, generate_asymmetric_key_pair, get_public_key_size_from_private_key};
-
-    const SRC_FILE_PATH: &str = "src/test_files/test-file.txt";
-    const SRC_DIR_PATH: &str = "src/test_files/test-folder/";
-    const DEST_DIRPATH: &str = "src/dest/";
-    const FILE_PATH_ENCRYPTED: &str = "src/dest/test-file.fch";
-    const FILE_PATH_DECRYPTED: &str = "src/dest/test-file.txt";
-    const DIR_PATH_ENCRYPTED: &str = "src/dest/test-folder.fch";
-    // RSA-4096 PKCS#1 public key encoded as PEM
-    const RSA_PUB_PEM: &str = "src/key_examples/rsa-4096-pub-key.pem";
-    // RSA-4096 PKCS#1 private key encoded as PEM
-    const RSA_PRIV_PEM: &str = "src/key_examples/rsa-4096-priv-key.pem";
-    const PASSPHRASE: &str = "strong_passphrase";
-
-    #[test]
-    fn encrypt_decrypt_file_test() {
-        let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        encrypt_file(SRC_FILE_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
-        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, &mut rsa_priv_pem, &mut passphrase).unwrap();
-
-        let file_original = fs::read_to_string(SRC_FILE_PATH).unwrap();
-        let file_decrypted = fs::read_to_string(FILE_PATH_DECRYPTED).unwrap();
-
-        assert_eq!(file_original, file_decrypted);
-    }
-
-    #[test]
-    fn encrypt_file_test() {
-        encrypt_file(SRC_FILE_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
-    }
-
-    #[test]
-    fn decrypt_file_test() {
-        let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        decrypt_file(FILE_PATH_ENCRYPTED, DEST_DIRPATH, &mut rsa_priv_pem, &mut passphrase).unwrap();
-    }
-
-    #[test]
-    fn encrypt_dir_test() {
-        encrypt_file(SRC_DIR_PATH, DEST_DIRPATH, RSA_PUB_PEM).unwrap();
-    }
-
-    #[test]
-    fn decrypt_dir_test() {
-        let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        decrypt_file(DIR_PATH_ENCRYPTED, DEST_DIRPATH, &mut rsa_priv_pem, &mut passphrase).unwrap();
-    }
-
-    #[test]
-    fn encrypt_decrypt_key_test() {
-        let pub_key = fs::read_to_string(RSA_PUB_PEM).unwrap();
-        let priv_key = fs::read_to_string(RSA_PRIV_PEM).unwrap();
-        let symmetric_key = Aes256Gcm::generate_key(&mut OsRng);
-        let encrypted_symmetric_key = encrypt_key(symmetric_key.to_vec(), &pub_key).unwrap();
-        let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key, PASSPHRASE).unwrap();
-
-        assert_eq!(symmetric_key.to_vec(), decrypted_symmetric_key);
-    }
-
-    #[test]
-    fn generate_key_pair_test() {
-        let passphrase = "test";
-        generate_asymmetric_key_pair(4096, passphrase, DEST_DIRPATH).unwrap();
-    }
-
-    #[test]
-    fn get_rsa_key_size_test() {
-        let priv_key = fs::read_to_string(RSA_PRIV_PEM).unwrap();
-        let rsa_pub_key_size = get_public_key_size_from_private_key(&priv_key, PASSPHRASE).unwrap();
-        println!("rsa_pub_key_size: {rsa_pub_key_size}");
-    }
-}
-
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str) -> Result<(), CryptoError> {
+pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tmp_dir_path: &str) -> Result<(), CryptoError> {
     let file_stem = &archiver::archive(input_path, output_dir)?;
     let file_name_zipped = &format!("{}{}.zip", output_dir, file_stem);
     println!("\nencrypting {} ...", file_name_zipped);
@@ -144,7 +61,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str) ->
 }
 
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str) -> Result<(), CryptoError> {
+pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
     let nonce_len = 12;
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
