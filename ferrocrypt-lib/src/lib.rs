@@ -1,6 +1,6 @@
 use std::fs;
 use crate::common::normalize_paths;
-use crate::error::CryptoError;
+pub use crate::error::CryptoError;
 
 mod archiver;
 mod symmetric;
@@ -55,7 +55,7 @@ pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut s
     result
 }
 
-pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &str, output_dir: &str) -> Result<String, CryptoError> {
+pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &mut str, output_dir: &str) -> Result<String, CryptoError> {
     let normalized_output_dir = normalize_paths("", output_dir).1;
 
     let result = hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)?;

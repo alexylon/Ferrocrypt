@@ -1,10 +1,5 @@
 use clap::Parser;
-use ferrocrypt::{
-    CryptoError,
-    hybrid_encryption,
-    generate_asymmetric_key_pair,
-    symmetric_encryption,
-};
+use ferrocrypt::{hybrid_encryption, generate_asymmetric_key_pair, symmetric_encryption, CryptoError};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -43,7 +38,7 @@ fn main() -> Result<(), CryptoError> {
     let mut args = Args::parse();
 
     if args.generate {
-        generate_asymmetric_key_pair(args.bit_size, &args.passphrase, &args.outpath)?;
+        generate_asymmetric_key_pair(args.bit_size, &mut args.passphrase, &args.outpath)?;
     } else if args.inpath.is_empty() {
         eprintln!("Source path missing!");
     } else if !args.key.is_empty() {
