@@ -1,6 +1,6 @@
 # Ferrocrypt
 
-Tiny, easy-to-use, and incredibly secure multiplatform encryption tool with CLI (Command Line Interface) 
+Tiny, easy-to-use, and incredibly secure multiplatform encryption tool with CLI (Command Line Interface)
 and GUI (Graphical User Interface)
 
 ## ABOUT
@@ -14,37 +14,37 @@ to ensure the highest level of security and speed.
 
 Ferrocrypt supports two different encryption modes:
 
-1. Symmetric encryption: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher 
+1. Symmetric encryption: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher
    and the Poly1305 MAC, which together provide stronger security guarantees.
-   Additionally, Ferrocrypt employs the Argon2id password-based key derivation function 
+   Additionally, Ferrocrypt employs the Argon2id password-based key derivation function
    to generate secure encryption keys from user passwords,
    making it easy for users to protect their data with a strong and unique password.
    The vaults that are produced have the file extension ".fcs".
 
-2. Hybrid encryption: This method combines both symmetric and asymmetric encryption algorithms. 
-   In this mode, the XChaCha20-Poly1305 symmetric algorithm is used to encrypt the data, 
-   while the RSA asymmetric (public key) algorithm is used to encrypt the symmetric data key, 
+2. Hybrid encryption: This method combines both symmetric and asymmetric encryption algorithms.
+   In this mode, the XChaCha20-Poly1305 symmetric algorithm is used to encrypt the data,
+   while the RSA asymmetric (public key) algorithm is used to encrypt the symmetric data key,
    providing an added layer of security.
-   Unlike Symmetric mode above, where a password-derived key is used to encrypt all files or folders, 
-   each file or folder is encrypted with a random key in Hybrid mode. Even if someone guesses your password, 
-   the random key renders it useless without the private key. Moreover, if someone gains access to your private key, 
-   they would still need the password to decrypt it. 
+   Unlike Symmetric mode above, where a password-derived key is used to encrypt all files or folders,
+   each file or folder is encrypted with a random key in Hybrid mode. Even if someone guesses your password,
+   the random key renders it useless without the private key. Moreover, if someone gains access to your private key,
+   they would still need the password to decrypt it.
    Vaults produced by the Hybrid mode have a file extension of ".fch".
 
-The `chacha20poly1305` crate, which implements the ChaCha20Poly1305 encryption algorithms, 
+The `chacha20poly1305` crate, which implements the ChaCha20Poly1305 encryption algorithms,
 has undergone successful security audits.
 
-Ferrocrypt enhances the security of header data, which comprises crucial cryptographic components, 
-by generating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption, 
-which may occur due to hard drive bit rot, data transfer or other factors, these parity bytes enable Ferrocrypt 
+Ferrocrypt enhances the security of header data, which comprises crucial cryptographic components,
+by generating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption,
+which may occur due to hard drive bit rot, data transfer or other factors, these parity bytes enable Ferrocrypt
 to successfully recover the header and decrypt your data with a high degree of reliability.
 
-The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli` 
+The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`
 and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
 
 ## BUILD the CLI app
 
-After [installing Rust](https://www.rust-lang.org/learn/get-started), 
+After [installing Rust](https://www.rust-lang.org/learn/get-started),
 just run the following command in the root directory:
 
 ```cargo build --release```
@@ -128,13 +128,17 @@ or
 | `-h, --help`                  | Print help                                                                                                                            |                                                                                                                                   
 | `-V, --version`               | Print version                                                                                                                         |                                                                                                                             |
 
-* The decision of whether to include the `-l, --large` flag depends on the total size of the files to be encrypted. 
-If the size is smaller than the available RAM, omitting the flag can result in a much faster encryption/decryption process. 
-On the other hand, if the total size exceeds the available RAM, using the flag can significantly speed up the process.
-It's important to note that the `-l, --large` flag is recommended when minimizing RAM consumption is a priority and the encryption/decryption process 
-shouldn't affect the user's work. Using this flag significantly reduces RAM usage, providing a smoother user experience.
-If the encryption process is carried out with the specified flag, there's no need to specify it when decrypting the file(s). 
-The decryption process will automatically use the same method that was used for encryption.
+* The decision of whether to include the `-l, --large` flag depends on the total size of the files to be encrypted.
+  If the size is smaller than the available RAM, omitting the flag can result in a much faster encryption/decryption
+  process.
+  On the other hand, if the total size exceeds the available RAM, using the flag can significantly speed up the process.
+  It's important to note that the `-l, --large` flag is recommended when minimizing RAM consumption is a priority and
+  the encryption/decryption process
+  shouldn't affect the user's work. Using this flag significantly reduces RAM usage, providing a smoother user
+  experience.
+  If the encryption process is carried out with the specified flag, there's no need to specify it when decrypting the
+  file(s).
+  The decryption process will automatically use the same method that was used for encryption.
 
 <br/>
 
@@ -143,7 +147,21 @@ The decryption process will automatically use the same method that was used for 
 After installing [Rust](https://www.rust-lang.org/learn/get-started),
 and [Node.js](https://nodejs.org/) just run the following commands in the `ferrocrypt-gui` directory:
 
-```npm install``` and ```cargo tauri build```
+Install the `create-tauri-app` utility:
+
+```cargo install create-tauri-app```
+
+Install the Tauri CLI:
+
+```cargo install tauri-cli```
+
+Install node modules:
+
+```npm install```
+
+Build the app to a binary executable file:
+
+```cargo tauri build```
 
 The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
 
@@ -153,13 +171,11 @@ You can start a live dev session with ```cargo tauri dev```
 
 ## USAGE of the GUI app
 
-To encrypt or decrypt a file or folder, simply drag and drop it into the app window. 
+To encrypt or decrypt a file or folder, simply drag and drop it into the app window.
 Then, choose a password and a destination folder, and click the "Start" button.
 If you need to encrypt files that will result in a large vault exceeding the available RAM,
 or if you simply want to prevent excessive RAM consumption,
 just check the "Large files (low RAM usage)" option (see the OPTIONS section above for more info).
-
-The GUI app only supports symmetric encryption at this time.
 
 <br/>
 
