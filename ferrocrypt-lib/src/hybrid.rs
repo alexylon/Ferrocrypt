@@ -17,9 +17,9 @@ use crate::common::{get_file_stem_to_string};
 
 
 // Encrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tmp_dir_path: &str) -> Result<(), CryptoError> {
-    let file_stem = &archiver::archive(input_path, output_dir)?;
-    let file_name_zipped = &format!("{}{}.zip", output_dir, file_stem);
+pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tmp_dir_path: &str) -> Result<String, CryptoError> {
+    let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
+    let file_name_zipped = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nencrypting {} ...", file_name_zipped);
 
     // Generate the symmetric AES-GCM 256-bit data key for data encryption/decryption (data key), unique per file
@@ -50,56 +50,56 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
     file_path_encrypted.write_all(&nonce)?;
     file_path_encrypted.write_all(&ciphertext)?;
 
-    fs::remove_file(file_name_zipped)?;
-    let file_name_encrypted = &format!("{}{}.fch", output_dir, file_stem);
-    println!("\nencrypted to {}", file_name_encrypted);
+    let encrypted_file_name = &format!("{}{}.fch", output_dir, file_stem);
+    let result = format!("Encrypted to {}", encrypted_file_name);
+    println!("\n{}", result);
 
     nonce.zeroize();
     symmetric_key.zeroize();
 
-    Ok(())
+    Ok(result)
 }
 
 // Decrypt file with AES-GCM algorithm and symmetric key with RSA algorithm
-pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
+pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     let nonce_len = 12;
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
-    if input_path.ends_with(".fch") {
-        println!("decrypting {} ...\n", input_path);
+    println!("decrypting {} ...\n", input_path);
 
-        let encrypted_file: Vec<u8> = read(input_path)?;
+    let encrypted_file: Vec<u8> = read(input_path)?;
 
-        // Get public key size
-        let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
+    // Get public key size
+    let rsa_pub_pem_size = get_public_key_size_from_private_key(&priv_key_str, passphrase)?;
 
-        // Split the encrypted_symmetric_key, nonce and the encrypted file
-        let (encrypted_symmetric_key, data_file) = encrypted_file.split_at(rsa_pub_pem_size as usize);
-        let (nonce_vec, ciphertext) = data_file.split_at(nonce_len);
-        let nonce = Nonce::from_slice(nonce_vec);
+    // Split the encrypted_symmetric_key, nonce and the encrypted file
+    let (encrypted_symmetric_key, data_file) = encrypted_file.split_at(rsa_pub_pem_size as usize);
+    let (nonce_vec, ciphertext) = data_file.split_at(nonce_len);
+    let nonce = Nonce::from_slice(nonce_vec);
 
-        // Decrypt the data key
-        let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
+    // Decrypt the data key
+    let decrypted_symmetric_key = decrypt_key(encrypted_symmetric_key, &priv_key_str, passphrase)?;
 
-        let mut symmetric_key: GenericArray<u8, typenum::U32> = GenericArray::from(decrypted_symmetric_key);
-        let cipher = Aes256Gcm::new(&symmetric_key);
-        let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
-        let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
-        let decrypted_file_path: String = format!("{}{}.zip", output_dir, file_stem_decrypted);
-        File::create(&decrypted_file_path)?;
-        fs::write(&decrypted_file_path, file_decrypted)?;
-        archiver::unarchive(&decrypted_file_path, output_dir)?;
-        fs::remove_file(&decrypted_file_path)?;
-        println!("\ndecrypted to {}", output_dir);
+    let mut symmetric_key: GenericArray<u8, typenum::U32> = GenericArray::from(decrypted_symmetric_key);
+    let cipher = Aes256Gcm::new(&symmetric_key);
+    let file_decrypted = cipher.decrypt(nonce, ciphertext.as_ref())?;
+    let file_stem_decrypted = &get_file_stem_to_string(input_path)?;
+    let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, file_stem_decrypted);
 
-        symmetric_key.zeroize();
-        rsa_private_pem.zeroize();
-        passphrase.zeroize();
-    } else {
-        return Err(CryptoError::Message("This file should have '.fch' extension!".to_string()));
-    }
+    File::create(&decrypted_file_path)?;
+    fs::write(&decrypted_file_path, file_decrypted)?;
+    archiver::unarchive(&decrypted_file_path, output_dir)?;
 
-    Ok(())
+    println!("\ndecrypted to {}", output_dir);
+
+    symmetric_key.zeroize();
+    rsa_private_pem.zeroize();
+    passphrase.zeroize();
+
+    let result = format!("Decrypted to {}", output_dir);
+    println!("\n{}", result);
+
+    Ok(result)
 }
 
 fn get_public_key_size_from_private_key(rsa_private_pem: &str, passphrase: &str) -> Result<u32, CryptoError> {
@@ -134,7 +134,7 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
     Ok(result)
 }
 
-pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &str, output_dir: &str) -> Result<(), CryptoError> {
+pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &str, output_dir: &str) -> Result<String, CryptoError> {
     // Generate asymmetric key pair
     let rsa: Rsa<Private> = Rsa::generate(bit_size)?;
     let private_key: Vec<u8> = rsa.private_key_to_pem_passphrase(Cipher::aes_256_cbc(), passphrase.as_bytes())?;
@@ -156,5 +156,8 @@ pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &str, output_dir:
         .open(&public_key_path)?;
     public_key_file.write_all(&public_key)?;
 
-    Ok(())
+    let result = format!("Generated key pair to {}", output_dir);
+    println!("\n{}", result);
+
+    Ok(result)
 }
