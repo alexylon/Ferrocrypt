@@ -5,7 +5,7 @@ and GUI (Graphical User Interface)
 
 <br/>
 
-<div align="center"><img align="center" src="/ferrocrypt-gui/src/images/ferrocrypt_screenshot_400x646.png" width="400" alt="Ferrocrypt"></div>
+<div align="center"><img align="center" src="/ferrocrypt-gui/src/images/ferrocrypt_screenshot.png" width="400" alt="Ferrocrypt"></div>
 
 <br/>
 
