@@ -18,7 +18,7 @@
 
 .container {
     margin: 0;
-    padding-top: 4vh;
+    padding-top: 3vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -26,7 +26,7 @@
 }
 
 .logo {
-    height: 4em;
+    height: 3em;
     /*padding: 1.5em;*/
     will-change: filter;
     transition: 0.75s;

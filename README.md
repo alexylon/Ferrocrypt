@@ -3,6 +3,12 @@
 Tiny, easy-to-use, and incredibly secure multiplatform encryption tool with CLI (Command Line Interface)
 and GUI (Graphical User Interface)
 
+<br/>
+
+<p style="text-align:center;"><img src="/ferrocrypt-gui/src/images/ferrocrypt_screenshot_750p.png" width="465" alt="Ferrocrypt"></p>
+
+<br/>
+
 ## ABOUT
 
 Ferrocrypt is a very small and simple encryption tool written in pure Rust.
@@ -42,6 +48,76 @@ to successfully recover the header and decrypt your data with a high degree of r
 The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`
 and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
 
+<br/>
+
+## BUILD the GUI app
+
+After installing [Rust](https://www.rust-lang.org/learn/get-started),
+and [Node.js](https://nodejs.org/) just run the following commands in the `ferrocrypt-gui` directory:
+
+Install the `create-tauri-app` utility:
+
+```cargo install create-tauri-app```
+
+Install the Tauri CLI:
+
+```cargo install tauri-cli```
+
+Install node modules:
+
+```npm install```
+
+Build the app to a binary executable file:
+
+```cargo tauri build```
+
+The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
+
+You can start a live dev session with ```cargo tauri dev```
+
+<br/>
+
+## USING the GUI App
+
+To encrypt or decrypt a file or folder, drag and drop it into the app window.
+Then select either symmetric or hybrid encryption modes.
+When decrypting a vault, the app detects the appropriate mode automatically,
+and it's not possible to switch between modes during the decryption process.
+
+### Symmetric Encryption Mode
+
+An excellent option for personal use cases. With this mode, data is encrypted
+and decrypted using the same password, providing a simple and straightforward
+approach to securing sensitive information.
+
+To encrypt a file or folder using symmetric encryption mode, choose a password and a destination folder,
+then click the "Start" button. If the files you want to encrypt are too large for the available RAM
+or you want to avoid excessive RAM consumption, select the "Large files (low RAM usage)" option
+(see the "OPTIONS" section below for more information).
+
+The decryption process is the same as the encryption process,
+which is why it's called symmetric.
+
+### Hybrid Encryption Mode
+
+Apart from personal use, this mode is an ideal choice for secure data exchange,
+allowing files or directories to be encrypted using a public key. However, decryption is only possible
+with the corresponding private key and passphrase that unlocks the key.
+
+To encrypt a file or folder using hybrid encryption mode, select a public RSA key in PEM format,
+choose the destination folder, and click the "Start" button.
+
+To decrypt a file or folder using this mode, select your private RSA key in PEM format,
+enter the password to unlock it, choose the destination folder, and click the "Start" button.
+
+### Asymmetric Key Pair Creation Mode
+
+To generate a public/private key pair for Hybrid encryption mode, select "Create key pair".
+Enter your password to encrypt the private key, choose the output folder, and click the "Start" button to generate your
+RSA-4096 keys.
+
+<br/>
+
 ## BUILD the CLI app
 
 After [installing Rust](https://www.rust-lang.org/learn/get-started),
@@ -68,10 +144,6 @@ The flags for each command can be used in any order.
 
 ### Symmetric encryption, which utilizes password-based key derivation
 
-An excellent option for personal use cases. With this mode, data is encrypted
-and decrypted using the same password, providing a simple and straightforward
-approach to securing sensitive information.
-
 - Encrypt file or directory | decrypt file
 
 `./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
@@ -83,10 +155,6 @@ or
 <br/>
 
 ### Hybrid encryption
-
-Apart from personal use, this mode is an ideal choice for secure data exchange, allowing files or directories
-to be encrypted using a public key. However, decryption is only possible
-with the corresponding private key and passphrase that unlocks the key.
 
 - Generate a private/public key pair and set a passphrase for encrypting the private key
 
@@ -139,62 +207,6 @@ or
   If the encryption process is carried out with the specified flag, there's no need to specify it when decrypting the
   file(s).
   The decryption process will automatically use the same method that was used for encryption.
-
-<br/>
-
-## BUILD the GUI app
-
-After installing [Rust](https://www.rust-lang.org/learn/get-started),
-and [Node.js](https://nodejs.org/) just run the following commands in the `ferrocrypt-gui` directory:
-
-Install the `create-tauri-app` utility:
-
-```cargo install create-tauri-app```
-
-Install the Tauri CLI:
-
-```cargo install tauri-cli```
-
-Install node modules:
-
-```npm install```
-
-Build the app to a binary executable file:
-
-```cargo tauri build```
-
-The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
-
-You can start a live dev session with ```cargo tauri dev```
-
-<br/>
-
-## USING the GUI App
-
-To encrypt or decrypt a file or folder, drag and drop it into the app window. 
-Then select either symmetric or hybrid encryption modes.
-When decrypting a vault, the app detects the appropriate mode automatically, 
-and it's not possible to switch between modes during the decryption process.
-
-### Symmetric Encryption Mode
-To encrypt a file or folder using symmetric encryption mode, choose a password and a destination folder, 
-then click the "Start" button. If the files you want to encrypt are too large for the available RAM 
-or you want to avoid excessive RAM consumption, select the "Large files (low RAM usage)" option 
-(see the "OPTIONS" section above for more information). 
-
-The decryption process is the same as the encryption process, 
-which is why it's called symmetric.
-
-### Hybrid Encryption Mode
-To encrypt a file or folder using hybrid encryption mode, select a public RSA key in PEM format, 
-choose the destination folder, and click the "Start" button. 
-
-To decrypt a file or folder using this mode, select your private RSA key in PEM format, 
-enter the password to unlock it, choose the destination folder, and click the "Start" button.
-
-### Asymmetric Key Pair Creation Mode
-To generate a public/private key pair for Hybrid encryption mode, select "Create key pair". 
-Enter your password to encrypt the private key, choose the output folder, and click the "Start" button to generate your RSA-4096 keys.
 
 <br/>
 
