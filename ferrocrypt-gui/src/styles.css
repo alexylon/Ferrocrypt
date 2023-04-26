@@ -16,6 +16,11 @@
     -webkit-text-size-adjust: 100%;
 }
 
+body {
+    user-select: none;
+    overflow: hidden;
+}
+
 .container {
     margin: 0;
     padding-top: 3vh;
@@ -248,7 +253,7 @@ button:disabled {
 }
 
 .cbx-form input[type="checkbox"],
-.cbx-form input[type="radio"]{
+.cbx-form input[type="radio"] {
     position: absolute;
     opacity: 0;
 }
