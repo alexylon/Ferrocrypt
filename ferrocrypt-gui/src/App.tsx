@@ -291,7 +291,7 @@ function App() {
                 </a>
             </div>
             <div>
-                <div className={`helper ${mode !== "gk" ? '' : 'disabled'}`}>Drop a file or a folder into app's
+                <div className={`helper ${mode !== "gk" ? '' : 'disabled'}`}>Drop a file or folder into app
                     window
                 </div>
                 <div className="row">
