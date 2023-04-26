@@ -12,6 +12,7 @@ interface AppState {
     isLargeFile: boolean;
     keypath: string;
     matchingIcon: string;
+    mode: string;
     outpath: string;
     password: string;
     passwordMatch: boolean;
@@ -23,8 +24,6 @@ interface AppState {
     showVisibilityIcon: boolean;
     statusErr: string;
     statusOk: string;
-    symmetricDecryptionMode: boolean;
-    symmetricEncryptionMode: boolean;
     visibilityIcon: string;
 }
 
@@ -36,6 +35,7 @@ const initialState: AppState = {
     isLargeFile: false,
     keypath: "",
     matchingIcon: "/icon-dot-red-30.png",
+    mode: "se",
     outpath: "",
     password: "",
     passwordMatch: false,
@@ -47,8 +47,6 @@ const initialState: AppState = {
     showVisibilityIcon: true,
     statusErr: "",
     statusOk: "Ready",
-    symmetricDecryptionMode: false,
-    symmetricEncryptionMode: true,
     visibilityIcon: "/icon-unhide-50.png"
 };
 
@@ -75,67 +73,96 @@ function App() {
     useEffect(() => {
         const {hidePassword, inpath, password, passwordRepeated, requirePasswordRepeated, keypath} = state;
 
-        const fileExtension = inpath.slice(inpath.lastIndexOf("."));
-        const symmetricDecryptionMode = fileExtension === ".fcs";
-        const hybridDecryptionMode = fileExtension === ".fch";
+        // Modes:
+        // se == symmetric encryption, sd == symmetric decryption, he == hybrid encryption, hd == hybrid decryption, gk == generate key pair
 
-        if (symmetricDecryptionMode) {
-            updateState({
-                disableStart: inpath === "" || password.length < 1,
-                disableLargeFilesCheckbox: true,
-                passwordType: hidePassword ? "password" : "text",
-                requirePasswordRepeated: false,
-                showMatchingIcon: false,
-                showVisibilityIcon: true,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
-            });
-        } else if (hybridDecryptionMode) {
-            updateState({
-                disableLargeFilesCheckbox: true,
-                disableStart: inpath === "" || password.length < 1 || keypath === "",
-                passwordType: hidePassword ? "password" : "text",
-                requirePasswordRepeated: false,
-                showMatchingIcon: false,
-                showVisibilityIcon: true,
-                symmetricEncryptionMode: false,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png"
-            });
-        } else if (!hybridDecryptionMode && !symmetricEncryptionMode && !symmetricDecryptionMode) { // Hybrid encryption mode
-            updateState({
-                disableLargeFilesCheckbox: false,
-                disableStart: inpath === "" || keypath === "",
-                passwordType: hidePassword ? "password" : "text",
-                requirePassword: false,
-                requirePasswordRepeated: false,
-                showMatchingIcon: false,
-                showVisibilityIcon: false,
-                symmetricEncryptionMode: false
-            });
-        } else { // Symmetric encryption mode
-            updateState({
-                disableLargeFilesCheckbox: false,
-                disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
-                matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
-                    ? "/icon-dot-green-30.png"
-                    : "/icon-dot-red-30.png",
-                requirePassword: true,
-                requirePasswordRepeated: hidePassword,
-                passwordType: hidePassword ? "password" : "text",
-                showMatchingIcon: hidePassword ? !!passwordRepeated : false,
-                showVisibilityIcon: true,
-                visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
-            });
+        const fileExtension = inpath.slice(inpath.lastIndexOf("."));
+
+        if (fileExtension === ".fcs") {
+            updateState({mode: "sd"})
+        } else if (fileExtension === ".fch") {
+            updateState({mode: "hd"})
+        }
+
+        switch (mode) {
+            case "se": { // Symmetric encryption mode
+                updateState({
+                    disableLargeFilesCheckbox: false,
+                    disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
+                    matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
+                        ? "/icon-dot-green-30.png"
+                        : "/icon-dot-red-30.png",
+                    requirePassword: true,
+                    requirePasswordRepeated: hidePassword,
+                    passwordType: hidePassword ? "password" : "text",
+                    showMatchingIcon: hidePassword ? !!passwordRepeated : false,
+                    showVisibilityIcon: true,
+                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
+                });
+            }
+                break;
+            case "sd": { // Symmetric decryption mode
+                updateState({
+                    disableLargeFilesCheckbox: true,
+                    disableStart: inpath === "" || password.length < 1,
+                    passwordType: hidePassword ? "password" : "text",
+                    requirePassword: true,
+                    requirePasswordRepeated: false,
+                    showMatchingIcon: false,
+                    showVisibilityIcon: true,
+                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
+                });
+            }
+                break;
+            case "he": { // Hybrid encryption mode
+                updateState({
+                    disableLargeFilesCheckbox: false,
+                    disableStart: inpath === "" || keypath === "",
+                    passwordType: hidePassword ? "password" : "text",
+                    requirePassword: false,
+                    requirePasswordRepeated: false,
+                    showMatchingIcon: false,
+                    showVisibilityIcon: false,
+                });
+            }
+                break;
+            case "hd": { // Hybrid decryption mode
+                updateState({
+                    disableLargeFilesCheckbox: true,
+                    disableStart: inpath === "" || password.length < 1 || keypath === "",
+                    passwordType: hidePassword ? "password" : "text",
+                    requirePasswordRepeated: false,
+                    showMatchingIcon: false,
+                    showVisibilityIcon: true,
+                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png"
+                });
+            }
+                break;
+            case "gk": { // Generate key pair mode
+                updateState({
+                    disableLargeFilesCheckbox: true,
+                    disableStart: outpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
+                    matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
+                        ? "/icon-dot-green-30.png"
+                        : "/icon-dot-red-30.png",
+                    passwordType: hidePassword ? "password" : "text",
+                    requirePassword: true,
+                    requirePasswordRepeated: hidePassword,
+                    showMatchingIcon: hidePassword ? !!passwordRepeated : false,
+                    showVisibilityIcon: true,
+                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
+                });
+            }
         }
     }, [
         state.hidePassword,
         state.inpath,
         state.keypath,
+        state.mode,
         state.password,
         state.passwordRepeated,
         state.requirePassword,
         state.requirePasswordRepeated,
-        state.symmetricDecryptionMode,
-        state.symmetricEncryptionMode
     ]);
 
 
@@ -179,9 +206,21 @@ function App() {
         });
     }
 
-    const handleEncryptionMode = () => {
+    const handleSymmetricEncryptionMode = () => {
         updateState({
-            symmetricEncryptionMode: !symmetricEncryptionMode
+            mode: "se"
+        });
+    }
+
+    const handleHybridEncryptionMode = () => {
+        updateState({
+            mode: "he"
+        });
+    }
+
+    const handleGenerateKeyPairMode = () => {
+        updateState({
+            mode: "gk"
         });
     }
 
@@ -197,8 +236,15 @@ function App() {
             statusErr: "",
         });
 
-        const {inpath, outpath, password, isLargeFile, keypath, symmetricEncryptionMode} = state;
-        await invoke("start", {inpath, outpath, password, isLargeFile, keypath, symmetricEncryptionMode})
+        const {inpath, outpath, password, isLargeFile, keypath, mode} = state;
+        await invoke("start", {
+            inpath,
+            outpath,
+            password,
+            isLargeFile,
+            keypath,
+            mode
+        })
             // @ts-ignore
             .then((message: string) => {
                 updateState({
@@ -222,6 +268,7 @@ function App() {
         isLargeFile,
         keypath,
         matchingIcon,
+        mode,
         outpath,
         password,
         passwordRepeated,
@@ -232,7 +279,6 @@ function App() {
         showVisibilityIcon,
         statusErr,
         statusOk,
-        symmetricEncryptionMode,
         visibilityIcon,
     } = state;
 
@@ -245,12 +291,14 @@ function App() {
                 </a>
             </div>
             <div>
-                <div className="helper">Drop a file or a folder into app's window</div>
+                <div className={`helper ${mode !== "gk" ? '' : 'disabled'}`}>Drop a file or a folder into app's
+                    window
+                </div>
                 <div className="row">
                     <input
                         id="inpath"
                         disabled={true}
-                        value={state.inpath}
+                        value={mode === "gk" ? "" : state.inpath}
                         style={{marginRight: 10, width: "100%"}}
                     />
                     <button onClick={handleClear} style={{width: "90px"}}>Clear</button>
@@ -261,8 +309,8 @@ function App() {
                             type="radio"
                             id="rdo1"
                             name="radio"
-                            onChange={handleEncryptionMode}
-                            checked={symmetricEncryptionMode}
+                            onChange={handleSymmetricEncryptionMode}
+                            checked={mode === "se" || mode === "sd"}
                         />
                         <span className="rdo"></span>
                         <span>Symmetric</span>
@@ -273,11 +321,23 @@ function App() {
                             type="radio"
                             id="rdo2"
                             name="radio"
-                            onChange={handleEncryptionMode}
-                            checked={!symmetricEncryptionMode}
+                            onChange={handleHybridEncryptionMode}
+                            checked={mode === "he" || mode === "hd"}
                         />
                         <span className="rdo"></span>
                         <span>Hybrid</span>
+                    </label>
+                    <span className="spacer-15"/>
+                    <label htmlFor="rdo3">
+                        <input
+                            type="radio"
+                            id="rdo3"
+                            name="radio"
+                            onChange={handleGenerateKeyPairMode}
+                            checked={mode === "gk"}
+                        />
+                        <span className="rdo"></span>
+                        <span>Create key pair</span>
                     </label>
                 </div>
                 <label className={`helper ${requirePassword ? '' : 'disabled'}`}>Password:</label>
@@ -285,7 +345,7 @@ function App() {
                     <input
                         id="password-input"
                         type={passwordType}
-                        value={password}
+                        value={requirePassword ? password : ""}
                         disabled={!requirePassword}
                         onChange={(e) => handlePasswordChange(e.currentTarget.value)}
                         placeholder={requirePassword ? "Enter a password..." : ""}
@@ -322,17 +382,18 @@ function App() {
                         }
                     </div>
                 </div>
-                <label className={`helper ${!symmetricEncryptionMode ? '' : 'disabled'}`}>Select a key:</label>
+                <label className={`helper ${mode === "se" || mode === "sd" || mode === "gk" ? 'disabled' : ''}`}>Select
+                    a key:</label>
                 <div className="row">
                     <input
-                        id="outpath"
+                        id="key"
                         disabled={true}
                         value={keypath}
                         style={{marginRight: 10, width: "100%"}}
                     />
                     <button
                         onClick={handleSelectKey}
-                        disabled={symmetricEncryptionMode}
+                        disabled={mode === "se" || mode === "sd" || mode === "gk"}
                         style={{width: "90px"}}
                     >Select
                     </button>
