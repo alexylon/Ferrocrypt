@@ -54,7 +54,7 @@ or `target\release\fc.exe` (Windows).
 
 <br/>
 
-## USAGE of the CLI app
+## USING the CLI app
 
 The tool can automatically detect whether the source path requires
 encryption or decryption, and which decryption mode should be used.
@@ -169,13 +169,32 @@ You can start a live dev session with ```cargo tauri dev```
 
 <br/>
 
-## USAGE of the GUI app
+## USING the GUI App
 
-To encrypt or decrypt a file or folder, simply drag and drop it into the app window.
-Then, choose a password and a destination folder, and click the "Start" button.
-If you need to encrypt files that will result in a large vault exceeding the available RAM,
-or if you simply want to prevent excessive RAM consumption,
-just check the "Large files (low RAM usage)" option (see the OPTIONS section above for more info).
+To encrypt or decrypt a file or folder, drag and drop it into the app window. 
+Then select either symmetric or hybrid encryption modes.
+When decrypting a vault, the app detects the appropriate mode automatically, 
+and it's not possible to switch between modes during the decryption process.
+
+### Symmetric Encryption Mode
+To encrypt a file or folder using symmetric encryption mode, choose a password and a destination folder, 
+then click the "Start" button. If the files you want to encrypt are too large for the available RAM 
+or you want to avoid excessive RAM consumption, select the "Large files (low RAM usage)" option 
+(see the "OPTIONS" section above for more information). 
+
+The decryption process is the same as the encryption process, 
+which is why it's called symmetric.
+
+### Hybrid Encryption Mode
+To encrypt a file or folder using hybrid encryption mode, select a public RSA key in PEM format, 
+choose the destination folder, and click the "Start" button. 
+
+To decrypt a file or folder using this mode, select your private RSA key in PEM format, 
+enter the password to unlock it, choose the destination folder, and click the "Start" button.
+
+### Asymmetric Key Pair Creation Mode
+To generate a public/private key pair for Hybrid encryption mode, select "Create key pair". 
+Enter your password to encrypt the private key, choose the output folder, and click the "Start" button to generate your RSA-4096 keys.
 
 <br/>
 
