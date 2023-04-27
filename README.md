@@ -91,7 +91,7 @@ and decrypted using the same password, providing a simple and straightforward
 approach to securing sensitive information.
 
 To encrypt a file or folder using symmetric encryption mode, choose a password and a destination folder,
-then click the "Start" button. If the files you want to encrypt are too large for the available RAM
+then click the "Encrypt" button. If the files you want to encrypt are too large for the available RAM
 or you want to avoid excessive RAM consumption, select the "Large files (low RAM usage)" option
 (see the "OPTIONS" section below for more information).
 
@@ -105,15 +105,15 @@ allowing files or directories to be encrypted using a public key. However, decry
 with the corresponding private key and passphrase that unlocks the key.
 
 To encrypt a file or folder using hybrid encryption mode, select a public RSA key in PEM format,
-choose the destination folder, and click the "Start" button.
+choose the destination folder, and click the "Encrypt" button.
 
 To decrypt a file or folder using this mode, select your private RSA key in PEM format,
-enter the password to unlock it, choose the destination folder, and click the "Start" button.
+enter the password to unlock it, choose the destination folder, and click the "Decrypt" button.
 
 ### Asymmetric Key Pair Creation Mode
 
 To generate a public/private key pair for Hybrid encryption mode, select "Create key pair".
-Enter your password to encrypt the private key, choose the output folder, and click the "Start" button to generate your
+Enter your password to encrypt the private key, choose the output folder, and click the "Create key pair" button to generate your
 RSA-4096 keys.
 
 <br/>
