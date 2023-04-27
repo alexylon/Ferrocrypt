@@ -11,13 +11,14 @@ use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{get_file_stem_to_string};
+use crate::common::{get_duration, get_file_stem_to_string};
 use crate::CryptoError::EncryptionDecryptionError;
 use crate::reed_solomon::{rs_decode, rs_encode};
 
 
 // Encrypt file with XChaCha20Poly1305 algorithms and symmetric key with RSA algorithm
 pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tmp_dir_path: &str) -> Result<String, CryptoError> {
+    let start_time = std::time::Instant::now();
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
     let zipped_file_name = &format!("{}{}.zip", tmp_dir_path, file_stem);
     println!("\nencrypting {} ...", zipped_file_name);
@@ -62,7 +63,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
     encrypted_file_path.write_all(&ciphertext)?;
 
     let encrypted_file_name = &format!("{}{}.fch", output_dir, file_stem);
-    let result = format!("Encrypted to {}", encrypted_file_name);
+    let result = format!("Encrypted to {} for {}", encrypted_file_name, get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
 
     nonce_24.zeroize();
@@ -73,6 +74,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
 
 // Decrypt file with XChaCha20Poly1305 algorithms and symmetric key with RSA algorithm
 pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
+    let start_time = std::time::Instant::now();
+
     let priv_key_str = fs::read_to_string(&rsa_private_pem)?;
 
     println!("decrypting {} ...\n", input_path);
@@ -111,7 +114,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
     rsa_private_pem.zeroize();
     passphrase.zeroize();
 
-    let result = format!("Decrypted to {}", output_path);
+    let result = format!("Decrypted to {} for {}", output_path, get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
 
     Ok(result)

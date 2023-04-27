@@ -36,3 +36,11 @@ pub fn sha3_32_hash(byte_string: &[u8]) -> Result<[u8; 32], CryptoError> {
 pub fn constant_time_compare_256_bit(byte_string1: &[u8; 32], byte_string2: &[u8; 32]) -> bool {
     constant_time_eq_32(byte_string1, byte_string2)
 }
+
+pub fn get_duration(seconds: f64) -> String {
+    if seconds < 60_f64 {
+        format!("{:.2} sec", seconds)
+    } else {
+        format!("{} min, {:.2} sec", seconds as u32 / 60, seconds % 60_f64)
+    }
+}

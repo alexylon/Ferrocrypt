@@ -5,7 +5,7 @@ use argon2::Variant;
 use chacha20poly1305::aead::Aead;
 use zeroize::Zeroize;
 use crate::{archiver, CryptoError};
-use crate::common::{constant_time_compare_256_bit, get_file_stem_to_string, sha3_32_hash};
+use crate::common::{constant_time_compare_256_bit, get_duration, get_file_stem_to_string, sha3_32_hash};
 use crate::CryptoError::{ChaCha20Poly1305Error, EncryptionDecryptionError, Message};
 use crate::reed_solomon::{rs_encode, rs_decode};
 
@@ -92,9 +92,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     }
 
     let encrypted_file_name = &format!("{}{}.{}", output_dir, file_stem, encrypted_extension);
-    let result = format!("Encrypted to {}", encrypted_file_name);
+    let result = format!("Encrypted to {} for {}", encrypted_file_name, get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
-    println!("\nEncryption elapsed: {}s", start_time.elapsed().as_secs_f64());
 
     key.zeroize();
     passphrase.zeroize();
@@ -103,7 +102,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 }
 
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
-    let t0 = std::time::Instant::now();
+    let start_time = std::time::Instant::now();
     let file_bytes = read(input_path)?;
     let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
 
@@ -113,9 +112,8 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tm
         decrypt_normal_file(input_path, output_dir, passphrase, tmp_dir_path)?
     };
 
-    let result = format!("Decrypted to {}", output_path);
+    let result = format!("Decrypted to {} for {}", output_path, get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
-    println!("\nDecryption elapsed: {}s", t0.elapsed().as_secs_f64());
 
     Ok(result)
 }

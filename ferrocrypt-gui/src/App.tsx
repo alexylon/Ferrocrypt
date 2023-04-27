@@ -414,7 +414,7 @@ function App() {
                         </button>
                     </form>
                 </div>
-                <div className="helper" style={{color: "#3F8D8E", fontWeight: 600}}>{statusOk}</div>
+                <div className="helper" style={{color: "darkseagreen"}}>{statusOk}</div>
                 <div className="helper" style={{color: "#C41E3A"}}> {statusErr} </div>
             </div>
         </div>
