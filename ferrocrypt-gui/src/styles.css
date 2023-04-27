@@ -280,9 +280,15 @@ button:disabled {
     transition: all 0.15s ease;
 }
 
-.cbx-form input[type="checkbox"]:disabled + .cbx + .cbx-label {
+.cbx-form input[type="checkbox"]:disabled + .cbx + .cbx-label,
+.cbx-form input[type="radio"]:disabled + .rdo + .rdo-label {
     color: #777777 !important;
-    /*cursor: default !important;*/
+}
+
+.cbx-form input[type="checkbox"]:disabled + .cbx,
+.cbx-form input[type="radio"]:disabled + .rdo {
+    background-image: linear-gradient(#272727, #272727);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0), inset 0 -1px 1px rgba(0, 0, 0, 0);
 }
 
 

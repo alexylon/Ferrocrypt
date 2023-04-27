@@ -240,6 +240,7 @@ function App() {
     const {
         disableStart,
         hidePassword,
+        inpath,
         isLargeFile,
         keypath,
         mode,
@@ -283,9 +284,10 @@ function App() {
                             name="radio"
                             onChange={handleSymmetricEncryptionMode}
                             checked={mode === "se" || mode === "sd"}
+                            disabled={mode === "hd"}
                         />
                         <span className="rdo"></span>
-                        <span>Symmetric</span>
+                        <span className="rdo-label">Symmetric</span>
                     </label>
                     <span className="spacer-15"/>
                     <label htmlFor="rdo2">
@@ -295,9 +297,10 @@ function App() {
                             name="radio"
                             onChange={handleHybridEncryptionMode}
                             checked={mode === "he" || mode === "hd"}
+                            disabled={mode === "sd"}
                         />
                         <span className="rdo"></span>
-                        <span>Hybrid</span>
+                        <span className="rdo-label">Hybrid</span>
                     </label>
                     <span className="spacer-15"/>
                     <label htmlFor="rdo3">
@@ -307,9 +310,10 @@ function App() {
                             name="radio"
                             onChange={handleGenerateKeyPairMode}
                             checked={mode === "gk"}
+                            disabled={mode === "sd" || mode === "hd" || (mode !== "gk" && inpath !== "")}
                         />
                         <span className="rdo"></span>
-                        <span>Create key pair</span>
+                        <span className="rdo-label">Create key pair</span>
                     </label>
                 </div>
                 <label className={`helper ${requirePassword ? '' : 'disabled'}`}>Password:</label>
@@ -382,7 +386,9 @@ function App() {
                         />
                         <span className="cbx">
                             <svg width="12px" height="11px" viewBox="0 0 12 11">
-                                <polyline points="1 6.29411765 4.5 10 11 1"/>
+                                {mode === "sd" || mode === "he" || mode === "hd" || mode === "gk"
+                                    ? ""
+                                    : <polyline points="1 6.29411765 4.5 10 11 1"/>}
                             </svg>
                         </span>
                         <span className="cbx-label">Large files (low RAM usage)</span>
