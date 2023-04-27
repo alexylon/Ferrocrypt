@@ -105,15 +105,13 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
 
     File::create(&decrypted_file_path)?;
     fs::write(&decrypted_file_path, file_decrypted)?;
-    archiver::unarchive(&decrypted_file_path, output_dir)?;
-
-    println!("\ndecrypted to {}", output_dir);
+    let output_path = archiver::unarchive(&decrypted_file_path, output_dir)?;
 
     symmetric_key.zeroize();
     rsa_private_pem.zeroize();
     passphrase.zeroize();
 
-    let result = format!("Decrypted to {}", output_dir);
+    let result = format!("Decrypted to {}", output_path);
     println!("\n{}", result);
 
     Ok(result)

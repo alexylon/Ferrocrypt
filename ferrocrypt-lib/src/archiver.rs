@@ -66,18 +66,23 @@ fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoErro
     let file_name_extension = Path::new(&input_path)
         .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
         .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
+
     let file_stem = &get_file_stem_to_string(file_name_extension)?;
+
     println!("Adding file {:?} as {}{}/{} ...", input_path, output_dir, file_stem, file_name_extension);
-    let output_zip_filename = format!("{}{}.zip", output_dir, file_stem);
-    let file = File::create(output_zip_filename)?;
-    let mut zip = zip::ZipWriter::new(file);
+
+    let output_file = File::create(format!("{}{}.zip", output_dir, file_stem))?;
+    let mut zip = zip::ZipWriter::new(output_file);
+
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
         .large_file(true)
-        .unix_permissions(0o755);
+        .unix_permissions(0o755); // sets options for the zip file
+
     let mut buffer = Vec::new();
 
     zip.start_file(file_name_extension, options)?;
+
     let mut f = File::open(input_path)?;
 
     f.read_to_end(&mut buffer)?;
@@ -149,8 +154,8 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
 
 pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     let file = File::open(Path::new(&input_path))?;
-    let file_stem = &get_file_stem_to_string(input_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
+    let mut output_path = "".to_string();
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
@@ -159,9 +164,11 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
             None => continue,
         };
         let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
-        let outpath_str_full = format!("{}{}", output_dir, outpath_str);
-        let normalized_outpath_str_full = normalize_paths(&outpath_str_full, "").0;
-        let outpath_full = Path::new(&outpath_str_full);
+        let outpath_full_str = normalize_paths(&format!("{}{}", output_dir, outpath_str), "").0;
+        if i == 0 {
+            output_path = outpath_full_str.clone();
+        }
+        let outpath_full = Path::new(&outpath_full_str);
 
         {
             let comment = file.comment();
@@ -171,12 +178,12 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
         }
 
         if (*file.name()).ends_with('/') {
-            println!("Extracting dir to \"{}\" ...", &normalized_outpath_str_full);
+            println!("Extracting dir to \"{}\" ...", &outpath_full_str);
             fs::create_dir_all(outpath_full)?;
         } else {
             println!(
                 "Extracting file to \"{}\" ({} bytes) ...",
-                &normalized_outpath_str_full,
+                &outpath_full_str,
                 file.size()
             );
             if let Some(p) = outpath_full.parent() {
@@ -199,5 +206,5 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
         // }
     }
 
-    Ok(file_stem.to_string())
+    Ok(output_path)
 }

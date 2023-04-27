@@ -5,49 +5,41 @@ import {open} from "@tauri-apps/api/dialog";
 import "./App.css";
 
 interface AppState {
-    disableLargeFilesCheckbox: boolean;
     disableStart: boolean;
     hidePassword: boolean;
     inpath: string;
     isLargeFile: boolean;
     keypath: string;
-    matchingIcon: string;
     mode: string;
     outpath: string;
     password: string;
     passwordMatch: boolean;
     passwordRepeated: string;
-    passwordType: string;
     requirePassword: boolean;
     requirePasswordRepeated: boolean;
     showMatchingIcon: boolean;
     showVisibilityIcon: boolean;
     statusErr: string;
     statusOk: string;
-    visibilityIcon: string;
 }
 
 const initialState: AppState = {
-    disableLargeFilesCheckbox: false,
     disableStart: true,
     hidePassword: true,
     inpath: "",
     isLargeFile: false,
     keypath: "",
-    matchingIcon: "/icon-dot-red-30.png",
     mode: "se",
     outpath: "",
     password: "",
     passwordMatch: false,
     passwordRepeated: "",
-    passwordType: "password",
     requirePassword: true,
     requirePasswordRepeated: true,
     showMatchingIcon: false,
     showVisibilityIcon: true,
     statusErr: "",
     statusOk: "Ready",
-    visibilityIcon: "/icon-unhide-50.png"
 };
 
 function App() {
@@ -67,6 +59,7 @@ function App() {
         updateState({
             inpath: inputPath,
             outpath: inputDirPath,
+            statusOk: "Ready",
         });
     }).then();
 
@@ -87,38 +80,27 @@ function App() {
         switch (mode) {
             case "se": { // Symmetric encryption mode
                 updateState({
-                    disableLargeFilesCheckbox: false,
                     disableStart: inpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
-                    matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
-                        ? "/icon-dot-green-30.png"
-                        : "/icon-dot-red-30.png",
                     requirePassword: true,
                     requirePasswordRepeated: hidePassword,
-                    passwordType: hidePassword ? "password" : "text",
                     showMatchingIcon: hidePassword ? !!passwordRepeated : false,
                     showVisibilityIcon: true,
-                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 });
             }
                 break;
             case "sd": { // Symmetric decryption mode
                 updateState({
-                    disableLargeFilesCheckbox: true,
                     disableStart: inpath === "" || password.length < 1,
-                    passwordType: hidePassword ? "password" : "text",
                     requirePassword: true,
                     requirePasswordRepeated: false,
                     showMatchingIcon: false,
                     showVisibilityIcon: true,
-                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 });
             }
                 break;
             case "he": { // Hybrid encryption mode
                 updateState({
-                    disableLargeFilesCheckbox: false,
                     disableStart: inpath === "" || keypath === "",
-                    passwordType: hidePassword ? "password" : "text",
                     requirePassword: false,
                     requirePasswordRepeated: false,
                     showMatchingIcon: false,
@@ -128,29 +110,20 @@ function App() {
                 break;
             case "hd": { // Hybrid decryption mode
                 updateState({
-                    disableLargeFilesCheckbox: true,
                     disableStart: inpath === "" || password.length < 1 || keypath === "",
-                    passwordType: hidePassword ? "password" : "text",
                     requirePasswordRepeated: false,
                     showMatchingIcon: false,
                     showVisibilityIcon: true,
-                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png"
                 });
             }
                 break;
             case "gk": { // Generate key pair mode
                 updateState({
-                    disableLargeFilesCheckbox: true,
                     disableStart: outpath === "" || password.length < 1 || (password !== passwordRepeated && requirePasswordRepeated),
-                    matchingIcon: hidePassword && !!passwordRepeated && password === passwordRepeated
-                        ? "/icon-dot-green-30.png"
-                        : "/icon-dot-red-30.png",
-                    passwordType: hidePassword ? "password" : "text",
                     requirePassword: true,
                     requirePasswordRepeated: hidePassword,
                     showMatchingIcon: hidePassword ? !!passwordRepeated : false,
                     showVisibilityIcon: true,
-                    visibilityIcon: hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png",
                 });
             }
         }
@@ -159,6 +132,7 @@ function App() {
         state.inpath,
         state.keypath,
         state.mode,
+        state.outpath,
         state.password,
         state.passwordRepeated,
         state.requirePassword,
@@ -247,6 +221,7 @@ function App() {
         })
             // @ts-ignore
             .then((message: string) => {
+                handleClear();
                 updateState({
                     statusOk: message,
                     statusErr: "",
@@ -263,23 +238,20 @@ function App() {
     const handleClear = () => setState(initialState);
 
     const {
-        disableLargeFilesCheckbox,
         disableStart,
+        hidePassword,
         isLargeFile,
         keypath,
-        matchingIcon,
         mode,
         outpath,
         password,
         passwordRepeated,
-        passwordType,
         requirePassword,
         requirePasswordRepeated,
         showMatchingIcon,
         showVisibilityIcon,
         statusErr,
         statusOk,
-        visibilityIcon,
     } = state;
 
 
@@ -344,7 +316,7 @@ function App() {
                 <div className="row">
                     <input
                         id="password-input"
-                        type={passwordType}
+                        type={hidePassword ? "password" : "text"}
                         value={requirePassword ? password : ""}
                         disabled={!requirePassword}
                         onChange={(e) => handlePasswordChange(e.currentTarget.value)}
@@ -354,7 +326,7 @@ function App() {
                     <div className="visibility-icon">
                         {showVisibilityIcon &&
                             <img
-                                src={visibilityIcon}
+                                src={hidePassword ? "/icon-unhide-50.png" : "/icon-hide-50.png"}
                                 alt="visibility icon"
                                 style={{width: "20px"}}
                                 onClick={handlePasswordHide}
@@ -375,7 +347,9 @@ function App() {
                     <div className="match-icon">
                         {showMatchingIcon &&
                             <img
-                                src={matchingIcon}
+                                src={hidePassword && !!passwordRepeated && password === passwordRepeated
+                                    ? "/icon-dot-green-30.png"
+                                    : "/icon-dot-red-30.png"}
                                 alt="match icon"
                                 style={{width: "20px"}}
                             ></img>
@@ -404,7 +378,7 @@ function App() {
                                id="checkbox1"
                                checked={isLargeFile}
                                onChange={handleLargeFileSupport}
-                               disabled={disableLargeFilesCheckbox}
+                               disabled={mode === "sd" || mode === "he" || mode === "hd" || mode === "gk"}
                         />
                         <span className="cbx">
                             <svg width="12px" height="11px" viewBox="0 0 12 11">
@@ -436,11 +410,11 @@ function App() {
                             type="submit"
                             style={{width: "350px"}}
                             disabled={disableStart}
-                        >Start
+                        >{mode === "se" || mode === "he" ? "Encrypt" : mode === "sd" || mode === "hd" ? "Decrypt" : "Create key pair"}
                         </button>
                     </form>
                 </div>
-                <div className="helper" style={{color: "#3F8D8E"}}><b>{statusOk}</b></div>
+                <div className="helper" style={{color: "#3F8D8E", fontWeight: 600}}>{statusOk}</div>
                 <div className="helper" style={{color: "#C41E3A"}}> {statusErr} </div>
             </div>
         </div>

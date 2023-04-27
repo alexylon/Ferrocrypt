@@ -107,13 +107,13 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tm
     let file_bytes = read(input_path)?;
     let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
 
-    if flags[0] {
-        decrypt_large_file(input_path, output_dir, passphrase, tmp_dir_path)?;
+    let output_path = if flags[0] {
+        decrypt_large_file(input_path, output_dir, passphrase, tmp_dir_path)?
     } else {
-        decrypt_normal_file(input_path, output_dir, passphrase, tmp_dir_path)?;
-    }
+        decrypt_normal_file(input_path, output_dir, passphrase, tmp_dir_path)?
+    };
 
-    let result = format!("Decrypted to {}", output_dir);
+    let result = format!("Decrypted to {}", output_path);
     println!("\n{}", result);
     println!("\nDecryption elapsed: {}s", t0.elapsed().as_secs_f64());
 
@@ -121,7 +121,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tm
 }
 
 // Decrypt file with XChaCha20Poly1305 algorithm
-fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
+fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     println!("Decrypting {} ...\n", input_path);
     let encrypted_file: Vec<u8> = read(input_path)?;
 
@@ -143,7 +143,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
     let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[0..32].try_into()?);
 
-    if key_correct {
+    let output_path = if key_correct {
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..24].as_ref().into(), ciphertext.as_ref())?;
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
@@ -151,19 +151,20 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
 
         File::create(&decrypted_file_path)?;
         fs::write(&decrypted_file_path, plaintext)?;
-        archiver::unarchive(&decrypted_file_path, output_dir)?;
 
-        key.zeroize();
-        passphrase.zeroize();
+        archiver::unarchive(&decrypted_file_path, output_dir)?
     } else {
         return Err(EncryptionDecryptionError { msg: "The provided password is incorrect".to_string() });
-    }
+    };
 
-    Ok(())
+    key.zeroize();
+    passphrase.zeroize();
+
+    Ok(output_path)
 }
 
 // Decrypt large file, that doesn't fit in RAM, with XChaCha20Poly1305 algorithm. This is much slower
-fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<(), CryptoError> {
+fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     println!("Decrypting {} ...\n", input_path);
 
     let mut serialized_flags = [0u8; 4];
@@ -204,7 +205,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, 
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
     let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..32].try_into()?);
 
-    if key_correct {
+    let output_path = if key_correct {
         let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
         let mut stream_decryptor = stream::DecryptorBE32::from_aead(cipher, nonce_19[..19].as_ref().into());
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
@@ -238,15 +239,15 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, 
             }
         }
 
-        archiver::unarchive(&decrypted_file_path, output_dir)?;
-
-        key.zeroize();
-        passphrase.zeroize();
+        archiver::unarchive(&decrypted_file_path, output_dir)?
     } else {
         return Err(Message("The provided password is incorrect!".to_string()));
-    }
+    };
 
-    Ok(())
+    key.zeroize();
+    passphrase.zeroize();
+
+    Ok(output_path)
 }
 
 fn argon2_config<'a>() -> argon2::Config<'a> {
