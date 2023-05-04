@@ -1,7 +1,8 @@
 # Ferrocrypt
 
-Tiny, easy-to-use, and incredibly secure multiplatform encryption tool with CLI (Command Line Interface)
-and GUI (Graphical User Interface)
+Tiny, easy-to-use, and highly secure multiplatform encryption tool 
+which features both Command Line Interface (CLI) and Graphical User Interface (GUI).
+Ferrocrypt is currently in the testing phase as I continue to develop it in my spare time.
 
 <br/>
 
