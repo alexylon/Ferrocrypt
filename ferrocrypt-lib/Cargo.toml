@@ -17,13 +17,12 @@ substring = "1"
 walkdir = "2"
 zip = "0.6"
 chacha20poly1305 = { version = "0.10", features = ["std", "stream"] }
-rust-argon2 = "1.0"
+rust-argon2 = "1"
 rpassword = "7"
 sha3 = "0.10"
 constant_time_eq = "0.2"
 reed-solomon-erasure = "6"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 bincode = "1"
 
 [dev-dependencies]
-
