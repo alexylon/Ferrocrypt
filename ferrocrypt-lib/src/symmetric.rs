@@ -16,7 +16,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
     // Header information for decryption
     let mut flags: [bool; 4] = [false, false, false, false];
     if large { flags[0] = true; }
-    let serialized_flags: Vec<u8> = bincode::serialize(&flags)?;
+    let serialized_flags: Vec<u8> = bincode::encode_to_vec(&flags, bincode::config::standard())?;
 
     let argon2_config = argon2_config();
     let mut salt_32 = [0u8; 32];
@@ -104,7 +104,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let file_bytes = read(input_path)?;
-    let flags: [bool; 4] = bincode::deserialize(&file_bytes[..4])?;
+    let (flags, _): ([bool; 4], usize) = bincode::decode_from_slice(&file_bytes[..4], bincode::config::standard())?;
 
     let output_path = if flags[0] {
         decrypt_large_file(input_path, output_dir, passphrase, tmp_dir_path)?
@@ -125,7 +125,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
 
     // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);
-    let _flags: [bool; 4] = bincode::deserialize(serialized_flags)?;
+    let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
     let (encoded_salt_32, rem_data) = rem_data.split_at(96);
     let (encoded_nonce_24, rem_data) = rem_data.split_at(72);
     let (encoded_key_hash_ref, ciphertext) = rem_data.split_at(96);
@@ -175,7 +175,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, 
     if read_count != serialized_flags.len() {
         return Err(Message("Error reading flags!".to_string()));
     }
-    let _flags: [bool; 4] = bincode::deserialize(&serialized_flags)?;
+    let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(&serialized_flags, bincode::config::standard())?;
 
     read_count = encrypted_file.read(&mut encoded_salt_32)?;
     if read_count != encoded_salt_32.len() {

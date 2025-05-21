@@ -51,7 +51,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, rsa_public_pem: &str, tm
 
     // Reserve header information for decryption
     let flags: [bool; 4] = [false, false, false, false];
-    let serialized_flags: Vec<u8> = bincode::serialize(&flags)?;
+    let serialized_flags: Vec<u8> = bincode::encode_to_vec(&flags, bincode::config::standard())?;
 
     let encoded_encrypted_symmetric_key: Vec<u8> = rs_encode(&encrypted_symmetric_key)?;
     let encoded_nonce_24: Vec<u8> = rs_encode(&nonce_24)?;
@@ -90,7 +90,7 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, rsa_private_pem: &mut st
 
     // Split the flags, encrypted_symmetric_key, nonce and the encrypted file
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);
-    let _flags: [bool; 4] = bincode::deserialize(serialized_flags)?;
+    let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
     let (encoded_encrypted_symmetric_key, rem_data) = rem_data.split_at((rsa_pub_pem_size * 3) as usize);
     let (encoded_nonce_24, ciphertext) = rem_data.split_at(72);
 

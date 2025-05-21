@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs;
 use std::io;
 use std::io::prelude::*;
@@ -64,8 +65,8 @@ pub fn archive(input_path: &str, output_dir: &str) -> Result<String, CryptoError
 
 fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     let file_name_extension = Path::new(&input_path)
-        .file_name().ok_or(ZipError::InvalidArchive("Cannot get file name"))?
-        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert file name to &str"))?;
+        .file_name().ok_or(ZipError::InvalidArchive(Cow::from("Cannot get file name")))?
+        .to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert file name to &str")))?;
 
     let file_stem = &get_file_stem_to_string(file_name_extension)?;
 
@@ -74,7 +75,7 @@ fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoErro
     let output_file = File::create(format!("{}{}.zip", output_dir, file_stem))?;
     let mut zip = zip::ZipWriter::new(output_file);
 
-    let options = FileOptions::default()
+    let options: FileOptions<()> = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
         .large_file(true)
         .unix_permissions(0o755); // sets options for the zip file
@@ -103,13 +104,13 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
     // Get dir name from path
     let dir_name = Path::new(&input_path)
         .file_name().ok_or(CryptoError::InputPath("Input file or folder missing!".to_string()))?
-        .to_str().ok_or(ZipError::InvalidArchive("Cannot convert directory name to &str"))?;
+        .to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert directory name to &str")))?;
 
     let output_zip_filename = format!("{}{}.zip", output_dir, dir_name);
     let output_zip_path = Path::new(&output_zip_filename);
     let file = File::create(output_zip_path)?;
     let mut zip = zip::ZipWriter::new(file);
-    let options = FileOptions::default()
+    let options: FileOptions<()> = FileOptions::default()
         .compression_method(zip::CompressionMethod::Stored)
         .large_file(true)
         .unix_permissions(0o755);
@@ -121,9 +122,9 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
         let path = entry.path();
         match path.strip_prefix(input_path) {
             Ok(name) => {
-                let path_str = path.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
+                let path_str = path.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
                 let normalized_path_str = &normalize_paths(path_str, "").0;
-                let name_str = name.to_str().ok_or(ZipError::InvalidArchive("Cannot convert name to &str"))?;
+                let name_str = name.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert name to &str")))?;
                 let output_path_str = format!("{}/{}", dir_name, name_str);
                 let normalized_output_path_str = &normalize_paths(&output_path_str, "").0;
                 // Write file or directory explicitly
@@ -163,7 +164,7 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
             Some(path) => path,
             None => continue,
         };
-        let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive("Cannot convert path to &str"))?;
+        let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
         let outpath_full_str = normalize_paths(&format!("{}{}", output_dir, outpath_str), "").0;
         if i == 0 {
             output_path = outpath_full_str.clone();

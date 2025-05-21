@@ -18,7 +18,9 @@ pub enum CryptoError {
     #[error(transparent)]
     ReedSolomonError(#[from] reed_solomon_erasure::Error),
     #[error(transparent)]
-    BinCodeError(#[from] Box<bincode::ErrorKind>),
+    BinCodeEncodeError(#[from] bincode::error::EncodeError),
+    #[error(transparent)]
+    BinCodeDecodeError(#[from] bincode::error::DecodeError),
     #[error(transparent)]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("{msg:?}")]
