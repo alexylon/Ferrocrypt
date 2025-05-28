@@ -12,12 +12,13 @@ Ferrocrypt is currently in the testing phase as I continue to develop it in my s
 
 ## ABOUT
 
-Ferrocrypt is a very small and simple encryption tool written in pure Rust.
+Ferrocrypt is a very small and simple encryption tool written in Rust.
 Its name comes from the Latin words for iron, "ferrum" and for rust, "ferrugo".
 With a user-friendly command-line and an intuitive graphical user interface, Ferrocrypt 
 makes it easy to encrypt and decrypt data using industry-standard algorithms.
 The tool utilizes Rust's strong memory safety guarantees and performance benefits
 to ensure the highest level of security and speed.
+The app’s GUI is implemented in React using Tauri, while all logic is written entirely in Rust.
 
 Ferrocrypt supports two different encryption modes:
 
