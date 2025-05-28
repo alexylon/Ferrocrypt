@@ -1,0 +1,18 @@
+{
+  "identifier": "main-user-files-write",
+  "description": "This capability allows the `main` window on macOS and Windows access to `filesystem` write related commands and `dialog` commands to enable programatic access to files selected by the user.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "opener:default",
+    "opener:allow-default-urls",
+    "opener:default"
+  ],
+  "platforms": [
+    "macOS",
+    "windows"
+  ]
+}

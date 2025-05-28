@@ -51,30 +51,38 @@ and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
 
 <br/>
 
-## BUILD the GUI app
+## BUILD the GUI app (tested on macOS)
 
 After installing [Rust](https://www.rust-lang.org/learn/get-started),
-and [Node.js](https://nodejs.org/) just run the following commands in the `ferrocrypt-gui` directory:
+and [Node.js](https://nodejs.org/) (at least v.18) run the following commands in the `ferrocrypt-gui` directory:
 
-Install the `create-tauri-app` utility:
+### Install the `create-tauri-app` utility:
 
 ```cargo install create-tauri-app```
 
-Install the Tauri CLI:
+### Install the Tauri CLI:
 
 ```cargo install tauri-cli```
 
-Install node modules:
+### Install node modules:
 
 ```npm install```
 
-Build the app to a binary executable file:
+### Build the app to a binary executable file:
 
 ```cargo tauri build```
 
-The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/`
+The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/`
 
-You can start a live dev session with ```cargo tauri dev```
+### Build a DMG installer for macOS:
+
+```cargo tauri build --bundles dmg```
+
+The DMG image file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/dmg/`
+
+### You can start a live dev session with:
+
+```cargo tauri dev```
 
 <br/>
 
@@ -105,10 +113,10 @@ Apart from personal use, this mode is an ideal choice for secure data exchange,
 allowing files or directories to be encrypted using a public key. However, decryption is only possible
 with the corresponding private key and passphrase that unlocks the key.
 
-To encrypt a file or folder using hybrid encryption mode, select a public RSA key in PEM format,
+To encrypt a file or folder using hybrid encryption mode, select a _public_ RSA key in PEM format,
 choose the destination folder, and click the "Encrypt" button.
 
-To decrypt a file or folder using this mode, select your private RSA key in PEM format,
+To decrypt a file or folder using this mode, select your _private_ RSA key in PEM format,
 enter the password to unlock it, choose the destination folder, and click the "Decrypt" button.
 
 ### Asymmetric Key Pair Creation Mode

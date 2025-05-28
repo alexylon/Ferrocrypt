@@ -1,7 +1,8 @@
 import {useEffect, useState} from "react";
-import {invoke} from "@tauri-apps/api/tauri";
+import {invoke} from "@tauri-apps/api/core";
 import {listen} from '@tauri-apps/api/event'
-import {open} from "@tauri-apps/api/dialog";
+import {open} from "@tauri-apps/plugin-dialog";
+import { openUrl } from '@tauri-apps/plugin-opener';
 import "./App.css";
 
 interface AppState {
@@ -52,8 +53,8 @@ function App() {
         }));
     };
 
-    listen('tauri://file-drop', (event: any) => {
-        let inputPath = event.payload[0];
+    listen<string>('tauri://drag-drop', (event: any) => {
+        let inputPath = event.payload.paths[0];
         let inputDirPath = inputPath.replace(/[/\\][^/\\]*$/, '');
 
         updateState({
@@ -67,7 +68,7 @@ function App() {
         const {hidePassword, inpath, password, passwordRepeated, requirePasswordRepeated, keypath} = state;
 
         // Modes:
-        // se == symmetric encryption, sd == symmetric decryption, he == hybrid encryption, hd == hybrid decryption, gk == generate key pair
+        // se == symmetric encryption, sd == symmetric decryption, he == hybrid encryption, hd == hybrid decryption, gk == generate a key pair
 
         const fileExtension = inpath.slice(inpath.lastIndexOf("."));
 
@@ -211,6 +212,7 @@ function App() {
         });
 
         const {inpath, outpath, password, isLargeFile, keypath, mode} = state;
+
         await invoke("start", {
             inpath,
             outpath,
@@ -222,6 +224,7 @@ function App() {
             // @ts-ignore
             .then((message: string) => {
                 handleClear();
+
                 updateState({
                     statusOk: message,
                     statusErr: "",
@@ -236,6 +239,12 @@ function App() {
     }
 
     const handleClear = () => setState(initialState);
+
+    const handleExternalLink = async (e: { preventDefault: () => void; }) => {
+        e.preventDefault();
+        await openUrl('https://github.com/alexylon/Ferrocrypt');
+    }
+
 
     const {
         disableStart,
@@ -255,13 +264,12 @@ function App() {
         statusOk,
     } = state;
 
-
     return (
         <div className="container">
             <div className="row">
-                <a href="https://github.com/alexylon/Ferrocrypt" target="_blank">
+                <div className="link" onClick={handleExternalLink}>
                     <img src="/padlock-red-256.png" className="logo ferrocrypt" alt="Ferrocrypt logo"/>
-                </a>
+                </div>
             </div>
             <div>
                 <div className={`helper ${mode !== "gk" ? '' : 'disabled'}`}>Drop a file or folder into app
@@ -360,13 +368,13 @@ function App() {
                         }
                     </div>
                 </div>
-                <label className={`helper ${mode === "se" || mode === "sd" || mode === "gk" ? 'disabled' : ''}`}>Select
-                    a key:</label>
+                <label className={`helper ${mode === "se" || mode === "sd" || mode === "gk" ? 'disabled' : ''}`}>Key (PEM format):</label>
                 <div className="row">
                     <input
                         id="key"
                         disabled={true}
                         value={keypath}
+                        placeholder={mode === "he" ? "Select a public key..." : mode === "hd" ? "Select your private key..." : ""}
                         style={{marginRight: 10, width: "100%"}}
                     />
                     <button
