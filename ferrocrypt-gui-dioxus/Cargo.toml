@@ -1,0 +1,18 @@
+[package]
+name = "ferrocrypt-gui-dioxus"
+version = "0.1.0"
+description = "Ferrocrypt Dioxus Desktop App"
+authors = ["Alexander Alexandrov"]
+license = ""
+repository = "https://github.com/alexylon/Ferrocrypt"
+edition = "2021"
+
+[dependencies]
+dioxus = { version = "0.7", features = ["desktop"] }
+manganis = "0.7"
+ferrocrypt = { path = "../ferrocrypt-lib" }
+rfd = "0.15"
+
+[features]
+default = ["desktop"]
+desktop = ["dioxus/desktop"]

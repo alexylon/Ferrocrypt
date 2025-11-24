@@ -1,0 +1,12 @@
+[application]
+name = "Ferrocrypt"
+
+[application.windows]
+title = "Ferrocrypt"
+
+[desktop]
+
+[bundle]
+identifier = "com.ferrocrypt"
+publisher = "Ferrocrypt"
+icon = ["assets/padlock-red-512.png"]

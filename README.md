@@ -6,7 +6,7 @@ Ferrocrypt is currently in the testing phase as I continue to develop it in my s
 
 <br/>
 
-<div align="center"><img align="center" src="/ferrocrypt-gui/src/images/ferrocrypt_screenshot.png" width="400" alt="Ferrocrypt"></div>
+<div align="center"><img align="center" src="/ferrocrypt-gui-tauri/src/images/ferrocrypt_screenshot.png" width="400" alt="Ferrocrypt"></div>
 
 <br/>
 
@@ -47,15 +47,17 @@ by generating additional Reed-Solomon parity (recovery) bytes. In the event of h
 which may occur due to hard drive bit rot, data transfer or other factors, these parity bytes enable Ferrocrypt
 to successfully recover the header and decrypt your data with a high degree of reliability.
 
-The code is separated in three projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`
-and a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui`.
+The code is separated in multiple projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`,
+a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui-tauri`, and a [**Dioxus**](https://dioxuslabs.com/) based GUI app `ferrocrypt-gui-dioxus`.
 
 <br/>
 
-## BUILD the GUI app (tested on macOS)
+## BUILD the GUI apps (tested on macOS)
+
+### Tauri GUI
 
 After installing [Rust](https://www.rust-lang.org/learn/get-started),
-and [Node.js](https://nodejs.org/) (at least v.18) run the following commands in the `ferrocrypt-gui` directory:
+and [Node.js](https://nodejs.org/) (at least v.18) run the following commands in the `ferrocrypt-gui-tauri` directory:
 
 ### Install the `create-tauri-app` utility:
 
@@ -73,17 +75,51 @@ and [Node.js](https://nodejs.org/) (at least v.18) run the following commands in
 
 ```cargo tauri build```
 
-The binary executable file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/`
+The binary executable file of the GUI app will be generated in `ferrocrypt-gui-tauri/src-tauri/target/release/`
 
 ### Build a DMG installer for macOS:
 
 ```cargo tauri build --bundles dmg```
 
-The DMG image file of the GUI app will be generated in `ferrocrypt-gui/src-tauri/target/release/bundle/dmg/`
+The DMG image file of the GUI app will be generated in `ferrocrypt-gui-tauri/src-tauri/target/release/bundle/dmg/`
 
 ### You can start a live dev session with:
 
 ```cargo tauri dev```
+
+<br/>
+
+### Dioxus GUI
+
+- Install Rust
+
+To install Rust, visit the official installation page: [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
+
+- Install `cargo-binstall`:
+
+```bash
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+````
+
+- Install Dioxus CLI:
+
+```bash
+cargo binstall dioxus-cli
+```
+
+### You can start a live dev session with:
+
+```bash
+dx serve
+```
+
+The app should open automatically.
+
+### Bundle the desktop app:
+
+```bash
+dx bundle
+```
 
 <br/>
 

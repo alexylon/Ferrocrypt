@@ -1,5 +1,5 @@
 [package]
-name = "ferrocrypt-gui"
+name = "ferrocrypt-gui-tauri"
 version = "0.1.0"
 description = "Ferrocrypt Tauri App"
 authors = ["Alexander Alexandrov"]
