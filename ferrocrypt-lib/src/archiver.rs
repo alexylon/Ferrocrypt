@@ -1,14 +1,12 @@
 use std::borrow::Cow;
-use std::fs;
-use std::io;
-use std::io::prelude::*;
-use std::io::{Write};
-use std::iter::Iterator;
-use zip::write::FileOptions;
-use std::fs::File;
-use std::path::{Path};
-use walkdir::{WalkDir};
+use std::fs::{self, File};
+use std::io::{self, Read, Write};
+use std::path::Path;
+
+use walkdir::WalkDir;
 use zip::result::ZipError;
+use zip::write::FileOptions;
+
 use crate::common::{get_file_stem_to_string, normalize_paths};
 use crate::CryptoError;
 
@@ -55,6 +53,7 @@ mod tests {
     }
 }
 
+/// Archives a file or directory into a ZIP archive.
 pub fn archive(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     if Path::new(input_path).is_file() {
         archive_file(input_path, output_dir)
@@ -65,8 +64,10 @@ pub fn archive(input_path: &str, output_dir: &str) -> Result<String, CryptoError
 
 fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     let file_name_extension = Path::new(&input_path)
-        .file_name().ok_or(ZipError::InvalidArchive(Cow::from("Cannot get file name")))?
-        .to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert file name to &str")))?;
+        .file_name()
+        .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot get file name")))?
+        .to_str()
+        .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert file name to &str")))?;
 
     let file_stem = &get_file_stem_to_string(file_name_extension)?;
 
@@ -96,15 +97,15 @@ fn archive_file(input_path: &str, output_dir: &str) -> Result<String, CryptoErro
 }
 
 fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
-    // If last char is '/', remove it
     if input_path.ends_with('/') {
         input_path = &input_path[0..input_path.len() - 1];
     }
 
-    // Get dir name from path
     let dir_name = Path::new(&input_path)
-        .file_name().ok_or(CryptoError::InputPath("Input file or folder missing!".to_string()))?
-        .to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert directory name to &str")))?;
+        .file_name()
+        .ok_or_else(|| CryptoError::InputPath("Input file or folder missing".to_string()))?
+        .to_str()
+        .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert directory name to &str")))?;
 
     let output_zip_filename = format!("{}{}.zip", output_dir, dir_name);
     let output_zip_path = Path::new(&output_zip_filename);
@@ -122,13 +123,14 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
         let path = entry.path();
         match path.strip_prefix(input_path) {
             Ok(name) => {
-                let path_str = path.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
+                let path_str = path.to_str()
+                    .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
                 let normalized_path_str = &normalize_paths(path_str, "").0;
-                let name_str = name.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert name to &str")))?;
+                let name_str = name.to_str()
+                    .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert name to &str")))?;
                 let output_path_str = format!("{}/{}", dir_name, name_str);
                 let normalized_output_path_str = &normalize_paths(&output_path_str, "").0;
-                // Write file or directory explicitly
-                // Some unzip tools unzip files with directory paths correctly, some do not!
+
                 if path.is_file() {
                     println!("Adding file {} as {} ...", normalized_path_str, normalized_output_path_str);
                     zip.start_file(&output_path_str, options)?;
@@ -137,14 +139,12 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
                     f.read_to_end(&mut buffer)?;
                     zip.write_all(&buffer)?;
                     buffer.clear();
-                } else if !&output_path_str.is_empty() {
-                    // Only if not root! Avoids path spec / warning
-                    // and map name conversion failed error on unzip
+                } else if !output_path_str.is_empty() {
                     println!("Adding dir {} as {} ...", normalized_path_str, normalized_output_path_str);
                     zip.add_directory(&output_path_str, options)?;
                 }
             }
-            Err(err) => { println!("StripPrefixError: {:?}", err); }
+            Err(err) => println!("StripPrefixError: {:?}", err),
         }
     }
 
@@ -153,10 +153,11 @@ fn archive_dir(mut input_path: &str, output_dir: &str) -> Result<String, CryptoE
     Ok(dir_name.to_string())
 }
 
+/// Extracts a ZIP archive to a specified directory.
 pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoError> {
     let file = File::open(Path::new(&input_path))?;
     let mut archive = zip::ZipArchive::new(file)?;
-    let mut output_path = "".to_string();
+    let mut output_path = String::new();
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
@@ -164,7 +165,8 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
             Some(path) => path,
             None => continue,
         };
-        let outpath_str = outpath.to_str().ok_or(ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
+        let outpath_str = outpath.to_str()
+            .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
         let outpath_full_str = normalize_paths(&format!("{}{}", output_dir, outpath_str), "").0;
         if i == 0 {
             output_path = outpath_full_str.clone();
@@ -195,16 +197,6 @@ pub fn unarchive(input_path: &str, output_dir: &str) -> Result<String, CryptoErr
             let mut outfile = File::create(outpath_full)?;
             io::copy(&mut file, &mut outfile)?;
         }
-
-        //// Get and Set permissions
-        // #[cfg(unix)]
-        // {
-        //     use std::os::unix::fs::PermissionsExt;
-        //
-        //     if let Some(mode) = file.unix_mode() {
-        //         fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
-        //     }
-        // }
     }
 
     Ok(output_path)

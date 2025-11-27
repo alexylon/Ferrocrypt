@@ -1,15 +1,15 @@
 use std::fs;
+
 use crate::common::normalize_paths;
 pub use crate::error::CryptoError;
 
 mod archiver;
-mod symmetric;
-mod hybrid;
 mod common;
-mod reed_solomon;
 mod error;
+mod hybrid;
+mod reed_solomon;
+mod symmetric;
 mod tests;
-
 
 pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut str, large: bool) -> Result<String, CryptoError> {
     let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
@@ -23,13 +23,7 @@ pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &mut s
         symmetric::encrypt_file(&normalized_input_path, &normalized_output_dir, password, large, tmp_dir_path)
     };
 
-    if let Err(err) = result {
-        fs::remove_dir_all(tmp_dir_path)?;
-        return Err(err);
-    }
-
     fs::remove_dir_all(tmp_dir_path)?;
-
     result
 }
 
@@ -45,20 +39,11 @@ pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut s
         hybrid::encrypt_file(&normalized_input_path, &normalized_output_dir, rsa_key_pem, tmp_dir_path)
     };
 
-    if let Err(err) = result {
-        fs::remove_dir_all(tmp_dir_path)?;
-        return Err(err);
-    }
-
     fs::remove_dir_all(tmp_dir_path)?;
-
     result
 }
 
 pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &mut str, output_dir: &str) -> Result<String, CryptoError> {
     let normalized_output_dir = normalize_paths("", output_dir).1;
-
-    let result = hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)?;
-
-    Ok(result)
+    hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)
 }

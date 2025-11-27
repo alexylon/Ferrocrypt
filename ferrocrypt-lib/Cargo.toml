@@ -6,6 +6,7 @@ authors = ["Alexander Alexandrov"]
 license = ""
 repository = "https://github.com/alexylon/Ferrocrypt"
 edition = "2021"
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,12 +14,10 @@ edition = "2021"
 openssl = "0.10"
 zeroize = "1"
 thiserror = "2"
-substring = "1"
 walkdir = "2"
 zip = "3"
 chacha20poly1305 = { version = "0.10", features = ["std", "stream"] }
 rust-argon2 = "2"
-rpassword = "7"
 sha3 = "0.10"
 constant_time_eq = "0"
 reed-solomon-erasure = "6"

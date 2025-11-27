@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-
 #[derive(Error, Debug)]
 pub enum CryptoError {
     #[error(transparent)]
@@ -23,14 +22,12 @@ pub enum CryptoError {
     BinCodeDecodeError(#[from] bincode::error::DecodeError),
     #[error(transparent)]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
-    #[error("{msg:?}")]
-    EncryptionDecryptionError { msg: String },
-    #[error("Input file or folder missing")]
+    #[error("{0}")]
+    EncryptionDecryptionError(String),
+    #[error("Input file or folder missing: {0}")]
     InputPath(String),
-    #[error("Message Error")]
+    #[error("{0}")]
     Message(String),
-    #[error("Unknown error!")]
-    Unknown,
 }
 
 // We must manually implement serde::Serialize for `tauri`

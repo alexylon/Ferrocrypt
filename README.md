@@ -12,13 +12,17 @@ Ferrocrypt is currently in the testing phase as I continue to develop it in my s
 
 ## ABOUT
 
-Ferrocrypt is a very small and simple encryption tool written in Rust.
+Ferrocrypt is a small and simple encryption tool written in Rust.
+
 Its name comes from the Latin words for iron, "ferrum" and for rust, "ferrugo".
+
 With a user-friendly command-line and an intuitive graphical user interface, Ferrocrypt 
 makes it easy to encrypt and decrypt data using industry-standard algorithms.
+
 The tool utilizes Rust's strong memory safety guarantees and performance benefits
 to ensure the highest level of security and speed.
-The app’s GUI is implemented in React using Tauri, while all logic is written entirely in Rust.
+
+GUI options include a Rust/React-based Tauri app and a Rust-based Dioxus desktop app, with all logic written entirely in Rust.
 
 Ferrocrypt supports two different encryption modes:
 
@@ -56,8 +60,8 @@ a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui-tauri`, and a [*
 
 ### Tauri GUI
 
-After installing [Rust](https://www.rust-lang.org/learn/get-started),
-and [Node.js](https://nodejs.org/) (at least v.18) run the following commands in the `ferrocrypt-gui-tauri` directory:
+After installing [Rust](https://www.rust-lang.org/learn/get-started) and [Node.js](https://nodejs.org/) (at least v.18),
+navigate to the `ferrocrypt-gui-tauri` directory and run the following commands:
 
 ### Install the `create-tauri-app` utility:
 
@@ -91,15 +95,13 @@ The DMG image file of the GUI app will be generated in `ferrocrypt-gui-tauri/src
 
 ### Dioxus GUI
 
-- Install Rust
-
-To install Rust, visit the official installation page: [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
+After [installing Rust](https://www.rust-lang.org/tools/install), install the Dioxus CLI:
 
 - Install `cargo-binstall`:
 
 ```bash
 curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-````
+```
 
 - Install Dioxus CLI:
 
@@ -107,13 +109,21 @@ curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-
 cargo binstall dioxus-cli
 ```
 
-### You can start a live dev session with:
+Navigate to the `ferrocrypt-gui-dioxus` directory and run:
+
+### Build release binary:
+
+```bash
+cargo build --release
+```
+
+The binary will be generated in `target/release/ferrocrypt-gui-dioxus`
+
+### Start a live dev session:
 
 ```bash
 dx serve
 ```
-
-The app should open automatically.
 
 ### Bundle the desktop app:
 
@@ -167,9 +177,17 @@ RSA-4096 keys.
 ## BUILD the CLI app
 
 After [installing Rust](https://www.rust-lang.org/learn/get-started),
-just run the following command in the root directory:
+run from the workspace root directory:
 
-```cargo build --release```
+```bash
+cargo build --release -p fc
+```
+
+Or navigate to `ferrocrypt-cli` and run:
+
+```bash
+cargo build --release
+```
 
 The binary executable file will be generated in `target/release/fc` (macOS and Linux)
 or `target\release\fc.exe` (Windows).
