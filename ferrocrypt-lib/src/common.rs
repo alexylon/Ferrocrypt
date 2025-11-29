@@ -16,8 +16,9 @@ pub fn normalize_paths(src_file_path: &str, dest_dir_path: &str) -> (String, Str
     (src_file_path_norm, dest_dir_path_norm)
 }
 
-pub fn get_file_stem_to_string(filename: &str) -> Result<String, CryptoError> {
-    let file_stem_string = Path::new(filename)
+pub fn get_file_stem_to_string(filename: impl AsRef<Path>) -> Result<String, CryptoError> {
+    let file_stem_string = filename
+        .as_ref()
         .file_stem()
         .ok_or_else(|| CryptoError::Message("Cannot get file stem".to_string()))?
         .to_str()

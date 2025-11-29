@@ -1,5 +1,6 @@
 use std::fs::{self, File, OpenOptions, read};
 use std::io::{Read, Write};
+use std::path::Path;
 
 use argon2::Variant;
 use chacha20poly1305::{
@@ -19,10 +20,12 @@ const NONCE_19_SIZE: usize = 19;
 const KEY_SIZE: usize = 32;
 
 /// Encrypts a file with XChaCha20Poly1305 algorithm.
-pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, large: bool, tmp_dir_path: &str) -> Result<String, CryptoError> {
+pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, large: bool, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
+    let output_dir = output_dir.as_ref();
+    let tmp_dir_path = tmp_dir_path.as_ref();
 
-    let mut flags: [bool; 4] = [false, false, false, false];
+    let mut flags: [bool; 4] = [false; 4];
     if large {
         flags[0] = true;
     }
@@ -40,14 +43,14 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 
     let encrypted_extension = "fcs";
     let file_stem = &archiver::archive(input_path, tmp_dir_path)?;
-    let zipped_file_name = &format!("{}{}.zip", tmp_dir_path, file_stem);
-    println!("\nEncrypting {} ...", zipped_file_name);
+    let zipped_file_name = tmp_dir_path.join(format!("{}.zip", file_stem));
+    println!("\nEncrypting {} ...", zipped_file_name.display());
 
     let mut encrypted_file_path = OpenOptions::new()
         .write(true)
         .append(true)
         .create_new(true)
-        .open(format!("{}{}.{}", &output_dir, file_stem, encrypted_extension))?;
+        .open(output_dir.join(format!("{}.{}", file_stem, encrypted_extension)))?;
 
 
     // Encode with reed-solomon. The resulting size is three times that of the original
@@ -59,7 +62,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         OsRng.fill_bytes(&mut nonce_24);
 
         let encoded_nonce_24: Vec<u8> = rs_encode(&nonce_24)?;
-        let zipped_file = read(zipped_file_name)?;
+        let zipped_file = read(&zipped_file_name)?;
         let ciphertext = cipher.encrypt(nonce_24.as_ref().into(), &*zipped_file)?;
 
         encrypted_file_path.write_all(&serialized_flags)?;
@@ -80,7 +83,7 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         encrypted_file_path.write_all(&encoded_nonce_19)?;
         encrypted_file_path.write_all(&encoded_key_hash_ref)?;
 
-        let mut source_file = File::open(zipped_file_name)?;
+        let mut source_file = File::open(&zipped_file_name)?;
         loop {
             let read_count = source_file.read(&mut buffer)?;
 
@@ -99,8 +102,8 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
         }
     }
 
-    let encrypted_file_name = &format!("{}{}.{}", output_dir, file_stem, encrypted_extension);
-    let result = format!("Encrypted to {} for {}", encrypted_file_name, get_duration(start_time.elapsed().as_secs_f64()));
+    let encrypted_file_name = output_dir.join(format!("{}.{}", file_stem, encrypted_extension));
+    let result = format!("Encrypted to {} for {}", encrypted_file_name.display(), get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
 
     key.zeroize();
@@ -110,8 +113,9 @@ pub fn encrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, la
 }
 
 /// Decrypts a file with XChaCha20Poly1305 algorithm.
-pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
+pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
+    let input_path = input_path.as_ref();
     let file_bytes = read(input_path)?;
     let (flags, _): ([bool; 4], usize) = bincode::decode_from_slice(&file_bytes[..4], bincode::config::standard())?;
 
@@ -128,8 +132,10 @@ pub fn decrypt_file(input_path: &str, output_dir: &str, passphrase: &mut str, tm
 }
 
 /// Decrypts a normal-sized file with XChaCha20Poly1305 algorithm.
-fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
-    println!("Decrypting {} ...\n", input_path);
+fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+    let input_path = input_path.as_ref();
+    let tmp_dir_path = tmp_dir_path.as_ref();
+    println!("Decrypting {} ...\n", input_path.display());
     let encrypted_file: Vec<u8> = read(input_path)?;
 
     // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
@@ -154,7 +160,7 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
         let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
         let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..NONCE_24_SIZE].as_ref().into(), ciphertext.as_ref())?;
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
-        let decrypted_file_path: String = format!("{}{}.zip", tmp_dir_path, decrypted_file_stem);
+        let decrypted_file_path = tmp_dir_path.join(format!("{}.zip", decrypted_file_stem));
 
         File::create(&decrypted_file_path)?;
         fs::write(&decrypted_file_path, plaintext)?;
@@ -171,8 +177,10 @@ fn decrypt_normal_file(input_path: &str, output_dir: &str, passphrase: &mut str,
 }
 
 /// Decrypts a large file that doesn't fit in RAM with XChaCha20Poly1305 algorithm. This is slower.
-fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, tmp_dir_path: &str) -> Result<String, CryptoError> {
-    println!("Decrypting {} ...\n", input_path);
+fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+    let input_path = input_path.as_ref();
+    let tmp_dir_path = tmp_dir_path.as_ref();
+    println!("Decrypting {} ...\n", input_path.display());
 
     let mut serialized_flags = [0u8; 4];
     let mut encoded_salt_32 = [0u8; 96];
@@ -215,7 +223,7 @@ fn decrypt_large_file(input_path: &str, output_dir: &str, passphrase: &mut str, 
         let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
         let mut stream_decryptor = stream::DecryptorBE32::from_aead(cipher, nonce_19[..NONCE_19_SIZE].as_ref().into());
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
-        let decrypted_file_path = format!("{}{}.zip", tmp_dir_path, decrypted_file_stem);
+        let decrypted_file_path = tmp_dir_path.join(format!("{}.zip", decrypted_file_stem));
         let mut decrypted_file = OpenOptions::new()
             .write(true)
             .append(true)
