@@ -1,8 +1,7 @@
 # Ferrocrypt
 
-Tiny, easy-to-use, and highly secure multiplatform encryption tool 
-which features both Command Line Interface (CLI) and Graphical User Interface (GUI).
-Ferrocrypt is currently in the testing phase as I continue to develop it in my spare time.
+Tiny, easy-to-use, and highly secure multiplatform encryption tool with CLI and GUI interfaces.
+Written entirely in Rust.
 
 <br/>
 
@@ -12,44 +11,24 @@ Ferrocrypt is currently in the testing phase as I continue to develop it in my s
 
 ## ABOUT
 
-Ferrocrypt is a small and simple encryption tool written in Rust.
+Ferrocrypt is a simple encryption tool leveraging Rust's memory safety guarantees and performance benefits.
+The name comes from Latin: "ferrum" (iron) and "ferrugo" (rust).
 
-Its name comes from the Latin words for iron, "ferrum" and for rust, "ferrugo".
+**GUI Options:**
+- Tauri app (Rust + React frontend)
+- Dioxus desktop app (pure Rust)
 
-With a user-friendly command-line and an intuitive graphical user interface, Ferrocrypt 
-makes it easy to encrypt and decrypt data using industry-standard algorithms.
+**Encryption Modes:**
 
-The tool utilizes Rust's strong memory safety guarantees and performance benefits
-to ensure the highest level of security and speed.
+1. **Symmetric** - Uses XChaCha20-Poly1305 encryption with Argon2id password-based key derivation. Ideal for personal use where the same password encrypts and decrypts data. Produces `.fcs` vault files.
 
-GUI options include a Rust/React-based Tauri app and a Rust-based Dioxus desktop app, with all logic written entirely in Rust.
+2. **Hybrid** - Combines XChaCha20-Poly1305 (data encryption) with RSA-4096 (key encryption). Each file/folder gets a unique random key, encrypted with your public key. Requires both the private key AND password for decryption, providing dual-layer security. Produces `.fch` vault files.
 
-Ferrocrypt supports two different encryption modes:
+**Security Features:**
 
-1. Symmetric encryption mode: This mode uses XChaCha20-Poly1305, based on the ChaCha20 stream cipher
-   and the Poly1305 MAC, which together provide stronger security guarantees.
-   Additionally, Ferrocrypt employs the Argon2id password-based key derivation function
-   to generate secure encryption keys from user passwords,
-   making it easy for users to protect their data with a strong and unique password.
-   The vaults that are produced have the file extension ".fcs".
-
-2. Hybrid encryption mode: This method combines both symmetric and asymmetric encryption algorithms.
-   In this mode, the XChaCha20-Poly1305 symmetric algorithm is used to encrypt the data,
-   while the RSA asymmetric (public key) algorithm is used to encrypt the symmetric data key,
-   providing an added layer of security.
-   Unlike the Symmetric mode above, where a password-derived key is used to encrypt all files or folders,
-   each file or folder is encrypted with a random key in Hybrid mode. Even if someone guesses your password,
-   the random key renders it useless without the private key. Moreover, if someone gains access to your private key,
-   they would still need the password to decrypt it.
-   Vaults produced by the Hybrid mode have a file extension of ".fch".
-
-The `chacha20poly1305` crate, which implements the ChaCha20Poly1305 encryption algorithms,
-has undergone successful security audits.
-
-Ferrocrypt enhances the security of header data, which comprises crucial cryptographic components,
-by generating additional Reed-Solomon parity (recovery) bytes. In the event of header corruption,
-which may occur due to hard drive bit rot, data transfer or other factors, these parity bytes enable Ferrocrypt
-to successfully recover the header and decrypt your data with a high degree of reliability.
+- **Audited encryption**: Uses the `chacha20poly1305` crate, which has undergone successful security audits
+- **Secure secret handling**: Passphrases are protected using the `secrecy` crate, preventing accidental exposure through Debug/Display traits and ensuring automatic memory zeroization when dropped
+- **Error correction**: Reed-Solomon parity bytes protect cryptographic headers from corruption due to bit rot or data transfer errors, enabling reliable data recovery
 
 The code is separated in multiple projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`,
 a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui-tauri`, and a [**Dioxus**](https://dioxuslabs.com/) based GUI app `ferrocrypt-gui-dioxus`.
@@ -135,42 +114,19 @@ dx bundle
 
 ## USING the GUI App
 
-To encrypt or decrypt a file or folder, drag and drop it into the app window.
-Then select either symmetric or hybrid encryption modes.
-When decrypting a vault, the app detects the appropriate mode automatically,
-and it's not possible to switch between modes during the decryption process.
+Drag and drop a file or folder into the app window, then select the encryption mode. When decrypting, the app auto-detects the mode.
 
 ### Symmetric Encryption Mode
 
-An excellent option for personal use cases. With this mode, data is encrypted
-and decrypted using the same password, providing a simple and straightforward
-approach to securing sensitive information.
-
-To encrypt a file or folder using symmetric encryption mode, choose a password and a destination folder,
-then click the "Encrypt" button. If the files you want to encrypt are too large for the available RAM
-or you want to avoid excessive RAM consumption, select the "Large files (low RAM usage)" option
-(see the "OPTIONS" section below for more information).
-
-The decryption process is the same as the encryption process,
-which is why it's called symmetric.
+Encrypt/decrypt using the same password. Choose a password, destination folder, and click "Encrypt". For large files, enable "Large files (low RAM usage)" to reduce memory consumption.
 
 ### Hybrid Encryption Mode
 
-Apart from personal use, this mode is an ideal choice for secure data exchange,
-allowing files or directories to be encrypted using a public key. However, decryption is only possible
-with the corresponding private key and passphrase that unlocks the key.
+Ideal for secure data exchange. Encrypt using a _public_ RSA key (PEM format), decrypt using the corresponding _private_ key and password.
 
-To encrypt a file or folder using hybrid encryption mode, select a _public_ RSA key in PEM format,
-choose the destination folder, and click the "Encrypt" button.
+### Key Pair Creation
 
-To decrypt a file or folder using this mode, select your _private_ RSA key in PEM format,
-enter the password to unlock it, choose the destination folder, and click the "Decrypt" button.
-
-### Asymmetric Key Pair Creation Mode
-
-To generate a public/private key pair for Hybrid encryption mode, select "Create key pair".
-Enter your password to encrypt the private key, choose the output folder, and click the "Create key pair" button to generate your
-RSA-4096 keys.
+Select "Create key pair", enter a password to protect the private key, choose output folder, and generate RSA-4096 keys.
 
 <br/>
 
@@ -196,13 +152,7 @@ or `target\release\fc.exe` (Windows).
 
 ## USING the CLI app
 
-The tool can automatically detect whether the source path requires
-encryption or decryption, and which decryption mode should be used.
-
-The commands listed below are compatible with macOS and Linux.
-For Windows, simply substitute "./fc" with "fc" in each command.
-
-The flags for each command can be used in any order.
+The CLI auto-detects encryption/decryption mode. Commands shown are for macOS/Linux (use `fc` instead of `./fc` on Windows). Flags can be used in any order.
 
 <br/>
 
@@ -260,17 +210,7 @@ or
 | `-h, --help`                  | Print help                                                                                                                            |                                                                                                                                   
 | `-V, --version`               | Print version                                                                                                                         |                                                                                                                             |
 
-* The decision of whether to include the `-l, --large` flag depends on the total size of the files to be encrypted.
-  If the size is smaller than the available RAM, omitting the flag can result in a much faster encryption/decryption
-  process.
-  On the other hand, if the total size exceeds the available RAM, using the flag can significantly speed up the process.
-  It's important to note that the `-l, --large` flag is recommended when minimizing RAM consumption is a priority and
-  the encryption/decryption process
-  shouldn't affect the user's work. Using this flag significantly reduces RAM usage, providing a smoother user
-  experience.
-  If the encryption process is carried out with the specified flag, there's no need to specify it when decrypting the
-  file(s).
-  The decryption process will automatically use the same method that was used for encryption.
+* Use `-l, --large` when encrypting files larger than available RAM or to minimize memory usage. Omitting it provides faster encryption for smaller files. The decryption process automatically uses the same method as encryption.
 
 <br/>
 
