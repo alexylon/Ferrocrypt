@@ -2,56 +2,6 @@ use reed_solomon_erasure::galois_8::ReedSolomon;
 
 use crate::CryptoError;
 
-#[cfg(test)]
-mod tests {
-    use super::{pad_pkcs7, rs_decode, rs_encode, unpad_pkcs7};
-
-    #[test]
-    fn encode_reconstruct_test() {
-        let arr_32_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
-
-        let mut arr_32_enc = rs_encode(&arr_32_orig).unwrap();
-        println!("encoded_salt_32.len(): {}", &arr_32_enc.len());
-        println!("encoded_salt_32: {:?}", &arr_32_enc);
-
-        // Corrupt some data
-        arr_32_enc[0] = 0;
-        arr_32_enc[35] = 0;
-        arr_32_enc[40] = 0;
-        arr_32_enc[65] = 0;
-        arr_32_enc[90] = 0;
-
-        let arr_32_dec = rs_decode(&arr_32_enc).unwrap();
-
-        println!("{:?}", &arr_32_orig);
-        println!("{:?}", &arr_32_dec);
-
-        assert_eq!(&arr_32_orig.to_vec(), &arr_32_dec);
-    }
-
-    #[test]
-    fn pkcs_padding_unpadding() {
-        let arr_12_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
-        let arr_16_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
-
-        let arr_12_padded = pad_pkcs7(&arr_12_orig, 16);
-        let arr_16_padded = pad_pkcs7(&arr_16_orig, 16);
-
-        let arr_12_unpadded = unpad_pkcs7(&arr_12_padded);
-        let arr_16_unpadded = unpad_pkcs7(&arr_16_padded);
-
-        println!("{:?}", &arr_12_padded);
-        println!("{:?}", &arr_12_orig);
-        println!("{:?}", &arr_12_unpadded);
-        println!();
-        println!("{:?}", &arr_16_padded);
-        println!("{:?}", &arr_16_orig);
-        println!("{:?}", &arr_16_unpadded);
-
-        assert_eq!(&arr_12_orig, &arr_12_unpadded.as_slice());
-        assert_eq!(&arr_16_orig, &arr_16_unpadded.as_slice());
-    }
-}
 /// Encodes data using Reed-Solomon erasure coding for error correction.
 pub fn rs_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
     let mut data_shards: Vec<Vec<u8>> = vec![];
@@ -173,4 +123,55 @@ fn unpad_pkcs7(data: &[u8]) -> Vec<u8> {
     byte_vec.truncate(final_length);
 
     byte_vec
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{pad_pkcs7, rs_decode, rs_encode, unpad_pkcs7};
+
+    #[test]
+    fn encode_reconstruct_test() {
+        let arr_32_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
+
+        let mut arr_32_enc = rs_encode(&arr_32_orig).unwrap();
+        println!("encoded_salt_32.len(): {}", &arr_32_enc.len());
+        println!("encoded_salt_32: {:?}", &arr_32_enc);
+
+        // Corrupt some data
+        arr_32_enc[0] = 0;
+        arr_32_enc[35] = 0;
+        arr_32_enc[40] = 0;
+        arr_32_enc[65] = 0;
+        arr_32_enc[90] = 0;
+
+        let arr_32_dec = rs_decode(&arr_32_enc).unwrap();
+
+        println!("{:?}", &arr_32_orig);
+        println!("{:?}", &arr_32_dec);
+
+        assert_eq!(&arr_32_orig.to_vec(), &arr_32_dec);
+    }
+
+    #[test]
+    fn pkcs_padding_unpadding() {
+        let arr_12_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
+        let arr_16_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6];
+
+        let arr_12_padded = pad_pkcs7(&arr_12_orig, 16);
+        let arr_16_padded = pad_pkcs7(&arr_16_orig, 16);
+
+        let arr_12_unpadded = unpad_pkcs7(&arr_12_padded);
+        let arr_16_unpadded = unpad_pkcs7(&arr_16_padded);
+
+        println!("{:?}", &arr_12_padded);
+        println!("{:?}", &arr_12_orig);
+        println!("{:?}", &arr_12_unpadded);
+        println!();
+        println!("{:?}", &arr_16_padded);
+        println!("{:?}", &arr_16_orig);
+        println!("{:?}", &arr_16_unpadded);
+
+        assert_eq!(&arr_12_orig, &arr_12_unpadded.as_slice());
+        assert_eq!(&arr_16_orig, &arr_16_unpadded.as_slice());
+    }
 }
