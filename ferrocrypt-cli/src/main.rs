@@ -1,5 +1,6 @@
 use clap::Parser;
 use ferrocrypt::{hybrid_encryption, generate_asymmetric_key_pair, symmetric_encryption, CryptoError};
+use ferrocrypt::secrecy::SecretString;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -38,13 +39,16 @@ fn main() -> Result<(), CryptoError> {
     let mut args = Args::parse();
 
     if args.generate {
-        generate_asymmetric_key_pair(args.bit_size, &mut args.passphrase, &args.outpath)?;
+        let passphrase = SecretString::from(args.passphrase);
+        generate_asymmetric_key_pair(args.bit_size, &passphrase, &args.outpath)?;
     } else if args.inpath.is_empty() {
         eprintln!("Source path missing!");
     } else if !args.key.is_empty() {
-        hybrid_encryption(&args.inpath, &args.outpath, &mut args.key, &mut args.passphrase)?;
+        let passphrase = SecretString::from(args.passphrase);
+        hybrid_encryption(&args.inpath, &args.outpath, &mut args.key, &passphrase)?;
     } else if !args.passphrase.is_empty() {
-        symmetric_encryption(&args.inpath, &args.outpath, &mut args.passphrase, args.large)?;
+        let passphrase = SecretString::from(args.passphrase);
+        symmetric_encryption(&args.inpath, &args.outpath, &passphrase, args.large)?;
     } else {
         eprintln!("Error: No sufficient arguments supplied!");
     }

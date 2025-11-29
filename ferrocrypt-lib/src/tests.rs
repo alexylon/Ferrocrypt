@@ -2,6 +2,8 @@
 mod ferrocrypt_tests {
     use std::fs;
 
+    use secrecy::SecretString;
+
     use crate::{hybrid_encryption, symmetric_encryption};
     use crate::error::CryptoError;
     use crate::hybrid::generate_asymmetric_key_pair;
@@ -26,45 +28,45 @@ mod ferrocrypt_tests {
     #[test]
     fn symmetric_encrypt_file_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH)?;
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH, &passphrase, false)?;
         Ok(())
     }
 
     #[test]
     fn symmetric_decrypt_file_test() -> Result<(), CryptoError> {
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(ENCRYPTED_FILE_PATH_SYM, DEST_DIR_PATH, &mut passphrase, false)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(ENCRYPTED_FILE_PATH_SYM, DEST_DIR_PATH, &passphrase, false)?;
         Ok(())
     }
 
     #[test]
     fn symmetric_encrypt_large_file_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH_LARGE)?;
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH_LARGE, &mut passphrase, true)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(SRC_FILE_PATH, DEST_DIR_PATH_LARGE, &passphrase, true)?;
         Ok(())
     }
 
     #[test]
     fn symmetric_decrypt_large_file_test() -> Result<(), CryptoError> {
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(ENCRYPTED_LARGE_FILE_PATH_SYM, DEST_DIR_PATH_LARGE, &mut passphrase, true)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(ENCRYPTED_LARGE_FILE_PATH_SYM, DEST_DIR_PATH_LARGE, &passphrase, true)?;
         Ok(())
     }
 
     #[test]
     fn symmetric_encrypt_dir_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH)?;
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(SRC_DIR_PATH, DEST_DIR_PATH, &mut passphrase, false)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(SRC_DIR_PATH, DEST_DIR_PATH, &passphrase, false)?;
         Ok(())
     }
 
     #[test]
     fn symmetric_decrypt_dir_test() -> Result<(), CryptoError> {
-        let mut passphrase = PASSPHRASE.to_string();
-        symmetric_encryption(ENCRYPTED_DIR_PATH_SYM, DEST_DIR_PATH, &mut passphrase, false)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        symmetric_encryption(ENCRYPTED_DIR_PATH_SYM, DEST_DIR_PATH, &passphrase, false)?;
         Ok(())
     }
 
@@ -73,9 +75,9 @@ mod ferrocrypt_tests {
         fs::create_dir_all(DEST_DIR_PATH_HYB)?;
         let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
         let mut rsa_pub_pem = RSA_PUB_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        hybrid_encryption(SRC_FILE_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &mut passphrase)?;
-        hybrid_encryption(ENCRYPTED_FILE_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &mut passphrase)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        hybrid_encryption(SRC_FILE_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &passphrase)?;
+        hybrid_encryption(ENCRYPTED_FILE_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &passphrase)?;
 
         let file_original = fs::read_to_string(SRC_FILE_PATH)?;
         let file_decrypted = fs::read_to_string(DECRYPTED_FILE_PATH_HYB)?;
@@ -88,16 +90,16 @@ mod ferrocrypt_tests {
     fn hybrid_encrypt_file_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH_HYB)?;
         let mut rsa_pub_pem = RSA_PUB_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        hybrid_encryption(SRC_FILE_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &mut passphrase)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        hybrid_encryption(SRC_FILE_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &passphrase)?;
         Ok(())
     }
 
     #[test]
     fn hybrid_decrypt_file_test() -> Result<(), CryptoError> {
         let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        hybrid_encryption(ENCRYPTED_FILE_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &mut passphrase)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        hybrid_encryption(ENCRYPTED_FILE_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &passphrase)?;
         Ok(())
     }
 
@@ -105,8 +107,8 @@ mod ferrocrypt_tests {
     fn hybrid_encrypt_dir_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH_HYB)?;
         let mut rsa_pub_pem = RSA_PUB_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        hybrid_encryption(SRC_DIR_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &mut passphrase)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        hybrid_encryption(SRC_DIR_PATH, DEST_DIR_PATH_HYB, &mut rsa_pub_pem, &passphrase)?;
         Ok(())
     }
 
@@ -114,16 +116,16 @@ mod ferrocrypt_tests {
     fn hybrid_decrypt_dir_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH_HYB)?;
         let mut rsa_priv_pem = RSA_PRIV_PEM.to_string();
-        let mut passphrase = PASSPHRASE.to_string();
-        hybrid_encryption(ENCRYPTED_DIR_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &mut passphrase)?;
+        let passphrase = SecretString::from(PASSPHRASE.to_string());
+        hybrid_encryption(ENCRYPTED_DIR_PATH_HYB, DEST_DIR_PATH_HYB, &mut rsa_priv_pem, &passphrase)?;
         Ok(())
     }
 
     #[test]
     fn hybrid_generate_key_pair_test() -> Result<(), CryptoError> {
         fs::create_dir_all(DEST_DIR_PATH_HYB)?;
-        let mut passphrase = "test".to_string();
-        generate_asymmetric_key_pair(4096, &mut passphrase, DEST_DIR_PATH_HYB)?;
+        let passphrase = SecretString::from("test".to_string());
+        generate_asymmetric_key_pair(4096, &passphrase, DEST_DIR_PATH_HYB)?;
         Ok(())
     }
 }

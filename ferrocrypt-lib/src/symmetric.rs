@@ -7,6 +7,7 @@ use chacha20poly1305::{
     aead::{stream, Aead, KeyInit, OsRng, rand_core::RngCore},
     XChaCha20Poly1305,
 };
+use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroize;
 
 use crate::{archiver, CryptoError};
@@ -20,7 +21,7 @@ const NONCE_19_SIZE: usize = 19;
 const KEY_SIZE: usize = 32;
 
 /// Encrypts a file with XChaCha20Poly1305 algorithm.
-pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, large: bool, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, large: bool, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let output_dir = output_dir.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
@@ -35,7 +36,7 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
     let mut salt_32 = [0u8; SALT_SIZE];
     OsRng.fill_bytes(&mut salt_32);
 
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32, &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32, &argon2_config)?;
     let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
 
     // Hash the encryption key for comparison when decrypting
@@ -107,13 +108,12 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
     println!("\n{}", result);
 
     key.zeroize();
-    passphrase.zeroize();
 
     Ok(result)
 }
 
 /// Decrypts a file with XChaCha20Poly1305 algorithm.
-pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let input_path = input_path.as_ref();
     let file_bytes = read(input_path)?;
@@ -132,7 +132,7 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 }
 
 /// Decrypts a normal-sized file with XChaCha20Poly1305 algorithm.
-fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
     println!("Decrypting {} ...\n", input_path.display());
@@ -150,7 +150,7 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
     let key_hash_ref = rs_decode(encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32[0..32], &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32[0..32], &argon2_config)?;
 
     // Hash the encryption key for comparison and compare it in constant time with the ref key hash
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
@@ -171,13 +171,12 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
     };
 
     key.zeroize();
-    passphrase.zeroize();
 
     Ok(output_path)
 }
 
 /// Decrypts a large file that doesn't fit in RAM with XChaCha20Poly1305 algorithm. This is slower.
-fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
     println!("Decrypting {} ...\n", input_path.display());
@@ -214,7 +213,7 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
     let key_hash_ref = rs_decode(&encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.as_bytes(), &salt_32, &argon2_config)?;
+    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32, &argon2_config)?;
 
     let key_hash: [u8; KEY_SIZE] = sha3_32_hash(&key)?;
     let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..KEY_SIZE].try_into()?);
@@ -259,7 +258,6 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
     };
 
     key.zeroize();
-    passphrase.zeroize();
 
     Ok(output_path)
 }

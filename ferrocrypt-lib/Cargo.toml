@@ -13,6 +13,7 @@ resolver = "2"
 [dependencies]
 openssl = "0.10"
 zeroize = "1"
+secrecy = { version = "0.10", features = ["serde"] }
 thiserror = "2"
 walkdir = "2"
 zip = "3"

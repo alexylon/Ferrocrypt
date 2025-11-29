@@ -9,6 +9,7 @@ use chacha20poly1305::{
 use openssl::pkey::Private;
 use openssl::rsa::{Padding, Rsa};
 use openssl::symm::Cipher;
+use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroize;
 
 use crate::{archiver, CryptoError};
@@ -73,7 +74,7 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 }
 
 /// Decrypts a file with XChaCha20Poly1305 algorithm and symmetric key with RSA algorithm.
-pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, rsa_private_pem: &mut str, passphrase: &mut str, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, rsa_private_pem: &mut str, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let input_path = input_path.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
@@ -84,7 +85,7 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 
     let encrypted_file: Vec<u8> = read(input_path)?;
 
-    let rsa_pub_pem_size = match get_public_key_size_from_private_key(&priv_key_str, passphrase) {
+    let rsa_pub_pem_size = match get_public_key_size_from_private_key(&priv_key_str, passphrase.expose_secret()) {
         Ok(rsa_pub_pem_size) => rsa_pub_pem_size,
         Err(_) => return Err(CryptoError::EncryptionDecryptionError("Incorrect password or wrong private key provided".to_string())),
     };
@@ -97,7 +98,7 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
     let encrypted_symmetric_key = rs_decode(encoded_encrypted_symmetric_key)?;
     let nonce_24 = rs_decode(encoded_nonce_24)?;
 
-    let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key_str, passphrase)?;
+    let decrypted_symmetric_key = decrypt_key(&encrypted_symmetric_key, &priv_key_str, passphrase.expose_secret())?;
 
     let mut symmetric_key: GenericArray<u8, typenum::U32> = GenericArray::from(decrypted_symmetric_key);
     let cipher = XChaCha20Poly1305::new(&symmetric_key);
@@ -111,7 +112,6 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 
     symmetric_key.zeroize();
     rsa_private_pem.zeroize();
-    passphrase.zeroize();
 
     let result = format!("Decrypted to {} for {}", output_path, get_duration(start_time.elapsed().as_secs_f64()));
     println!("\n{}", result);
@@ -149,11 +149,11 @@ fn decrypt_key(symmetric_key: &[u8], rsa_private_pem: &str, passphrase: &str) ->
 }
 
 /// Generates an asymmetric RSA key pair.
-pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &mut str, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &SecretString, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
     let output_dir = output_dir.as_ref();
     let rsa: Rsa<Private> = Rsa::generate(bit_size)?;
 
-    let private_key: Vec<u8> = rsa.private_key_to_pem_passphrase(Cipher::chacha20_poly1305(), passphrase.as_bytes())?;
+    let private_key: Vec<u8> = rsa.private_key_to_pem_passphrase(Cipher::chacha20_poly1305(), passphrase.expose_secret().as_bytes())?;
     let public_key: Vec<u8> = rsa.public_key_to_pem()?;
     let private_key_path = output_dir.join(format!("rsa-{}-priv-key.pem", bit_size));
     let public_key_path = output_dir.join(format!("rsa-{}-pub-key.pem", bit_size));
@@ -171,8 +171,6 @@ pub fn generate_asymmetric_key_pair(bit_size: u32, passphrase: &mut str, output_
         .create_new(true)
         .open(&public_key_path)?;
     public_key_file.write_all(&public_key)?;
-
-    passphrase.zeroize();
 
     let result = format!("Generated key pair to {}", output_dir.display());
     println!("\n{}", result);
