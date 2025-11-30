@@ -150,68 +150,141 @@ or `target\release\fc.exe` (Windows).
 
 <br/>
 
+
 ## USING the CLI app
 
-The CLI auto-detects encryption/decryption mode. Commands shown are for macOS/Linux (use `fc` instead of `./fc` on Windows). Flags can be used in any order.
+The CLI supports two usage modes:
 
-<br/>
+1. **Direct subcommands** (recommended for scripts and automation)
+2. **Interactive command mode** (REPL), entered when you run `./fc` with no arguments
 
-### Symmetric encryption, which utilizes password-based key derivation
+Commands shown are for macOS/Linux (use `fc` instead of `./fc` on Windows).  
+Flags can be used in any order.
+
+Available subcommands:
+
+- `keygen`    – Generate a hybrid (asymmetric) key pair
+- `hybrid`    – Hybrid encryption/decryption using public/private keys
+- `symmetric` – Symmetric encryption/decryption using a passphrase
+
+---
+
+## 1. Direct subcommand usage
+
+### Symmetric encryption (password-based key derivation)
 
 - Encrypt file or directory | decrypt file
 
-`./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
+`./fc symmetric --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
 
 or
 
-`./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+`./fc symmetric -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
 
 <br/>
 
 ### Hybrid encryption
 
-- Generate a private/public key pair and set a passphrase for encrypting the private key
+#### Generate a private/public key pair and set a passphrase for encrypting the private key
 
-`./fc --generate --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --out <DEST_DIR_PATH>`
-
-or
-
-`./fc -g -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
-
-- Encrypt file or directory
-
-`./fc --inpath <SRC_PATH> --out <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
+`./fc keygen --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --outpath <DEST_DIR_PATH>`
 
 or
 
-`./fc -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
+`./fc keygen -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
 
-- Decrypt file:
+If `--bit-size` is omitted, the default is `4096`.
 
-`./fc --inpath <SRC_FILE_PATH> --out <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
+#### Encrypt file or directory (using a public key)
+
+`./fc hybrid --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
 
 or
 
-`./fc -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
+`./fc hybrid -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
+
+#### Decrypt file (using a private key)
+
+`./fc hybrid --inpath <SRC_FILE_PATH> --outpath <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
+
+or
+
+`./fc hybrid -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
+
+---
+
+## 2. Interactive command mode (REPL)
+
+Running `./fc` **without any arguments** starts an interactive shell:
+
+```text
+$ ./fc
+Ferrocrypt interactive mode
+Type `keygen`, `hybrid`, or `symmetric` with flags, or `quit` to exit.
+
+fc> keygen -o keys -p "my secret"
+fc> hybrid -i secret.txt -o out -k public.pem
+fc> symmetric -i secret.txt -o out -p "my secret"
+fc> quit
+```
+
+This mode is convenient for exploratory or repeated use.  
+Under the hood, it uses the same subcommands and flags as the direct CLI.
+
+---
+
+## SUBCOMMANDS AND OPTIONS
+
+### Global options
+
+```markdown
+| Flag             | Description    |
+|------------------|----------------|
+| `-h, --help`     | Print help     |
+| `-V, --version`  | Print version  |
+```
 
 <br/>
 
-## OPTIONS:
+### `symmetric` subcommand
 
-| Flag                          | Description                                                                                                                           |
-|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `-i, --inpath <SRC_PATH>`     | Hybrid and Symmetric: File or directory path that needs to be <br/>encrypted, or the file path that needs to be decrypted [default: ] |
-| `-o, --outpath <DEST_DIR>`    | Hybrid and Symmetric: Destination directory path [default: ]                                                                          |                                                                             
-| `-k, --key <KEY_PATH>`        | Hybrid: Path to the public key for encryption, <br/>or the path to the private key for decryption [default: ]                         |                                                         
-| `-p, --passphrase <PASSWORD>` | Hybrid: Password to decrypt the private key <br/>Symmetric: Password to derive the symmetric key [default: ]                          |
-| `-g, --generate`              | Hybrid: Generate a private/public key pair                                                                                            |                                                                                                 
-| `-b, --bit-size <BIT_SIZE>`   | Hybrid: Length of the key in bits for <br/>the key pair generation [default: 4096]                                                    |                                                                          
-| `-l, --large`                 | Symmetric: For large input file(s) that cannot fit to the available RAM.*                                                             |                                                                       
-| `-h, --help`                  | Print help                                                                                                                            |                                                                                                                                   
-| `-V, --version`               | Print version                                                                                                                         |                                                                                                                             |
+```markdown
+| Flag                             | Description                                                                                                  |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `-i, --inpath <SRC_PATH>`        | File or directory path that needs to be encrypted, or the file path that needs to be decrypted              |
+| `-o, --outpath <DEST_DIR>`       | Destination directory path                                                                                   |
+| `-p, --passphrase <PASSWORD>`    | Password to derive the symmetric key for encryption and decryption                                          |
+| `-l, --large`                    | For large input file(s) that cannot fit into the available RAM.*                                            |
+```
 
-* Use `-l, --large` when encrypting files larger than available RAM or to minimize memory usage. Omitting it provides faster encryption for smaller files. The decryption process automatically uses the same method as encryption.
+\* Use `-l, --large` when encrypting files larger than available RAM or to minimize memory usage. Omitting it provides faster encryption for smaller files. The decryption process automatically uses the same method as encryption.
 
 <br/>
+
+### `hybrid` subcommand
+
+```markdown
+| Flag                             | Description                                                                                                  |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `-i, --inpath <SRC_PATH>`        | File or directory path that needs to be encrypted, or the file path that needs to be decrypted              |
+| `-o, --outpath <DEST_DIR>`       | Destination directory path                                                                                   |
+| `-k, --key <KEY_PATH>`           | Path to the public key for encryption, or the path to the private key for decryption                        |
+| `-p, --passphrase <PASSWORD>`    | Password to decrypt the private key (only required when using a private key)                                |
+```
+
+<br/>
+
+### `keygen` subcommand
+
+```markdown
+| Flag                             | Description                                                                                                  |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `-o, --outpath <DEST_DIR>`       | Destination directory path where the generated key pair will be written                                     |
+| `-p, --passphrase <PASSWORD>`    | Passphrase to encrypt the generated private key                                                              |
+| `-b, --bit-size <BIT_SIZE>`      | Length of the key in bits for the key pair generation (default: `4096`)                                     |
+```
+
+<br/>
+
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-rust.svg)](https://forthebadge.com)

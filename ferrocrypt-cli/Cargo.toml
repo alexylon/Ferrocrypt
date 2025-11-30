@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+rustyline = "17"
+shell-words = "1"
 ferrocrypt = { path = "../ferrocrypt-lib"}
