@@ -12,7 +12,7 @@ use zeroize::Zeroize;
 
 use crate::{archiver, CryptoError};
 use crate::common::{constant_time_compare_256_bit, get_duration, get_file_stem_to_string, sha3_32_hash};
-use crate::reed_solomon::{rs_decode, rs_encode};
+use crate::reed_solomon::{rs_decode, rs_encode, rs_encoded_size};
 
 const BUFFER_SIZE: usize = 500;
 const SALT_SIZE: usize = 32;
@@ -141,9 +141,9 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
     // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);
     let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
-    let (encoded_salt_32, rem_data) = rem_data.split_at(96);
-    let (encoded_nonce_24, rem_data) = rem_data.split_at(72);
-    let (encoded_key_hash_ref, ciphertext) = rem_data.split_at(96);
+    let (encoded_salt_32, rem_data) = rem_data.split_at(rs_encoded_size(SALT_SIZE));
+    let (encoded_nonce_24, rem_data) = rem_data.split_at(rs_encoded_size(NONCE_24_SIZE));
+    let (encoded_key_hash_ref, ciphertext) = rem_data.split_at(rs_encoded_size(KEY_SIZE));
 
     let salt_32 = rs_decode(encoded_salt_32)?;
     let nonce_24 = rs_decode(encoded_nonce_24)?;
@@ -182,9 +182,9 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
     println!("Decrypting {} ...\n", input_path.display());
 
     let mut serialized_flags = [0u8; 4];
-    let mut encoded_salt_32 = [0u8; 96];
-    let mut encoded_nonce_19 = [0u8; 57];
-    let mut encoded_key_hash_ref = [0u8; 96];
+    let mut encoded_salt_32 = vec![0u8; rs_encoded_size(SALT_SIZE)];
+    let mut encoded_nonce_19 = vec![0u8; rs_encoded_size(NONCE_19_SIZE)];
+    let mut encoded_key_hash_ref = vec![0u8; rs_encoded_size(KEY_SIZE)];
     let mut encrypted_file = File::open(input_path)?;
 
     let mut read_count = encrypted_file.read(&mut serialized_flags)?;

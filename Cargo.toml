@@ -4,10 +4,10 @@ resolver = "2"
 members = [
     "ferrocrypt-lib",
     "ferrocrypt-cli",
-    "ferrocrypt-gui-dioxus",
 ]
 
 exclude = [
     "experiments",
     "ferrocrypt-gui-tauri/src-tauri",
+    "ferrocrypt-gui-dioxus",
 ]

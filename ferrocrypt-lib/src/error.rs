@@ -15,7 +15,7 @@ pub enum CryptoError {
     #[error(transparent)]
     ZipError(#[from] zip::result::ZipError),
     #[error(transparent)]
-    ReedSolomonError(#[from] reed_solomon_erasure::Error),
+    ReedSolomonError(#[from] reed_solomon_simd::Error),
     #[error(transparent)]
     BinCodeEncodeError(#[from] bincode::error::EncodeError),
     #[error(transparent)]

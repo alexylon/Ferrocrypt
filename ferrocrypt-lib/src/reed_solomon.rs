@@ -1,107 +1,112 @@
-use reed_solomon_erasure::galois_8::ReedSolomon;
+use reed_solomon_simd::ReedSolomonEncoder;
 
 use crate::CryptoError;
 
+/// Calculates the size of encoded data for a given original data size.
+/// The encoded format is: [padding_byte, original_shard, recovery_shard_0, recovery_shard_1]
+/// where each shard must be even-length.
+pub fn rs_encoded_size(original_size: usize) -> usize {
+    let padded_size = if original_size % 2 != 0 {
+        original_size + 1
+    } else {
+        original_size
+    };
+
+    1 + (padded_size * 3)
+}
+
 /// Encodes data using Reed-Solomon erasure coding for error correction.
 pub fn rs_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
-    let mut data_shards: Vec<Vec<u8>> = vec![];
-    data_shards.push(data.to_vec());
+    // reed-solomon-simd requires even-length shards
+    let mut data_vec = data.to_vec();
+    let padding_byte = if data.len() % 2 != 0 {
+        data_vec.push(0);
+        1u8
+    } else {
+        0u8
+    };
 
-    let parity_vec: Vec<u8> = vec![0; data.len()];
-    for _i in 0..2 {
-        data_shards.push(parity_vec.clone());
-    }
+    let shard_bytes = data_vec.len();
 
-    let reed_solomon = ReedSolomon::new(1, 2)?;
-    reed_solomon.encode(&mut data_shards)?;
+    // Create encoder with 1 original shard and 2 recovery shards
+    let mut encoder = ReedSolomonEncoder::new(1, 2, shard_bytes)?;
 
-    let option_shards: Vec<_> = data_shards.iter().cloned().map(Some).collect();
+    // Add the original shard
+    encoder.add_original_shard(&data_vec)?;
 
-    let mut recovered_shards: Vec<u8> = vec![];
+    // Encode to get recovery shards
+    let result = encoder.encode()?;
 
-    // Convert option_shards to normal bytes
-    for option_shard in option_shards {
-        match option_shard {
-            None => return Err(CryptoError::Message("None shard found".to_string())),
-            Some(shard) => {
-                recovered_shards.extend_from_slice(shard.as_slice());
-            }
-        }
-    }
+    // Build output: [padding_byte, original_shard, recovery_shard_0, recovery_shard_1]
+    let mut output = vec![padding_byte];
+    output.extend_from_slice(&data_vec);
 
-    Ok(recovered_shards)
+    // Get recovery shards - these are Option<&[u8]>, so we need to unwrap
+    let recovery_0 = result.recovery(0).ok_or_else(|| CryptoError::Message("Missing recovery shard 0".to_string()))?;
+    let recovery_1 = result.recovery(1).ok_or_else(|| CryptoError::Message("Missing recovery shard 1".to_string()))?;
+
+    output.extend_from_slice(recovery_0);
+    output.extend_from_slice(recovery_1);
+
+    Ok(output)
 }
 
 /// Decodes data using Reed-Solomon erasure coding for error correction.
 pub fn rs_decode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
-    if data.len() % 3 != 0 {
+    if data.is_empty() {
+        return Err(CryptoError::Message("Empty data for decoding".to_string()));
+    }
+
+    // Extract padding byte
+    let padding_byte = data[0];
+    let remaining = &data[1..];
+
+    // Check that remaining data is divisible by 3
+    if remaining.len() % 3 != 0 {
         return Err(CryptoError::Message("Incorrect encoded bytes length".to_string()));
     }
 
-    let block_size = data.len() / 3;
-    let data_shards = split_vec(data, block_size);
-    let reed_solomon = ReedSolomon::new(1, 2)?;
-    let mut option_shards: Vec<Option<Vec<u8>>> = vec![None; 3];
+    let shard_bytes = remaining.len() / 3;
 
-    // Covert shards to option_shards to be accepted by the crate
-    for i in 0..3 {
-        if data_shards.get(i).is_none() || data_shards[i].len() != block_size {
-            option_shards[i] = None;
-            println!("A 'None' shard detected: {:?}", &option_shards[i]);
-        } else {
-            option_shards[i] = Some(data_shards[i].clone());
-        }
-    }
+    // Split into 3 shards: original, recovery_0, recovery_1
+    let original_shard = &remaining[0..shard_bytes];
+    let recovery_shard_0 = &remaining[shard_bytes..2 * shard_bytes];
+    let recovery_shard_1 = &remaining[2 * shard_bytes..3 * shard_bytes];
 
-    reed_solomon.reconstruct(&mut option_shards)?;
-
-    // Convert back to normal shard arrangement
-    let vecs: Vec<_> = option_shards.into_iter().flatten().collect();
-
-    // Compare each 3 elements with the same index in the three vectors and push to a new vector the element which occurs at least twice
-    // If all three elements are different, insert the element from the first input vector to the new vector as a fallback option
+    // Apply byte-by-byte voting across all 3 shards for error correction
+    // The Reed-Solomon encoding ensures proper redundancy, and voting handles byte-level corruption
+    let shards = vec![original_shard, recovery_shard_0, recovery_shard_1];
     let mut result = vec![];
 
-    for i in 0..vecs[0].len() {
+    for i in 0..shard_bytes {
         let mut freq = std::collections::HashMap::new();
-        let elem_from_first_vec = vecs[0][i];
-        let mut elem_with_most_freq = vecs[0][i];
 
-        for vec in &vecs {
-            let elem = vec[i];
-            *freq.entry(elem).or_insert(0) += 1;
-            if freq[&elem] > freq[&elem_with_most_freq] {
-                elem_with_most_freq = elem;
-            }
+        // Count frequency of each byte value at position i across all shards
+        for shard in &shards {
+            let byte = shard[i];
+            *freq.entry(byte).or_insert(0) += 1;
         }
 
-        for elem in freq.keys() {
-            if freq[elem] >= 2 {
-                result.push(*elem);
-            }
-        }
+        // Find the byte with highest frequency (at least 2 occurrences for majority)
+        // If no majority, use the byte from the original shard as fallback
+        let most_frequent = freq
+            .iter()
+            .filter(|(_, &count)| count >= 2)
+            .max_by_key(|(_, &count)| count)
+            .map(|(&byte, _)| byte)
+            .unwrap_or(original_shard[i]);
 
-        if freq[&elem_with_most_freq] < 2 {
-            result.push(elem_from_first_vec);
-        }
+        result.push(most_frequent);
+    }
+
+    // Remove padding if it was added during encoding
+    if padding_byte == 1 && !result.is_empty() {
+        result.pop();
     }
 
     Ok(result)
 }
 
-fn split_vec<T: Clone>(data: &[T], block_size: usize) -> Vec<Vec<T>> {
-    let vec = data.to_vec();
-    let num_chunks = vec.len() / block_size;
-    let mut chunks = vec.chunks(block_size).take(num_chunks).map(|chunk| chunk.to_vec()).collect::<Vec<Vec<T>>>();
-
-    let remaining = vec.len() % block_size;
-    if remaining > 0 {
-        let last_chunk = vec.iter().take(remaining).cloned().collect::<Vec<T>>();
-        chunks.push(last_chunk);
-    }
-
-    chunks
-}
 
 #[allow(dead_code)]
 fn pad_pkcs7(data: &[u8], block_size: usize) -> Vec<u8> {

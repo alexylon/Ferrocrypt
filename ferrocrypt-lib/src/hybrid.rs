@@ -14,7 +14,7 @@ use zeroize::Zeroize;
 
 use crate::{archiver, CryptoError};
 use crate::common::{get_duration, get_file_stem_to_string};
-use crate::reed_solomon::{rs_decode, rs_encode};
+use crate::reed_solomon::{rs_decode, rs_encode, rs_encoded_size};
 
 const NONCE_24_SIZE: usize = 24;
 const KEY_SIZE: usize = 32;
@@ -92,8 +92,8 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);
     let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
-    let (encoded_encrypted_symmetric_key, rem_data) = rem_data.split_at((rsa_pub_pem_size * 3) as usize);
-    let (encoded_nonce_24, ciphertext) = rem_data.split_at(72);
+    let (encoded_encrypted_symmetric_key, rem_data) = rem_data.split_at(rs_encoded_size(rsa_pub_pem_size as usize));
+    let (encoded_nonce_24, ciphertext) = rem_data.split_at(rs_encoded_size(NONCE_24_SIZE));
 
     let encrypted_symmetric_key = rs_decode(encoded_encrypted_symmetric_key)?;
     let nonce_24 = rs_decode(encoded_nonce_24)?;
