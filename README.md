@@ -1,5 +1,7 @@
 # Ferrocrypt
 
+![](https://github.com/alexylon/Ferrocrypt/actions/workflows/rust.yml/badge.svg)
+
 Tiny, easy-to-use, and highly secure multiplatform encryption tool with CLI and GUI interfaces.
 Written entirely in Rust.
 
