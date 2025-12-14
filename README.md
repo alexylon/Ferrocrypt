@@ -19,6 +19,7 @@ Written entirely in Rust.
 
 - [Ferrocrypt](#ferrocrypt)
     - [ABOUT](#about)
+    - [INSTALLATION](#installation)
     - [BUILD the GUI apps (tested on macOS)](#build-the-gui-apps-tested-on-macos)
         - [Tauri GUI](#tauri-gui)
             - [Install the `create-tauri-app` utility:](#install-the-create-tauri-app-utility)
@@ -73,6 +74,28 @@ The name comes from Latin: "ferrum" (iron) and "ferrugo" (rust).
 
 The code is separated in multiple projects - the library `ferrocrypt-lib`, a CLI client `ferrocrypt-cli`,
 a [**TAURI**](https://tauri.app/) based GUI app `ferrocrypt-gui-tauri`, and a [**Dioxus**](https://dioxuslabs.com/) based GUI app `ferrocrypt-gui-dioxus`.
+
+<br/>
+
+## INSTALLATION
+
+### CLI Installation
+
+```bash
+cargo install ferrocrypt-cli
+```
+
+### Library Installation
+
+```bash
+cargo add ferrocrypt
+```
+
+Or add to your `Cargo.toml`:
+
+```toml
+ferrocrypt = "0.2.0"
+```
 
 <br/>
 
