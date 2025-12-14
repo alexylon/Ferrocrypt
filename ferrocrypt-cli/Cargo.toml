@@ -1,7 +1,22 @@
 [package]
-name = "fc"
+name = "ferrocrypt-cli"
 version = "0.2.0"
 edition = "2021"
+
+description = "Command-line interface for Ferrocrypt (installs the 'fc' binary)."
+authors = ["Alexander Alexandrov"]
+license = "GPL-3.0-only"
+readme = "../README.md"
+repository = "https://github.com/alexylon/Ferrocrypt"
+homepage = "https://github.com/alexylon/Ferrocrypt"
+documentation = "https://docs.rs/ferrocrypt-cli"
+keywords = ["cryptography", "encryption", "cli"]
+categories = ["command-line-utilities", "cryptography"]
+publish = true
+
+[[bin]]
+name = "fc"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,4 +24,4 @@ edition = "2021"
 clap = { version = "4", features = ["derive"] }
 rustyline = "17"
 shell-words = "1"
-ferrocrypt = { path = "../ferrocrypt-lib"}
+ferrocrypt = { path = "../ferrocrypt-lib", version = "0.2.0" }

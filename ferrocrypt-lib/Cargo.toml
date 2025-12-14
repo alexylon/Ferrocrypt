@@ -1,12 +1,18 @@
 [package]
 name = "ferrocrypt"
-version = "0.1.0"
-description = "Ferrocrypt main library"
-authors = ["Alexander Alexandrov"]
-license = ""
-repository = "https://github.com/alexylon/Ferrocrypt"
+version = "0.2.0"
 edition = "2021"
-resolver = "2"
+
+description = "Core Ferrocrypt library: symmetric (XChaCha20-Poly1305 + Argon2id) and hybrid (RSA-4096) encryption utilities."
+authors = ["Alexander Alexandrov"]
+license = "GPL-3.0-only"
+readme = "../README.md"
+repository = "https://github.com/alexylon/Ferrocrypt"
+homepage = "https://github.com/alexylon/Ferrocrypt"
+documentation = "https://docs.rs/ferrocrypt"
+keywords = ["cryptography", "encryption", "chacha20poly1305", "argon2", "RSA-4096"]
+categories = ["cryptography"]
+publish = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
