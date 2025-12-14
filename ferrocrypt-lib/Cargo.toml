@@ -14,6 +14,14 @@ keywords = ["cryptography", "encryption", "chacha20poly1305", "argon2", "RSA-409
 categories = ["cryptography"]
 publish = true
 
+include = [
+    "Cargo.toml",
+    "src/**",
+    "README.md",
+    "LICENSE*",
+    "CHANGELOG*"
+]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
