@@ -11,7 +11,7 @@ Written entirely in Rust.
 
 <br/>
 
-<div align="center"><img align="center" src="/ferrocrypt-gui-tauri/src/images/ferrocrypt_screenshot.png" width="400" alt="Ferrocrypt"></div>
+<div align="center"><img align="center" src="/assets/ferrocrypt_screenshot.png" width="400" alt="Ferrocrypt"></div>
 
 <br/>
 
