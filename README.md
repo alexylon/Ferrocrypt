@@ -15,6 +15,41 @@ Written entirely in Rust.
 
 <br/>
 
+## Table of Contents
+
+- [Ferrocrypt](#ferrocrypt)
+    - [ABOUT](#about)
+    - [BUILD the GUI apps (tested on macOS)](#build-the-gui-apps-tested-on-macos)
+        - [Tauri GUI](#tauri-gui)
+            - [Install the `create-tauri-app` utility:](#install-the-create-tauri-app-utility)
+            - [Install the Tauri CLI:](#install-the-tauri-cli)
+            - [Install node modules:](#install-node-modules)
+            - [Build the app to a binary executable file:](#build-the-app-to-a-binary-executable-file)
+            - [Build a DMG installer for macOS:](#build-a-dmg-installer-for-macos)
+            - [You can start a live dev session with:](#you-can-start-a-live-dev-session-with)
+        - [Dioxus GUI](#dioxus-gui)
+            - [Build release binary:](#build-release-binary)
+            - [Start a live dev session:](#start-a-live-dev-session)
+            - [Bundle the desktop app:](#bundle-the-desktop-app)
+    - [USING the GUI App](#using-the-gui-app)
+        - [Symmetric Encryption Mode](#symmetric-encryption-mode)
+        - [Hybrid Encryption Mode](#hybrid-encryption-mode)
+        - [Key Pair Creation](#key-pair-creation)
+    - [BUILD the CLI app](#build-the-cli-app)
+    - [USING the CLI app](#using-the-cli-app)
+        - [1. Direct subcommand usage](#1-direct-subcommand-usage)
+            - [Symmetric encryption (password-based key derivation)](#symmetric-encryption-password-based-key-derivation)
+            - [Hybrid encryption](#hybrid-encryption)
+                - [Generate a private/public key pair and set a passphrase for encrypting the private key](#generate-a-privatepublic-key-pair-and-set-a-passphrase-for-encrypting-the-private-key)
+                - [Encrypt file or directory (using a public key)](#encrypt-file-or-directory-using-a-public-key)
+                - [Decrypt file (using a private key)](#decrypt-file-using-a-private-key)
+        - [2. Interactive command mode (REPL)](#2-interactive-command-mode-repl)
+    - [SUBCOMMANDS AND OPTIONS](#subcommands-and-options)
+        - [Global options](#global-options)
+        - [`symmetric` subcommand](#symmetric-subcommand)
+        - [`hybrid` subcommand](#hybrid-subcommand)
+        - [`keygen` subcommand](#keygen-subcommand)
+
 ## ABOUT
 
 Ferrocrypt is a simple encryption tool leveraging Rust's memory safety guarantees and performance benefits.
