@@ -200,7 +200,7 @@ After [installing Rust](https://www.rust-lang.org/learn/get-started),
 run from the workspace root directory:
 
 ```bash
-cargo build --release -p fc
+cargo build --release -p fcr
 ```
 
 Or navigate to `ferrocrypt-cli` and run:
@@ -209,8 +209,8 @@ Or navigate to `ferrocrypt-cli` and run:
 cargo build --release
 ```
 
-The binary executable file will be generated in `target/release/fc` (macOS and Linux)
-or `target\release\fc.exe` (Windows).
+The binary executable file will be generated in `target/release/fcr` (macOS and Linux)
+or `target\release\fcr.exe` (Windows).
 
 <br/>
 
@@ -220,9 +220,9 @@ or `target\release\fc.exe` (Windows).
 The CLI supports two usage modes:
 
 1. **Direct subcommands** (recommended for scripts and automation)
-2. **Interactive command mode** (REPL), entered when you run `./fc` with no arguments
+2. **Interactive command mode** (REPL), entered when you run `./fcr` with no arguments
 
-Commands shown are for macOS/Linux (use `fc` instead of `./fc` on Windows).  
+Commands shown are for macOS/Linux (use `fcr` instead of `./fcr` on Windows).  
 Flags can be used in any order.
 
 Available subcommands:
@@ -239,11 +239,11 @@ Available subcommands:
 
 - Encrypt file or directory | decrypt file
 
-`./fc symmetric --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
+`./fcr symmetric --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --passphrase <PASSPHRASE>`
 
 or
 
-`./fc symmetric -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
+`./fcr symmetric -i <SRC_PATH> -o <DEST_DIR_PATH> -p <PASSPHRASE>`
 
 <br/>
 
@@ -251,45 +251,45 @@ or
 
 #### Generate a private/public key pair and set a passphrase for encrypting the private key
 
-`./fc keygen --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --outpath <DEST_DIR_PATH>`
+`./fcr keygen --bit-size <BIT_SIZE> --passphrase <PASSPHRASE> --outpath <DEST_DIR_PATH>`
 
 or
 
-`./fc keygen -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
+`./fcr keygen -b <BIT_SIZE> -p <PASSPHRASE> -o <DEST_DIR_PATH>`
 
 If `--bit-size` is omitted, the default is `4096`.
 
 #### Encrypt file or directory (using a public key)
 
-`./fc hybrid --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
+`./fcr hybrid --inpath <SRC_PATH> --outpath <DEST_DIR_PATH> --key <PUBLIC_PEM_KEY>`
 
 or
 
-`./fc hybrid -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
+`./fcr hybrid -i <SRC_PATH> -o <DEST_DIR_PATH> -k <PUBLIC_PEM_KEY>`
 
 #### Decrypt file (using a private key)
 
-`./fc hybrid --inpath <SRC_FILE_PATH> --outpath <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
+`./fcr hybrid --inpath <SRC_FILE_PATH> --outpath <DEST_DIR_PATH> --key <PRIVATE_PEM_KEY> --passphrase <PASSPHRASE>`
 
 or
 
-`./fc hybrid -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
+`./fcr hybrid -i <SRC_FILE_PATH> -o <DEST_DIR_PATH> -k <PRIVATE_PEM_KEY> -p <PASSPHRASE>`
 
 ---
 
 ## 2. Interactive command mode (REPL)
 
-Running `./fc` **without any arguments** starts an interactive shell:
+Running `./fcr` **without any arguments** starts an interactive shell:
 
 ```text
-$ ./fc
+$ ./fcr
 Ferrocrypt interactive mode
 Type `keygen`, `hybrid`, or `symmetric` with flags, or `quit` to exit.
 
-fc> keygen -o keys -p "my secret"
-fc> hybrid -i secret.txt -o out -k public.pem
-fc> symmetric -i secret.txt -o out -p "my secret"
-fc> quit
+fcr> keygen -o keys -p "my secret"
+fcr> hybrid -i secret.txt -o out -k public.pem
+fcr> symmetric -i secret.txt -o out -p "my secret"
+fcr> quit
 ```
 
 This mode is convenient for exploratory or repeated use.  

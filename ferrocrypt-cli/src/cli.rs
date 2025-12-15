@@ -7,8 +7,8 @@ use ferrocrypt::{
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 
-/// - If run with a subcommand (e.g. `fc symmetric ...`), executes that directly.
-/// - If run with no subcommand (just `./fc`), enters an interactive REPL mode.
+/// - If run with a subcommand (e.g. `fcr symmetric ...`), executes that directly.
+/// - If run with no subcommand (just `./fcr`), enters an interactive REPL mode.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
@@ -131,7 +131,7 @@ fn interactive_mode() -> Result<(), CryptoError> {
     };
 
     loop {
-        match rl.readline("fc> ") {
+        match rl.readline("fcr> ") {
             Ok(line) => {
                 let line = line.trim();
                 if line.is_empty() {
@@ -157,7 +157,7 @@ fn interactive_mode() -> Result<(), CryptoError> {
                 };
 
                 // Build an argv-style iterator: program name + typed args.
-                let args = std::iter::once("fc".to_string()).chain(parts.into_iter());
+                let args = std::iter::once("fcr".to_string()).chain(parts.into_iter());
 
                 // Try to parse as if it was a normal CLI invocation.
                 match Cli::try_parse_from(args) {
