@@ -1,9 +1,9 @@
 [package]
 name = "ferrocrypt-cli"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 
-description = "Command-line interface for Ferrocrypt (installs the 'fcr' binary)."
+description = "Command-line interface for Ferrocrypt (installs the 'ferrocrypt' binary)."
 authors = ["Alexander Alexandrov"]
 license = "GPL-3.0-only"
 readme = "../README.md"
@@ -15,7 +15,7 @@ categories = ["command-line-utilities", "cryptography"]
 publish = true
 
 [[bin]]
-name = "fcr"
+name = "ferrocrypt"
 path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
