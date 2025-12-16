@@ -2,3 +2,4 @@
 **/.idea
 dest*
 .DS_Store
+.sofos/

@@ -1,5 +1,21 @@
 use thiserror::Error;
 
+/// Errors that can occur during key generation, encryption, or decryption.
+///
+/// | Variant | When it happens | Typical fix |
+/// | --- | --- | --- |
+/// | `Io` | Filesystem or I/O failure | Check paths/permissions and retry |
+/// | `ChaCha20Poly1305Error` | Symmetric encryption/decryption failed (bad tag, nonce issues) | Verify key, input integrity, and nonce uniqueness |
+/// | `Argon2Error` | Password hashing/KDF failed | Ensure parameters are valid and memory is sufficient |
+/// | `OpensslError` | Asymmetric operations failed | Validate PEM/keys; confirm OpenSSL availability |
+/// | `WalkDirError` | Directory traversal failed | Check directory existence and permissions |
+/// | `ZipError` | Zipping/unzipping archive failed | Inspect archive; ensure disk space |
+/// | `ReedSolomonError` | Error-correction coding failed | Check shard completeness/integrity |
+/// | `BinCodeEncodeError` / `BinCodeDecodeError` | Serialization/deserialization failed | Ensure input format matches expectation |
+/// | `TryFromSliceError` | Byte slice could not be converted | Confirm buffer sizes |
+/// | `EncryptionDecryptionError` | High-level guard for crypto failures | Recheck keys/passwords and inputs |
+/// | `InputPath` | Missing input file or folder | Provide an existing path |
+/// | `Message` | Catch-all with human-readable context | Inspect message for details |
 #[derive(Error, Debug)]
 pub enum CryptoError {
     #[error(transparent)]
