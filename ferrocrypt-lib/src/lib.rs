@@ -12,39 +12,55 @@
 //! - **Batteries included**: temporary workspace management, path normalization,
 //!   and output file naming are handled for you.
 //!
-//! ## Quick start (symmetric path)
+//! ## Quick start (symmetric path, mirrors `ferrocrypt symmetric` CLI)
 //! ```rust,no_run
-//! use ferrocrypt_lib::{symmetric_encryption, CryptoError, secrecy::SecretString};
+//! use ferrocrypt::{symmetric_encryption, CryptoError, secrecy::SecretString};
 //!
 //! # fn run() -> Result<(), CryptoError> {
-//! let password = SecretString::new("correct horse battery staple".into());
-//! let output_dir = "./out";
-//! let produced = symmetric_encryption("./secrets", output_dir, &password, false)?;
+//! // Encrypt a folder to out/secrets.fcs
+//! let passphrase = SecretString::from("correct horse battery staple".to_string());
+//! let produced = symmetric_encryption("./secrets", "./out", &passphrase, false)?;
 //! println!("wrote {produced}");
+//!
+//! // Decrypt the archive back
+//! let recovered = symmetric_encryption("./out/secrets.fcs", "./restored", &passphrase, false)?;
+//! println!("restored to {recovered}");
 //! # Ok(()) }
 //! # fn main() { run().unwrap(); }
 //! ```
 //!
-//! ## Quick start (hybrid path)
+//! ## Quick start (hybrid path, mirrors `ferrocrypt hybrid` CLI)
 //! ```rust,no_run
-//! use ferrocrypt_lib::{generate_asymmetric_key_pair, hybrid_encryption, CryptoError, secrecy::SecretString};
+//! use ferrocrypt::{generate_asymmetric_key_pair, hybrid_encryption, CryptoError, secrecy::SecretString};
 //!
 //! # fn run() -> Result<(), CryptoError> {
-//! let passphrase = SecretString::new("my-key-pass".into());
-//! let (key_path_msg) = generate_asymmetric_key_pair(2048, &passphrase, "./keys")?;
-//! println!("{key_path_msg}");
+//! // 1) Generate RSA keypair files under ./keys
+//! //    The passphrase encrypts the private key file itself
+//! let passphrase = SecretString::from("my-key-pass".to_string());
+//! let _msg = generate_asymmetric_key_pair(4096, &passphrase, "./keys")?;
 //!
-//! let produced = hybrid_encryption("./payload", "./out", &mut std::fs::read_to_string("./keys/public.pem")?, &passphrase)?;
+//! // 2) Encrypt to out/payload.fch using the public key (no passphrase needed)
+//! let mut pub_key_path = "./keys/rsa-4096-pub-key.pem".to_string();
+//! let empty_passphrase = SecretString::from("".to_string());
+//! let produced = hybrid_encryption("./payload", "./out", &mut pub_key_path, &empty_passphrase)?;
 //! println!("wrote {produced}");
+//!
+//! // 3) Decrypt out/payload.fch using the private key + passphrase to unlock it
+//! let mut priv_key_path = "./keys/rsa-4096-priv-key.pem".to_string();
+//! let restored = hybrid_encryption("./out/payload.fch", "./restored", &mut priv_key_path, &passphrase)?;
+//! println!("restored to {restored}");
 //! # Ok(()) }
 //! # fn main() { run().unwrap(); }
 //! ```
 //!
 //! ## When to choose which mode
-//! - **Symmetric**: fastest; share one password out-of-band; great for personal
-//!   backups or team secrets kept in a vault.
-//! - **Hybrid**: safer for distribution—encrypt with a recipient’s public key so
-//!   only their private key (optionally passphrase-protected) can decrypt.
+//! - **Symmetric**: Fastest; same password encrypts and decrypts. Great for
+//!   personal backups or team secrets when you can share the password securely.
+//!   Produces `.fcs` files.
+//! - **Hybrid**: Safer for distribution—encrypt with a recipient's public key
+//!   (no password needed for encryption); only their passphrase-protected
+//!   private key can decrypt. Each file gets a unique random key. Produces
+//!   `.fch` files.
 //!
 //! ## Security notes
 //! - All cryptographic operations depend on a secure OS RNG; ensure the target
@@ -59,7 +75,7 @@
 //! for variant meanings and remediation hints.
 //!
 //! ## License
-//! Dual-licensed under MIT and Apache-2.0; see LICENSE files in the repository.
+//! Licensed under GPL-3.0-only. See the LICENSE file in the repository.
 
 use std::fs;
 
@@ -82,10 +98,10 @@ mod tests;
 /// Encrypt or decrypt files/directories using password-based symmetric crypto.
 ///
 /// - **Encrypt**: if `input_path` is not already an `.fcs` archive, it is
-///   packaged and encrypted to `output_dir`.
+///   packaged and encrypted to `output_dir` (writing `<name>.fcs`).
 /// - **Decrypt**: if `input_path` ends with `.fcs`, it is decrypted and
 ///   extracted into `output_dir`.
-/// - `large = true` uses a memory-friendlier path for big inputs.
+/// - `large = true` mirrors the CLI `--large` flag for streaming large inputs.
 ///
 /// Returns the path to the produced file or directory.
 pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &SecretString, large: bool) -> Result<String, CryptoError> {
@@ -104,14 +120,19 @@ pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &Secre
     result
 }
 
-/// Encrypt or decrypt using hybrid envelope encryption with RSA keys.
+/// Encrypt or decrypt using hybrid (RSA + XChaCha20-Poly1305) envelope encryption.
 ///
-/// - **Encrypt** when `input_path` is not an `.fch` archive: wraps data with
-///   a random symmetric key sealed to `rsa_key_pem` (public key PEM).
-/// - **Decrypt** when `input_path` ends with `.fch`: unwraps using the
-///   corresponding private key PEM, optionally protected by `passphrase`.
+/// - `rsa_key_pem` is a **mutable string containing a file path** (not PEM
+///   contents); it is zeroized after decryption for security.
+/// - **Encrypt** when `input_path` is not `.fch`: uses the public key file
+///   at `rsa_key_pem` to seal a random symmetric key, producing `<name>.fch`.
+///   The `passphrase` parameter is **ignored during encryption** (pass empty
+///   string).
+/// - **Decrypt** when `input_path` ends with `.fch`: uses the private key file
+///   at `rsa_key_pem`. The `passphrase` is **required** to decrypt the private
+///   key file (must match the passphrase used when generating the keypair).
 ///
-/// Returns the path to the produced file or directory.
+/// Returns a human-readable message describing the output path.
 pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &SecretString) -> Result<String, CryptoError> {
     let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
 
@@ -128,13 +149,17 @@ pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut s
     result
 }
 
-/// Generate and store an RSA key pair for hybrid encryption.
+/// Generate and store an RSA key pair for hybrid encryption (default: RSA-4096).
 ///
-/// - `byte_size` controls key strength (e.g., 2048 or 4096).
-/// - Keys are written into `output_dir` (public/private PEM files).
-/// - The private key is encrypted with `passphrase`.
+/// - `byte_size` is the RSA modulus size in **bits** (e.g., 4096),
+///   aligned with the CLI flag `--bit-size`.
+/// - Keys are written into `output_dir` as `rsa-<bits>-priv-key.pem` and
+///   `rsa-<bits>-pub-key.pem`.
+/// - The `passphrase` **encrypts the private key file** for protection at rest;
+///   the same passphrase is needed later when decrypting. The public key file
+///   is unencrypted.
 ///
-/// Returns a message describing where the keys were written.
+/// Returns a human-readable message pointing to the output directory.
 pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &SecretString, output_dir: &str) -> Result<String, CryptoError> {
     let normalized_output_dir = normalize_paths("", output_dir).1;
     hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)
