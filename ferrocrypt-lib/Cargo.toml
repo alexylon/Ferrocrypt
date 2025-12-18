@@ -1,6 +1,6 @@
 [package]
 name = "ferrocrypt"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 
 description = "Core Ferrocrypt library: symmetric (XChaCha20-Poly1305 + Argon2id) and hybrid (RSA-4096) encryption utilities."

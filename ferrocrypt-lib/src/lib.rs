@@ -104,6 +104,22 @@ mod tests;
 /// - `large = true` mirrors the CLI `--large` flag for streaming large inputs.
 ///
 /// Returns the path to the produced file or directory.
+///
+/// # Examples
+///
+/// ```no_run
+/// use ferrocrypt::{symmetric_encryption, secrecy::SecretString};
+///
+/// // Encrypt a file
+/// let passphrase = SecretString::from("my-secret-password".to_string());
+/// let result = symmetric_encryption("./document.txt", "./encrypted", &passphrase, false)?;
+/// println!("{}", result); // "Encrypted to ./encrypted/document.fcs for X.XXs"
+///
+/// // Decrypt it back
+/// let result = symmetric_encryption("./encrypted/document.fcs", "./decrypted", &passphrase, false)?;
+/// println!("{}", result); // "Decrypted to ./decrypted/document.txt for X.XXs"
+/// # Ok::<(), ferrocrypt::CryptoError>(())
+/// ```
 pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &SecretString, large: bool) -> Result<String, CryptoError> {
     let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
 
@@ -133,6 +149,25 @@ pub fn symmetric_encryption(input_path: &str, output_dir: &str, password: &Secre
 ///   key file (must match the passphrase used when generating the keypair).
 ///
 /// Returns a human-readable message describing the output path.
+///
+/// # Examples
+///
+/// ```no_run
+/// use ferrocrypt::{hybrid_encryption, secrecy::SecretString};
+///
+/// // Encrypt with public key (no passphrase needed)
+/// let mut pub_key = "./keys/rsa-4096-pub-key.pem".to_string();
+/// let empty = SecretString::from("".to_string());
+/// let result = hybrid_encryption("./secrets", "./encrypted", &mut pub_key, &empty)?;
+/// println!("{}", result); // "Encrypted to ./encrypted/secrets.fch for X.XXs"
+///
+/// // Decrypt with private key (passphrase required)
+/// let mut priv_key = "./keys/rsa-4096-priv-key.pem".to_string();
+/// let passphrase = SecretString::from("my-key-passphrase".to_string());
+/// let result = hybrid_encryption("./encrypted/secrets.fch", "./decrypted", &mut priv_key, &passphrase)?;
+/// println!("{}", result); // "Decrypted to ./decrypted/secrets for X.XXs"
+/// # Ok::<(), ferrocrypt::CryptoError>(())
+/// ```
 pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut str, passphrase: &SecretString) -> Result<String, CryptoError> {
     let (normalized_input_path, normalized_output_dir) = normalize_paths(input_path, output_dir);
 
@@ -160,6 +195,19 @@ pub fn hybrid_encryption(input_path: &str, output_dir: &str, rsa_key_pem: &mut s
 ///   is unencrypted.
 ///
 /// Returns a human-readable message pointing to the output directory.
+///
+/// # Examples
+///
+/// ```no_run
+/// use ferrocrypt::{generate_asymmetric_key_pair, secrecy::SecretString};
+///
+/// let passphrase = SecretString::from("protect-my-private-key".to_string());
+/// let result = generate_asymmetric_key_pair(4096, &passphrase, "./my_keys")?;
+/// println!("{}", result); // "Generated key pair to ./my_keys"
+/// // Creates: ./my_keys/rsa-4096-priv-key.pem (encrypted)
+/// //          ./my_keys/rsa-4096-pub-key.pem (plain)
+/// # Ok::<(), ferrocrypt::CryptoError>(())
+/// ```
 pub fn generate_asymmetric_key_pair(byte_size: u32, passphrase: &SecretString, output_dir: &str) -> Result<String, CryptoError> {
     let normalized_output_dir = normalize_paths("", output_dir).1;
     hybrid::generate_asymmetric_key_pair(byte_size, passphrase, &normalized_output_dir)

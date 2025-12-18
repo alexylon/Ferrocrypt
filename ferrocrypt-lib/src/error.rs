@@ -16,6 +16,24 @@ use thiserror::Error;
 /// | `EncryptionDecryptionError` | High-level guard for crypto failures | Recheck keys/passwords and inputs |
 /// | `InputPath` | Missing input file or folder | Provide an existing path |
 /// | `Message` | Catch-all with human-readable context | Inspect message for details |
+///
+/// # Examples
+///
+/// ```rust
+/// use ferrocrypt::{symmetric_encryption, CryptoError, secrecy::SecretString};
+///
+/// fn example() -> Result<(), CryptoError> {
+///     let passphrase = SecretString::from("test".to_string());
+///     // This will fail with CryptoError::InputPath if file doesn't exist
+///     match symmetric_encryption("./missing.txt", "./out", &passphrase, false) {
+///         Ok(result) => println!("{}", result),
+///         Err(CryptoError::Io(e)) => eprintln!("I/O error: {}", e),
+///         Err(CryptoError::InputPath(msg)) => eprintln!("Missing input: {}", msg),
+///         Err(e) => eprintln!("Other error: {}", e),
+///     }
+///     Ok(())
+/// }
+/// ```
 #[derive(Error, Debug)]
 pub enum CryptoError {
     #[error(transparent)]
