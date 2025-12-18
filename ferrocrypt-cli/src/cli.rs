@@ -7,8 +7,6 @@ use ferrocrypt::{
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 
-/// - If run with a subcommand (e.g. `ferrocrypt symmetric ...`), executes that directly.
-/// - If run with no subcommand (just `./ferrocrypt`), enters an interactive REPL mode.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
@@ -19,7 +17,6 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Hybrid: Generate a private/public key pair
     Keygen {
         #[arg(short, long)]
         outpath: String,
@@ -27,12 +24,10 @@ pub enum Command {
         #[arg(short, long)]
         passphrase: String,
 
-        /// Length of the key in bits for the key pair generation
         #[arg(short = 'b', long, default_value_t = 4096)]
         bit_size: u32,
     },
 
-    /// Hybrid: Encrypt/decrypt using public/private key
     Hybrid {
         #[arg(short, long)]
         inpath: String,
@@ -40,16 +35,13 @@ pub enum Command {
         #[arg(short, long)]
         outpath: String,
 
-        /// Path to the public key (encrypt) or private key (decrypt)
         #[arg(short, long)]
         key: String,
 
-        /// Passphrase to decrypt the private key (if needed)
         #[arg(short, long, default_value = "")]
         passphrase: String,
     },
 
-    /// Symmetric: Encrypt/decrypt using passphrase-derived key
     Symmetric {
         #[arg(short, long)]
         inpath: String,
@@ -57,11 +49,9 @@ pub enum Command {
         #[arg(short, long)]
         outpath: String,
 
-        /// Passphrase to derive the symmetric key
         #[arg(short, long)]
         passphrase: String,
 
-        /// For large input file(s) that cannot fit into available RAM
         #[arg(short, long)]
         large: bool,
     },
@@ -71,17 +61,14 @@ pub fn run() -> Result<(), CryptoError> {
     let cli = Cli::parse();
 
     if let Some(cmd) = cli.command {
-        // Normal, non-interactive mode (subcommand given)
         run_command(cmd)?;
     } else {
-        // No subcommand: enter interactive REPL mode
         interactive_mode()?;
     }
 
     Ok(())
 }
 
-/// Execute a single `Command` value.
 fn run_command(cmd: Command) -> Result<(), CryptoError> {
     match cmd {
         Command::Keygen {
@@ -125,7 +112,6 @@ fn interactive_mode() -> Result<(), CryptoError> {
         Ok(editor) => editor,
         Err(e) => {
             eprintln!("Failed to initialize line editor: {e}");
-            // Do not treat this as a crypto failure; just exit REPL gracefully.
             return Ok(());
         }
     };
@@ -142,12 +128,10 @@ fn interactive_mode() -> Result<(), CryptoError> {
                     break;
                 }
 
-                // Save to history so up/down arrows work.
                 if let Err(e) = rl.add_history_entry(line) {
                     eprintln!("Failed to add history entry: {e}");
                 }
 
-                // Use shell-like splitting so quotes work (e.g., -p "my secret pass").
                 let parts: Vec<String> = match shell_words::split(line) {
                     Ok(v) => v,
                     Err(e) => {
@@ -156,10 +140,8 @@ fn interactive_mode() -> Result<(), CryptoError> {
                     }
                 };
 
-                // Build an argv-style iterator: program name + typed args.
                 let args = std::iter::once("ferrocrypt".to_string()).chain(parts.into_iter());
 
-                // Try to parse as if it was a normal CLI invocation.
                 match Cli::try_parse_from(args) {
                     Ok(cli) => {
                         if let Some(cmd) = cli.command {
@@ -179,12 +161,10 @@ fn interactive_mode() -> Result<(), CryptoError> {
             }
 
             Err(ReadlineError::Interrupted) => {
-                // Ctrl+C
                 println!("^C");
                 continue;
             }
             Err(ReadlineError::Eof) => {
-                // Ctrl+D
                 println!();
                 break;
             }

@@ -54,7 +54,10 @@ mod tests {
 }
 
 /// Archives a file or directory into a ZIP archive.
-pub fn archive(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn archive(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     if input_path.as_ref().is_file() {
         archive_file(input_path, output_dir)
     } else {
@@ -62,7 +65,10 @@ pub fn archive(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
     }
 }
 
-fn archive_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn archive_file(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let output_dir = output_dir.as_ref();
 
@@ -74,7 +80,12 @@ fn archive_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> R
 
     let file_stem = &get_file_stem_to_string(input_path)?;
 
-    println!("Adding file {:?} as {:?}/{} ...", input_path, output_dir.join(file_stem), file_name_extension);
+    println!(
+        "Adding file {:?} as {:?}/{} ...",
+        input_path,
+        output_dir.join(file_stem),
+        file_name_extension
+    );
 
     let output_file = File::create(output_dir.join(format!("{}.zip", file_stem)))?;
     let mut zip = zip::ZipWriter::new(output_file);
@@ -99,7 +110,10 @@ fn archive_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> R
     Ok(file_stem.to_string())
 }
 
-fn archive_dir(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn archive_dir(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let output_dir = output_dir.as_ref();
 
@@ -107,7 +121,9 @@ fn archive_dir(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
         .file_name()
         .ok_or_else(|| CryptoError::InputPath("Input file or folder missing".to_string()))?
         .to_str()
-        .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert directory name to &str")))?;
+        .ok_or_else(|| {
+            ZipError::InvalidArchive(Cow::from("Cannot convert directory name to &str"))
+        })?;
 
     let output_zip_path = output_dir.join(format!("{}.zip", dir_name));
     let file = File::create(output_zip_path)?;
@@ -124,16 +140,21 @@ fn archive_dir(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
         let path = entry.path();
         match path.strip_prefix(input_path) {
             Ok(name) => {
-                let path_str = path.to_str()
-                    .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
+                let path_str = path.to_str().ok_or_else(|| {
+                    ZipError::InvalidArchive(Cow::from("Cannot convert path to &str"))
+                })?;
                 let normalized_path_str = &normalize_paths(path_str, "").0;
-                let name_str = name.to_str()
-                    .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert name to &str")))?;
+                let name_str = name.to_str().ok_or_else(|| {
+                    ZipError::InvalidArchive(Cow::from("Cannot convert name to &str"))
+                })?;
                 let output_path_str = format!("{}/{}", dir_name, name_str);
                 let normalized_output_path_str = &normalize_paths(&output_path_str, "").0;
 
                 if path.is_file() {
-                    println!("Adding file {} as {} ...", normalized_path_str, normalized_output_path_str);
+                    println!(
+                        "Adding file {} as {} ...",
+                        normalized_path_str, normalized_output_path_str
+                    );
                     zip.start_file(&output_path_str, options)?;
                     let mut f = File::open(path)?;
 
@@ -141,7 +162,10 @@ fn archive_dir(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
                     zip.write_all(&buffer)?;
                     buffer.clear();
                 } else if !output_path_str.is_empty() {
-                    println!("Adding dir {} as {} ...", normalized_path_str, normalized_output_path_str);
+                    println!(
+                        "Adding dir {} as {} ...",
+                        normalized_path_str, normalized_output_path_str
+                    );
                     zip.add_directory(&output_path_str, options)?;
                 }
             }
@@ -155,7 +179,10 @@ fn archive_dir(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Re
 }
 
 /// Extracts a ZIP archive to a specified directory.
-pub fn unarchive(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn unarchive(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let output_dir = output_dir.as_ref();
     let file = File::open(input_path.as_ref())?;
     let mut archive = zip::ZipArchive::new(file)?;
@@ -167,9 +194,11 @@ pub fn unarchive(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>) -> 
             Some(path) => path,
             None => continue,
         };
-        let outpath_str = outpath.to_str()
+        let outpath_str = outpath
+            .to_str()
             .ok_or_else(|| ZipError::InvalidArchive(Cow::from("Cannot convert path to &str")))?;
-        let outpath_full_str = normalize_paths(&format!("{}{}", output_dir.display(), outpath_str), "").0;
+        let outpath_full_str =
+            normalize_paths(&format!("{}{}", output_dir.display(), outpath_str), "").0;
         if i == 0 {
             output_path = outpath_full_str.clone();
         }

@@ -1,18 +1,20 @@
-use std::fs::{self, File, OpenOptions, read};
+use std::fs::{self, read, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::Path;
 
 use argon2::Variant;
 use chacha20poly1305::{
-    aead::{stream, Aead, KeyInit, OsRng, rand_core::RngCore},
+    aead::{rand_core::RngCore, stream, Aead, KeyInit, OsRng},
     XChaCha20Poly1305,
 };
 use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroize;
 
-use crate::{archiver, CryptoError};
-use crate::common::{constant_time_compare_256_bit, get_duration, get_file_stem_to_string, sha3_32_hash};
+use crate::common::{
+    constant_time_compare_256_bit, get_duration, get_file_stem_to_string, sha3_32_hash,
+};
 use crate::reed_solomon::{rs_decode, rs_encode, rs_encoded_size};
+use crate::{archiver, CryptoError};
 
 const BUFFER_SIZE: usize = 500;
 const SALT_SIZE: usize = 32;
@@ -21,7 +23,13 @@ const NONCE_19_SIZE: usize = 19;
 const KEY_SIZE: usize = 32;
 
 /// Encrypts a file with XChaCha20Poly1305 algorithm.
-pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, large: bool, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn encrypt_file(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    passphrase: &SecretString,
+    large: bool,
+    tmp_dir_path: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let output_dir = output_dir.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
@@ -36,7 +44,11 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
     let mut salt_32 = [0u8; SALT_SIZE];
     OsRng.fill_bytes(&mut salt_32);
 
-    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32, &argon2_config)?;
+    let mut key = argon2::hash_raw(
+        passphrase.expose_secret().as_bytes(),
+        &salt_32,
+        &argon2_config,
+    )?;
     let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
 
     // Hash the encryption key for comparison when decrypting
@@ -52,7 +64,6 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
         .append(true)
         .create_new(true)
         .open(output_dir.join(format!("{}.{}", file_stem, encrypted_extension)))?;
-
 
     // Encode with reed-solomon. The resulting size is three times that of the original
     let encoded_salt_32: Vec<u8> = rs_encode(&salt_32)?;
@@ -75,7 +86,8 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
         let mut nonce_19 = [0u8; NONCE_19_SIZE];
         OsRng.fill_bytes(&mut nonce_19);
         let encoded_nonce_19: Vec<u8> = rs_encode(&nonce_19)?;
-        let mut stream_encryptor = stream::EncryptorBE32::from_aead(cipher, nonce_19.as_ref().into());
+        let mut stream_encryptor =
+            stream::EncryptorBE32::from_aead(cipher, nonce_19.as_ref().into());
 
         let mut buffer = [0u8; BUFFER_SIZE];
 
@@ -104,7 +116,11 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
     }
 
     let encrypted_file_name = output_dir.join(format!("{}.{}", file_stem, encrypted_extension));
-    let result = format!("Encrypted to {} for {}", encrypted_file_name.display(), get_duration(start_time.elapsed().as_secs_f64()));
+    let result = format!(
+        "Encrypted to {} for {}",
+        encrypted_file_name.display(),
+        get_duration(start_time.elapsed().as_secs_f64())
+    );
     println!("\n{}", result);
 
     key.zeroize();
@@ -113,11 +129,17 @@ pub fn encrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
 }
 
 /// Decrypts a file with XChaCha20Poly1305 algorithm.
-pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+pub fn decrypt_file(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    passphrase: &SecretString,
+    tmp_dir_path: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let start_time = std::time::Instant::now();
     let input_path = input_path.as_ref();
     let file_bytes = read(input_path)?;
-    let (flags, _): ([bool; 4], usize) = bincode::decode_from_slice(&file_bytes[..4], bincode::config::standard())?;
+    let (flags, _): ([bool; 4], usize) =
+        bincode::decode_from_slice(&file_bytes[..4], bincode::config::standard())?;
 
     let output_path = if flags[0] {
         decrypt_large_file(input_path, output_dir, passphrase, tmp_dir_path)?
@@ -125,14 +147,23 @@ pub fn decrypt_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, 
         decrypt_normal_file(input_path, output_dir, passphrase, tmp_dir_path)?
     };
 
-    let result = format!("Decrypted to {} for {}", output_path, get_duration(start_time.elapsed().as_secs_f64()));
+    let result = format!(
+        "Decrypted to {} for {}",
+        output_path,
+        get_duration(start_time.elapsed().as_secs_f64())
+    );
     println!("\n{}", result);
 
     Ok(result)
 }
 
 /// Decrypts a normal-sized file with XChaCha20Poly1305 algorithm.
-fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn decrypt_normal_file(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    passphrase: &SecretString,
+    tmp_dir_path: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
     println!("Decrypting {} ...\n", input_path.display());
@@ -140,7 +171,8 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
 
     // Split salt, nonce, key hash and the encrypted file, and reconstruct with reed-solomon
     let (serialized_flags, rem_data) = encrypted_file.split_at(4);
-    let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
+    let (_flags, _): ([bool; 4], usize) =
+        bincode::decode_from_slice(serialized_flags, bincode::config::standard())?;
     let (encoded_salt_32, rem_data) = rem_data.split_at(rs_encoded_size(SALT_SIZE));
     let (encoded_nonce_24, rem_data) = rem_data.split_at(rs_encoded_size(NONCE_24_SIZE));
     let (encoded_key_hash_ref, ciphertext) = rem_data.split_at(rs_encoded_size(KEY_SIZE));
@@ -150,7 +182,11 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
     let key_hash_ref = rs_decode(encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32[0..32], &argon2_config)?;
+    let mut key = argon2::hash_raw(
+        passphrase.expose_secret().as_bytes(),
+        &salt_32[0..32],
+        &argon2_config,
+    )?;
 
     // Hash the encryption key for comparison and compare it in constant time with the ref key hash
     let key_hash: [u8; 32] = sha3_32_hash(&key)?;
@@ -158,7 +194,10 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
 
     let output_path = if key_correct {
         let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
-        let plaintext: Vec<u8> = cipher.decrypt(nonce_24[0..NONCE_24_SIZE].as_ref().into(), ciphertext.as_ref())?;
+        let plaintext: Vec<u8> = cipher.decrypt(
+            nonce_24[0..NONCE_24_SIZE].as_ref().into(),
+            ciphertext.as_ref(),
+        )?;
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
         let decrypted_file_path = tmp_dir_path.join(format!("{}.zip", decrypted_file_stem));
 
@@ -167,7 +206,9 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
 
         archiver::unarchive(&decrypted_file_path, output_dir)?
     } else {
-        return Err(CryptoError::EncryptionDecryptionError("The provided password is incorrect".to_string()));
+        return Err(CryptoError::EncryptionDecryptionError(
+            "The provided password is incorrect".to_string(),
+        ));
     };
 
     key.zeroize();
@@ -176,7 +217,12 @@ fn decrypt_normal_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path
 }
 
 /// Decrypts a large file that doesn't fit in RAM with XChaCha20Poly1305 algorithm. This is slower.
-fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>, passphrase: &SecretString, tmp_dir_path: impl AsRef<Path>) -> Result<String, CryptoError> {
+fn decrypt_large_file(
+    input_path: impl AsRef<Path>,
+    output_dir: impl AsRef<Path>,
+    passphrase: &SecretString,
+    tmp_dir_path: impl AsRef<Path>,
+) -> Result<String, CryptoError> {
     let input_path = input_path.as_ref();
     let tmp_dir_path = tmp_dir_path.as_ref();
     println!("Decrypting {} ...\n", input_path.display());
@@ -191,7 +237,8 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
     if read_count != serialized_flags.len() {
         return Err(CryptoError::Message("Error reading flags".to_string()));
     }
-    let (_flags, _): ([bool; 4], usize) = bincode::decode_from_slice(&serialized_flags, bincode::config::standard())?;
+    let (_flags, _): ([bool; 4], usize) =
+        bincode::decode_from_slice(&serialized_flags, bincode::config::standard())?;
 
     read_count = encrypted_file.read(&mut encoded_salt_32)?;
     if read_count != encoded_salt_32.len() {
@@ -205,7 +252,9 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
 
     read_count = encrypted_file.read(&mut encoded_key_hash_ref)?;
     if read_count != encoded_key_hash_ref.len() {
-        return Err(CryptoError::Message("Error reading key_hash_ref".to_string()));
+        return Err(CryptoError::Message(
+            "Error reading key_hash_ref".to_string(),
+        ));
     }
 
     let salt_32 = rs_decode(&encoded_salt_32)?;
@@ -213,14 +262,20 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
     let key_hash_ref = rs_decode(&encoded_key_hash_ref)?;
 
     let argon2_config = argon2_config();
-    let mut key = argon2::hash_raw(passphrase.expose_secret().as_bytes(), &salt_32, &argon2_config)?;
+    let mut key = argon2::hash_raw(
+        passphrase.expose_secret().as_bytes(),
+        &salt_32,
+        &argon2_config,
+    )?;
 
     let key_hash: [u8; KEY_SIZE] = sha3_32_hash(&key)?;
-    let key_correct = constant_time_compare_256_bit(&key_hash, key_hash_ref[..KEY_SIZE].try_into()?);
+    let key_correct =
+        constant_time_compare_256_bit(&key_hash, key_hash_ref[..KEY_SIZE].try_into()?);
 
     let output_path = if key_correct {
         let cipher = XChaCha20Poly1305::new(key[..KEY_SIZE].as_ref().into());
-        let mut stream_decryptor = stream::DecryptorBE32::from_aead(cipher, nonce_19[..NONCE_19_SIZE].as_ref().into());
+        let mut stream_decryptor =
+            stream::DecryptorBE32::from_aead(cipher, nonce_19[..NONCE_19_SIZE].as_ref().into());
         let decrypted_file_stem = &get_file_stem_to_string(input_path)?;
         let decrypted_file_path = tmp_dir_path.join(format!("{}.zip", decrypted_file_stem));
         let mut decrypted_file = OpenOptions::new()
@@ -229,7 +284,7 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
             .create_new(true)
             .open(&decrypted_file_path)?;
 
-        // 500 bytes for the encrypted piece of data, and 16 bytes for the authentication tag, which was added on encryption
+        // Streaming decryption: BUFFER_SIZE + 16 bytes for the Poly1305 authentication tag
         const ENCRYPTED_BUFFER_SIZE: usize = BUFFER_SIZE + 16;
         let mut buffer = [0u8; ENCRYPTED_BUFFER_SIZE];
 
@@ -254,7 +309,9 @@ fn decrypt_large_file(input_path: impl AsRef<Path>, output_dir: impl AsRef<Path>
 
         archiver::unarchive(&decrypted_file_path, output_dir)?
     } else {
-        return Err(CryptoError::EncryptionDecryptionError("The provided password is incorrect".to_string()));
+        return Err(CryptoError::EncryptionDecryptionError(
+            "The provided password is incorrect".to_string(),
+        ));
     };
 
     key.zeroize();

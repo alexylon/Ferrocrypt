@@ -48,3 +48,123 @@ pub fn get_duration(seconds: f64) -> String {
         format!("{} min, {:.2} sec", seconds as u32 / 60, seconds % 60_f64)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use secrecy::SecretString;
+
+    #[test]
+    fn test_normalize_paths_unix_style() {
+        let (src, dest) = normalize_paths("path/to/file", "path/to/dest");
+        assert_eq!(src, "path/to/file");
+        assert_eq!(dest, "path/to/dest/");
+    }
+
+    #[test]
+    fn test_normalize_paths_windows_style() {
+        let (src, dest) = normalize_paths("path\\to\\file", "path\\to\\dest");
+        assert_eq!(src, "path/to/file");
+        assert_eq!(dest, "path/to/dest/");
+    }
+
+    #[test]
+    fn test_normalize_paths_empty_dest() {
+        let (src, dest) = normalize_paths("file.txt", "");
+        assert_eq!(src, "file.txt");
+        assert_eq!(dest, "");
+    }
+
+    #[test]
+    fn test_normalize_paths_trailing_slash() {
+        let (src, dest) = normalize_paths("file.txt", "dest/");
+        assert_eq!(src, "file.txt");
+        assert_eq!(dest, "dest/");
+    }
+
+    #[test]
+    fn test_get_file_stem() {
+        let stem = get_file_stem_to_string("path/to/file.txt").unwrap();
+        assert_eq!(stem, "file");
+    }
+
+    #[test]
+    fn test_get_file_stem_no_extension() {
+        let stem = get_file_stem_to_string("path/to/file").unwrap();
+        assert_eq!(stem, "file");
+    }
+
+    #[test]
+    fn test_sha3_hash_consistency() {
+        let data = b"test data for hashing";
+        let hash1 = sha3_32_hash(data).unwrap();
+        let hash2 = sha3_32_hash(data).unwrap();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_sha3_hash_different_inputs() {
+        let hash1 = sha3_32_hash(b"data1").unwrap();
+        let hash2 = sha3_32_hash(b"data2").unwrap();
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_sha3_hash_empty_input() {
+        let hash = sha3_32_hash(b"").unwrap();
+        assert_eq!(hash.len(), 32);
+    }
+
+    #[test]
+    fn test_constant_time_compare_equal() {
+        let data = [42u8; 32];
+        assert!(constant_time_compare_256_bit(&data, &data));
+    }
+
+    #[test]
+    fn test_constant_time_compare_not_equal() {
+        let data1 = [42u8; 32];
+        let mut data2 = [42u8; 32];
+        data2[0] = 43;
+        assert!(!constant_time_compare_256_bit(&data1, &data2));
+    }
+
+    #[test]
+    fn test_constant_time_compare_all_zeros() {
+        let data1 = [0u8; 32];
+        let data2 = [0u8; 32];
+        assert!(constant_time_compare_256_bit(&data1, &data2));
+    }
+
+    #[test]
+    fn test_get_duration_seconds() {
+        let duration_str = get_duration(45.67);
+        assert!(duration_str.contains("45.67 sec"));
+    }
+
+    #[test]
+    fn test_get_duration_minutes() {
+        let duration_str = get_duration(125.5);
+        assert!(duration_str.contains("2 min"));
+        assert!(duration_str.contains("5.50 sec"));
+    }
+
+    #[test]
+    fn test_get_duration_zero() {
+        let duration_str = get_duration(0.0);
+        assert!(duration_str.contains("0.00 sec"));
+    }
+
+    #[test]
+    fn test_get_duration_less_than_second() {
+        let duration_str = get_duration(0.123);
+        assert!(duration_str.contains("0.12 sec"));
+    }
+
+    #[test]
+    fn test_secret_string_creation() {
+        let secret = SecretString::from("my_secret_password".to_string());
+        let debug_str = format!("{:?}", secret);
+        assert!(debug_str.contains("Secret"));
+    }
+}

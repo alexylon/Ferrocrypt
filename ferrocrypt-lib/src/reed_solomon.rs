@@ -42,8 +42,12 @@ pub fn rs_encode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
     output.extend_from_slice(&data_vec);
 
     // Get recovery shards - these are Option<&[u8]>, so we need to unwrap
-    let recovery_0 = result.recovery(0).ok_or_else(|| CryptoError::Message("Missing recovery shard 0".to_string()))?;
-    let recovery_1 = result.recovery(1).ok_or_else(|| CryptoError::Message("Missing recovery shard 1".to_string()))?;
+    let recovery_0 = result
+        .recovery(0)
+        .ok_or_else(|| CryptoError::Message("Missing recovery shard 0".to_string()))?;
+    let recovery_1 = result
+        .recovery(1)
+        .ok_or_else(|| CryptoError::Message("Missing recovery shard 1".to_string()))?;
 
     output.extend_from_slice(recovery_0);
     output.extend_from_slice(recovery_1);
@@ -63,7 +67,9 @@ pub fn rs_decode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
 
     // Check that remaining data is divisible by 3
     if remaining.len() % 3 != 0 {
-        return Err(CryptoError::Message("Incorrect encoded bytes length".to_string()));
+        return Err(CryptoError::Message(
+            "Incorrect encoded bytes length".to_string(),
+        ));
     }
 
     let shard_bytes = remaining.len() / 3;
@@ -107,7 +113,6 @@ pub fn rs_decode(data: &[u8]) -> Result<Vec<u8>, CryptoError> {
     Ok(result)
 }
 
-
 #[allow(dead_code)]
 fn pad_pkcs7(data: &[u8], block_size: usize) -> Vec<u8> {
     let mut byte_vec = data.to_vec();
@@ -136,7 +141,10 @@ mod tests {
 
     #[test]
     fn encode_reconstruct_test() {
-        let arr_32_orig = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2];
+        let arr_32_orig = [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+            0, 1, 2,
+        ];
 
         let mut arr_32_enc = rs_encode(&arr_32_orig).unwrap();
         println!("encoded_salt_32.len(): {}", &arr_32_enc.len());
